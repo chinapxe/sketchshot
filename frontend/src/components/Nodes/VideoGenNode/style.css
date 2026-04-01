@@ -1,0 +1,117 @@
+.video-gen-node {
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  width: 300px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.video-gen-node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.video-gen-node.status-queued {
+  border-color: #faad14;
+}
+
+.video-gen-node.status-processing {
+  border-color: #1677ff;
+}
+
+.video-gen-node.status-success {
+  border-color: #52c41a;
+}
+
+.video-gen-node.status-error {
+  border-color: #ff4d4f;
+}
+
+.video-gen-node.needs-refresh {
+  border-color: #fa8c16;
+  box-shadow: 0 0 0 1px rgba(250, 140, 22, 0.1);
+}
+
+.video-gen-node .node-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.prompt-helper-btn.ant-btn {
+  height: auto;
+  padding: 0;
+  font-size: 12px;
+  color: #1677ff;
+}
+
+.video-source-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.video-source-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.video-source-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid #91caff;
+}
+
+.video-empty-panel {
+  font-size: 11px;
+  color: #8c8c8c;
+  background: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  padding: 10px 12px;
+  line-height: 1.45;
+}
+
+.video-output-card {
+  position: relative;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #111;
+  cursor: pointer;
+}
+
+.video-output-media {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+.video-output-hint {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  font-size: 11px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.56);
+  border-radius: 999px;
+  padding: 4px 8px;
+}

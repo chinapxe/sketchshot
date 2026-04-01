@@ -1,0 +1,28 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Environment files
+backend/.env
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Backend runtime data
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+backend/data/outputs/*
+!backend/data/outputs/.gitkeep
+backend/data/workflows/*
+!backend/data/workflows/.gitkeep

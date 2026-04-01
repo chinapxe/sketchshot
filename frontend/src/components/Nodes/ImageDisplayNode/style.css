@@ -1,0 +1,101 @@
+.image-display-node {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  width: 220px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.image-display-node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.display-grid {
+  padding: 8px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.display-grid .display-image-button {
+  position: relative;
+  border: 0;
+  padding: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.display-grid .display-image {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+}
+
+.display-grid .display-image-hint {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.display-grid .re-upload-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.display-grid:hover .re-upload-btn {
+  opacity: 1;
+}
+
+.display-grid .display-image-button:hover .display-image-hint {
+  opacity: 1;
+}
+
+.empty-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  padding: 16px;
+  color: #bbb;
+  font-size: 13px;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.empty-display:hover {
+  color: #999;
+}
+
+.empty-icon {
+  font-size: 32px;
+}
+
+.empty-hint {
+  font-size: 11px;
+  color: #ccc;
+}

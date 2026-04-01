@@ -1,0 +1,227 @@
+.image-gen-node {
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  width: 280px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.image-gen-node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.image-gen-node.status-processing {
+  border-color: #1677ff;
+}
+
+.image-gen-node.status-success {
+  border-color: #52c41a;
+}
+
+.image-gen-node.status-error {
+  border-color: #ff4d4f;
+}
+
+.image-gen-node.needs-refresh {
+  border-color: #fa8c16;
+  box-shadow: 0 0 0 1px rgba(250, 140, 22, 0.1);
+}
+
+.image-gen-node .node-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.prompt-helper-btn.ant-btn {
+  height: auto;
+  padding: 0;
+  font-size: 12px;
+  color: #1677ff;
+}
+
+.prompt-textarea {
+  width: 100%;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.prompt-textarea:focus {
+  border-color: #1677ff;
+}
+
+.form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.field-select {
+  width: 100%;
+}
+
+.ref-images-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ref-image-card {
+  position: relative;
+}
+
+.ref-image-button {
+  border: 0;
+  padding: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ref-image-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #e0e0e0;
+  display: block;
+}
+
+.ref-image-card.is-upstream .ref-image-thumb {
+  border-color: #91caff;
+}
+
+.ref-image-card.is-manual .ref-image-thumb {
+  border-color: #95de64;
+}
+
+.ref-image-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ref-image-add {
+  width: 40px;
+  height: 40px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  background: #fff;
+  padding: 0;
+}
+
+.ref-image-add:hover:not(:disabled) {
+  border-color: #1677ff;
+  color: #1677ff;
+}
+
+.ref-image-add:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.ref-images-tip {
+  font-size: 11px;
+  color: #8c8c8c;
+}
+
+.node-refresh-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #d46b08;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 999px;
+  padding: 1px 8px;
+  line-height: 18px;
+}
+
+.refresh-tip {
+  font-size: 11px;
+  color: #ad6800;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  padding: 8px 10px;
+  line-height: 1.45;
+}
+
+.image-gen-node.status-queued {
+  border-color: #faad14;
+}
+
+.progress-bar {
+  padding: 0 2px;
+}
+
+.error-message {
+  font-size: 11px;
+  color: #ff4d4f;
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
+  padding: 4px 8px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.generate-btn {
+  margin-top: 4px;
+  border-radius: 8px;
+  font-weight: 500;
+}
