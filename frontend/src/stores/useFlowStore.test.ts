@@ -159,6 +159,20 @@ describe('useFlowStore video workflow support', () => {
     expect((shotNode?.data as ShotNodeData).outputType).toBe('image')
     expect((shotNode?.data as ShotNodeData).imageAdapter).toBe('volcengine')
     expect((shotNode?.data as ShotNodeData).creditCost).toBe(30)
+    expect((shotNode?.data as ShotNodeData).collapsed).toBe(false)
+  })
+
+  it('toggles collapsed state for storyboard nodes', () => {
+    useFlowStore.getState().addNode('shot', { x: 120, y: 80 })
+
+    const shotNode = useFlowStore.getState().nodes[0]
+    expect(shotNode?.type).toBe('shot')
+
+    useFlowStore.getState().toggleNodeCollapsed(shotNode.id)
+    expect((useFlowStore.getState().nodes[0].data as ShotNodeData).collapsed).toBe(true)
+
+    useFlowStore.getState().toggleNodeCollapsed(shotNode.id)
+    expect((useFlowStore.getState().nodes[0].data as ShotNodeData).collapsed).toBe(false)
   })
 
   it('syncs character references into downstream storyboard shots and marks refresh when context changes', async () => {

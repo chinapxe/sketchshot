@@ -92,6 +92,7 @@ export interface VideoDisplayNodeData {
 
 export interface SceneNodeData {
   label: string
+  collapsed?: boolean
   title: string
   synopsis: string
   beat: string
@@ -101,6 +102,7 @@ export interface SceneNodeData {
 
 export interface CharacterNodeData {
   label: string
+  collapsed?: boolean
   name: string
   role: string
   appearance: string
@@ -114,6 +116,7 @@ export interface CharacterNodeData {
 
 export interface StyleNodeData {
   label: string
+  collapsed?: boolean
   name: string
   keywords: string
   palette: string
@@ -125,6 +128,7 @@ export interface StyleNodeData {
 
 export interface ShotNodeData {
   label: string
+  collapsed?: boolean
   title: string
   description: string
   prompt: string

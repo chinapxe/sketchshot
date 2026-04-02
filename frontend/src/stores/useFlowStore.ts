@@ -33,6 +33,7 @@ import {
   buildShotGenerationSignature,
   buildVideoGenerationSignature,
 } from '../utils/generationSignature'
+import { computeAutoLayoutNodes } from '../utils/canvasLayout'
 import { getShotContext } from '../utils/storyboard'
 
 const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
@@ -95,6 +96,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
     case 'scene':
       return {
         label: 'Scene',
+        collapsed: false,
         title: '',
         synopsis: '',
         beat: '',
@@ -103,6 +105,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
     case 'character':
       return {
         label: 'Character',
+        collapsed: false,
         name: '',
         role: '',
         appearance: '',
@@ -115,6 +118,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
     case 'style':
       return {
         label: 'Style',
+        collapsed: false,
         name: '',
         keywords: '',
         palette: '',
@@ -125,6 +129,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
     case 'shot':
       return {
         label: 'Shot',
+        collapsed: false,
         title: '',
         description: '',
         prompt: '',
@@ -161,11 +166,6 @@ const cloneFlowState = (nodes: AppNode[], edges: AppEdge[]) => ({
   nodes: JSON.parse(JSON.stringify(nodes)) as AppNode[],
   edges: JSON.parse(JSON.stringify(edges)) as AppEdge[],
 })
-
-const AUTO_LAYOUT_START_X = 80
-const AUTO_LAYOUT_START_Y = 80
-const AUTO_LAYOUT_X_GAP = 340
-const AUTO_LAYOUT_Y_GAP = 220
 
 const dedupeStringList = (values: unknown): string[] => {
   if (!Array.isArray(values)) return []
@@ -271,6 +271,7 @@ const normalizeCharacterData = (data: Partial<CharacterNodeData>): CharacterNode
 
   return {
     label: 'Character',
+    collapsed: data.collapsed === true,
     name: '',
     role: '',
     appearance: '',
@@ -307,6 +308,7 @@ const normalizeShotData = (data: Partial<ShotNodeData>): ShotNodeData => {
 
   return {
     label: 'Shot',
+    collapsed: data.collapsed === true,
     title: '',
     description: '',
     prompt: '',
@@ -375,89 +377,6 @@ const syncShotDerivedState = (data: Partial<ShotNodeData>): ShotNodeData => {
   }
 }
 
-const sortNodesByPosition = (a: AppNode, b: AppNode) => {
-  if (a.position.y !== b.position.y) return a.position.y - b.position.y
-  return a.position.x - b.position.x
-}
-
-const computeAutoLayoutNodes = (nodes: AppNode[], edges: AppEdge[]): AppNode[] => {
-  if (nodes.length === 0) return []
-
-  const indegree = new Map(nodes.map((node) => [node.id, 0]))
-  const outgoing = new Map(nodes.map((node) => [node.id, [] as string[]]))
-  const incoming = new Map(nodes.map((node) => [node.id, [] as string[]]))
-
-  edges.forEach((edge) => {
-    if (!indegree.has(edge.source) || !indegree.has(edge.target)) return
-    indegree.set(edge.target, (indegree.get(edge.target) ?? 0) + 1)
-    outgoing.get(edge.source)?.push(edge.target)
-    incoming.get(edge.target)?.push(edge.source)
-  })
-
-  const queue = nodes
-    .filter((node) => (indegree.get(node.id) ?? 0) === 0)
-    .sort(sortNodesByPosition)
-    .map((node) => node.id)
-
-  if (queue.length === 0) {
-    queue.push(...nodes.sort(sortNodesByPosition).map((node) => node.id))
-  }
-
-  const levels = new Map<string, number>()
-  const visited = new Set<string>()
-
-  while (queue.length > 0) {
-    const currentId = queue.shift()!
-    if (visited.has(currentId)) continue
-    visited.add(currentId)
-
-    const parentIds = incoming.get(currentId) ?? []
-    const level = parentIds.length === 0
-      ? 0
-      : Math.max(...parentIds.map((parentId) => levels.get(parentId) ?? 0)) + 1
-
-    levels.set(currentId, level)
-
-    ;(outgoing.get(currentId) ?? []).forEach((targetId) => {
-      indegree.set(targetId, (indegree.get(targetId) ?? 1) - 1)
-      if ((indegree.get(targetId) ?? 0) <= 0) {
-        queue.push(targetId)
-      }
-    })
-  }
-
-  nodes
-    .filter((node) => !levels.has(node.id))
-    .sort(sortNodesByPosition)
-    .forEach((node, index) => {
-      levels.set(node.id, index)
-    })
-
-  const levelBuckets = new Map<number, AppNode[]>()
-  nodes.forEach((node) => {
-    const level = levels.get(node.id) ?? 0
-    const bucket = levelBuckets.get(level) ?? []
-    bucket.push(node)
-    levelBuckets.set(level, bucket)
-  })
-
-  levelBuckets.forEach((bucket) => bucket.sort(sortNodesByPosition))
-
-  return nodes.map((node) => {
-    const level = levels.get(node.id) ?? 0
-    const indexInLevel = levelBuckets.get(level)?.findIndex((item) => item.id === node.id) ?? 0
-
-    return {
-      ...node,
-      selected: false,
-      position: {
-        x: AUTO_LAYOUT_START_X + level * AUTO_LAYOUT_X_GAP,
-        y: AUTO_LAYOUT_START_Y + indexInLevel * AUTO_LAYOUT_Y_GAP,
-      },
-    }
-  })
-}
-
 const isValidConnection = (connection: Connection, nodes: AppNode[]): boolean => {
   const sourceNode = nodes.find((node) => node.id === connection.source)
   const targetNode = nodes.find((node) => node.id === connection.target)
@@ -496,6 +415,7 @@ interface FlowState {
   updateNodeData: (nodeId: string, data: Partial<Record<string, unknown>>) => void
   deleteNode: (nodeId: string) => void
   cloneNode: (nodeId: string) => void
+  toggleNodeCollapsed: (nodeId: string) => void
   toggleNodeDisabled: (nodeId: string) => void
   getUpstreamImages: (nodeId: string) => string[]
   getUpstreamVideos: (nodeId: string) => string[]
@@ -649,6 +569,22 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     } as AppNode
 
     set({ nodes: [...get().nodes, clonedNode] })
+  },
+
+  toggleNodeCollapsed: (nodeId: string) => {
+    const node = get().nodes.find((item) => item.id === nodeId)
+    if (!node) return
+
+    get()._pushHistory()
+    const isCurrentlyCollapsed = (node.data as Record<string, unknown>).collapsed === true
+
+    set({
+      nodes: get().nodes.map((item) =>
+        item.id === nodeId
+          ? ({ ...item, data: { ...item.data, collapsed: !isCurrentlyCollapsed } } as AppNode)
+          : item
+      ),
+    })
   },
 
   toggleNodeDisabled: (nodeId: string) => {

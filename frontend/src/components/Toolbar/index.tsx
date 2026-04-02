@@ -248,7 +248,7 @@ const Toolbar = memo(() => {
   const handleAutoLayout = useCallback(() => {
     autoLayout()
     scheduleFitView()
-    message.success('已完成自动布局')
+    message.success('已完成智能整理，节点与连线已自动散开')
   }, [autoLayout, scheduleFitView])
 
   const handleZoomIn = useCallback(() => {
@@ -544,7 +544,7 @@ const Toolbar = memo(() => {
               className="toolbar-btn"
             />
           </Tooltip>
-          <Tooltip title="自动布局">
+          <Tooltip title="智能整理画布">
             <Button
               type="text"
               icon={<AppstoreOutlined />}
