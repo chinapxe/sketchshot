@@ -29,7 +29,13 @@ import {
   DeleteOutlined,
   PlayCircleOutlined,
   ExportOutlined,
+  OrderedListOutlined,
+  PictureOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons'
+import AssetCenter from '../AssetCenter'
+import ExecutionCenter from '../ExecutionCenter'
+import VersionCompare from '../VersionCompare'
 import { useFlowStore } from '../../stores/useFlowStore'
 import {
   createWorkflow,
@@ -44,8 +50,103 @@ import { exportWorkflowAssetsAsZip } from '../../services/workflowExport'
 import { WorkflowCycleError } from '../../utils/workflowExecution'
 import { getWorkflowCreditSummary } from '../../utils/workflowMetrics'
 import { workflowTemplates, type WorkflowTemplateDefinition } from '../../templates/workflowTemplates'
-import type { AppEdge, AppNode } from '../../types'
+import type { AppEdge, AppNode, AppNodeType } from '../../types'
 import './style.css'
+
+const templateCategoryMeta: Record<
+  WorkflowTemplateDefinition['category'],
+  { title: string; description: string }
+> = {
+  recommended: {
+    title: '推荐起步',
+    description: '第一次使用建议优先从这里开始，能最快理解新节点怎样串起来工作。',
+  },
+  storyboard: {
+    title: '故事板组织',
+    description: '适合熟悉多个镜头如何围绕同一角色和同一场次展开。',
+  },
+  character: {
+    title: '角色设定',
+    description: '适合先稳定角色设定，再把角色带进后续镜头。',
+  },
+  video: {
+    title: '视频镜头',
+    description: '适合学习图生视频、连续动作和首尾帧约束。',
+  },
+  compare: {
+    title: '方案对比',
+    description: '适合比较不同风格、不同方向的结果差异。',
+  },
+  basic: {
+    title: '基础链路',
+    description: '只想先熟悉上传、生成、预览这些基础能力时，从这里开始。',
+  },
+}
+
+type TemplateGuideSection = {
+  key: 'setup' | 'generate' | 'output'
+  title: string
+  description: string
+  nodes: string[]
+}
+
+const templateSetupTypes = new Set<AppNodeType>(['imageUpload', 'scene', 'character', 'style'])
+const templateGenerateTypes = new Set<AppNodeType>(['imageGen', 'videoGen', 'shot'])
+const templateOutputTypes = new Set<AppNodeType>(['imageDisplay', 'videoDisplay'])
+
+function sortTemplateNodes(nodes: AppNode[]): AppNode[] {
+  return [...nodes].sort((left, right) => {
+    if (left.position.x !== right.position.x) {
+      return left.position.x - right.position.x
+    }
+
+    return left.position.y - right.position.y
+  })
+}
+
+function getTemplateNodeName(node: AppNode): string {
+  switch (node.type) {
+    case 'shot':
+      return node.data.title || node.data.label
+    case 'scene':
+      return node.data.title || node.data.label
+    case 'character':
+      return node.data.name || node.data.label
+    case 'style':
+      return node.data.name || node.data.label
+    default:
+      return node.data.label || node.type
+  }
+}
+
+function buildTemplateGuideSections(template: WorkflowTemplateDefinition): TemplateGuideSection[] {
+  const orderedNodes = sortTemplateNodes(template.nodes)
+  const mapNodeNames = (types: Set<AppNodeType>) =>
+    orderedNodes.filter((node) => types.has(node.type)).map((node) => getTemplateNodeName(node))
+
+  const sections: TemplateGuideSection[] = [
+    {
+      key: 'setup',
+      title: '1. 先准备设定',
+      description: '先补全左侧的设定和参考输入，让后续节点获得稳定上下文。',
+      nodes: mapNodeNames(templateSetupTypes),
+    },
+    {
+      key: 'generate',
+      title: '2. 再执行核心节点',
+      description: '按画布连线方向从左到右执行生成节点；如果存在分支，可以分别运行比较。',
+      nodes: mapNodeNames(templateGenerateTypes),
+    },
+    {
+      key: 'output',
+      title: '3. 最后查看结果',
+      description: '输出节点主要用于承接和预览图像或视频结果。',
+      nodes: mapNodeNames(templateOutputTypes),
+    },
+  ]
+
+  return sections.filter((section) => section.nodes.length > 0)
+}
 
 const Toolbar = memo(() => {
   const { fitView, zoomIn, zoomOut } = useReactFlow<AppNode>()
@@ -68,6 +169,11 @@ const Toolbar = memo(() => {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false)
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+  const [appliedTemplateGuide, setAppliedTemplateGuide] = useState<WorkflowTemplateDefinition | null>(null)
+  const [isAssetCenterOpen, setIsAssetCenterOpen] = useState(false)
+  const [isExecutionCenterOpen, setIsExecutionCenterOpen] = useState(false)
+  const [isVersionCompareOpen, setIsVersionCompareOpen] = useState(false)
+  const [compareNodeId, setCompareNodeId] = useState<string | null>(null)
   const [workflowNameDraft, setWorkflowNameDraft] = useState(currentWorkflowName)
   const [workflowList, setWorkflowList] = useState<WorkflowListItem[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -79,7 +185,7 @@ const Toolbar = memo(() => {
   const creditSummary = useMemo(() => getWorkflowCreditSummary(nodes), [nodes])
   const executeDescription = useMemo(() => {
     if (creditSummary.executableNodeCount === 0) {
-      return '当前工作流中没有可执行的图片生成节点'
+      return '当前工作流中没有可执行的生成节点'
     }
 
     if (creditSummary.cachedNodeCount > 0) {
@@ -93,6 +199,28 @@ const Toolbar = memo(() => {
     if (currentWorkflowId) return `当前工作流：${currentWorkflowName}`
     return `未保存工作流：${currentWorkflowName}`
   }, [currentWorkflowId, currentWorkflowName])
+  const groupedTemplates = useMemo(() => {
+    const order: WorkflowTemplateDefinition['category'][] = [
+      'recommended',
+      'storyboard',
+      'character',
+      'video',
+      'compare',
+      'basic',
+    ]
+
+    return order
+      .map((category) => ({
+        category,
+        meta: templateCategoryMeta[category],
+        templates: workflowTemplates.filter((template) => template.category === category),
+      }))
+      .filter((group) => group.templates.length > 0)
+  }, [])
+  const appliedTemplateSections = useMemo(
+    () => (appliedTemplateGuide ? buildTemplateGuideSections(appliedTemplateGuide) : []),
+    [appliedTemplateGuide]
+  )
 
   const scheduleFitView = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -195,6 +323,7 @@ const Toolbar = memo(() => {
       edges: template.edges,
     })
     setIsTemplateModalOpen(false)
+    setAppliedTemplateGuide(template)
     message.success(`已应用模板：${template.name}`)
     scheduleFitView()
   }, [loadWorkflow, scheduleFitView])
@@ -268,6 +397,11 @@ const Toolbar = memo(() => {
       setActiveWorkflowId(null)
     }
   }, [currentWorkflowId, currentWorkflowName, refreshWorkflowList, setWorkflowMeta])
+
+  const handleOpenVersionCompare = useCallback((nodeId?: string) => {
+    setCompareNodeId(nodeId ?? null)
+    setIsVersionCompareOpen(true)
+  }, [])
 
   return (
     <>
@@ -353,6 +487,30 @@ const Toolbar = memo(() => {
             onClick={() => void handleExportWorkflow()}
           >
             导出
+          </Button>
+          <Button
+            size="small"
+            icon={<PictureOutlined />}
+            className="toolbar-text-btn"
+            onClick={() => setIsAssetCenterOpen(true)}
+          >
+            资产中心
+          </Button>
+          <Button
+            size="small"
+            icon={<OrderedListOutlined />}
+            className="toolbar-text-btn"
+            onClick={() => setIsExecutionCenterOpen(true)}
+          >
+            执行中心
+          </Button>
+          <Button
+            size="small"
+            icon={<HistoryOutlined />}
+            className="toolbar-text-btn"
+            onClick={() => handleOpenVersionCompare()}
+          >
+            版本对比
           </Button>
         </div>
 
@@ -574,7 +732,7 @@ const Toolbar = memo(() => {
             setIsTemplateModalOpen(false)
           }
         }}
-        width={760}
+        width={920}
         destroyOnClose
         footer={[
           <Button key="close" type="primary" disabled={isWorkflowExecuting} onClick={() => setIsTemplateModalOpen(false)}>
@@ -582,31 +740,140 @@ const Toolbar = memo(() => {
           </Button>,
         ]}
       >
-        <div className="toolbar-workflow-list">
-          {workflowTemplates.map((template) => (
-            <div key={template.id} className="toolbar-workflow-item">
-              <div className="toolbar-workflow-meta">
-                <div className="toolbar-workflow-name">{template.name}</div>
-                <div className="toolbar-template-description">{template.description}</div>
-                <div className="toolbar-workflow-detail">
-                  <span>{template.nodes.length} 个节点</span>
-                  <span>{template.edges.length} 条连线</span>
-                </div>
+        <div className="toolbar-template-groups">
+          {groupedTemplates.map((group) => (
+            <section key={group.category} className="toolbar-template-group">
+              <div className="toolbar-template-group-header">
+                <div className="toolbar-template-group-title">{group.meta.title}</div>
+                <div className="toolbar-template-group-description">{group.meta.description}</div>
               </div>
-              <div className="toolbar-workflow-actions">
-                <Button
-                  size="small"
-                  type="primary"
-                  disabled={isWorkflowExecuting}
-                  onClick={() => handleApplyTemplate(template)}
-                >
-                  应用模板
-                </Button>
+
+              <div className="toolbar-template-group-list">
+                {group.templates.map((template) => (
+                  <div key={template.id} className="toolbar-workflow-item toolbar-template-item">
+                    <div className="toolbar-workflow-meta">
+                      <div className="toolbar-template-title-row">
+                        <div className="toolbar-workflow-name">{template.name}</div>
+                        <div className="toolbar-template-tags">
+                          {template.recommended && <span className="toolbar-template-badge recommended">推荐</span>}
+                          <span className="toolbar-template-badge">{group.meta.title}</span>
+                        </div>
+                      </div>
+                      <div className="toolbar-template-description">{template.description}</div>
+                      <div className="toolbar-workflow-detail">
+                        <span>{template.nodes.length} 个节点</span>
+                        <span>{template.edges.length} 条连线</span>
+                      </div>
+                      <div className="toolbar-template-points">
+                        {template.learningPoints.map((point) => (
+                          <span key={point} className="toolbar-template-point">
+                            {point}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="toolbar-template-hint">
+                        第一步：{template.firstActionHint}
+                      </div>
+                    </div>
+                    <div className="toolbar-workflow-actions">
+                      <Button
+                        size="small"
+                        type="primary"
+                        disabled={isWorkflowExecuting}
+                        onClick={() => handleApplyTemplate(template)}
+                      >
+                        应用模板
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       </Modal>
+
+      <Modal
+        title={appliedTemplateGuide ? `模板已应用：${appliedTemplateGuide.name}` : '模板上手指引'}
+        open={Boolean(appliedTemplateGuide)}
+        onCancel={() => setAppliedTemplateGuide(null)}
+        width={780}
+        destroyOnClose
+        footer={[
+          <Button key="close" type="primary" onClick={() => setAppliedTemplateGuide(null)}>
+            开始使用
+          </Button>,
+        ]}
+      >
+        {appliedTemplateGuide && (
+          <div className="toolbar-template-guide">
+            <div className="toolbar-template-guide-summary">
+              <div className="toolbar-template-guide-title">这套模板会带你完成什么</div>
+              <div className="toolbar-template-description">{appliedTemplateGuide.description}</div>
+              <div className="toolbar-workflow-detail">
+                <span>{appliedTemplateGuide.nodes.length} 个节点</span>
+                <span>{appliedTemplateGuide.edges.length} 条连线</span>
+                <span>{appliedTemplateSections.length} 个上手阶段</span>
+              </div>
+            </div>
+
+            <div className="toolbar-template-points">
+              {appliedTemplateGuide.learningPoints.map((point) => (
+                <span key={point} className="toolbar-template-point">
+                  {point}
+                </span>
+              ))}
+            </div>
+
+            <div className="toolbar-template-hint">
+              第一步：{appliedTemplateGuide.firstActionHint}
+            </div>
+
+            <div className="toolbar-template-guide-sections">
+              {appliedTemplateSections.map((section) => (
+                <section key={section.key} className="toolbar-template-guide-section">
+                  <div className="toolbar-template-guide-section-title">{section.title}</div>
+                  <div className="toolbar-template-guide-section-description">{section.description}</div>
+                  <div className="toolbar-template-guide-node-list">
+                    {section.nodes.map((nodeName) => (
+                      <span key={`${section.key}-${nodeName}`} className="toolbar-template-guide-node">
+                        {nodeName}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+
+            <div className="toolbar-template-guide-note">
+              画布已经自动适配到模板全貌，你可以直接从左侧起始节点开始填写，再沿着连线往右推进。
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <ExecutionCenter
+        open={isExecutionCenterOpen}
+        nodes={nodes}
+        edges={edges}
+        onClose={() => setIsExecutionCenterOpen(false)}
+        onOpenVersionCompare={(nodeId) => handleOpenVersionCompare(nodeId)}
+      />
+      <AssetCenter
+        open={isAssetCenterOpen}
+        nodes={nodes}
+        onClose={() => setIsAssetCenterOpen(false)}
+      />
+      <VersionCompare
+        open={isVersionCompareOpen}
+        nodes={nodes}
+        edges={edges}
+        initialNodeId={compareNodeId}
+        onClose={() => {
+          setIsVersionCompareOpen(false)
+          setCompareNodeId(null)
+        }}
+      />
     </>
   )
 })

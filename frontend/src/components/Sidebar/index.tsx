@@ -1,9 +1,13 @@
 import { memo } from 'react'
 import {
   AppstoreOutlined,
+  BgColorsOutlined,
+  BranchesOutlined,
+  CameraOutlined,
   HighlightOutlined,
   PictureOutlined,
   PlaySquareOutlined,
+  TeamOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons'
 
@@ -18,6 +22,30 @@ interface NodeTypeItem {
 }
 
 const nodeTypes: NodeTypeItem[] = [
+  {
+    type: 'scene',
+    label: 'Scene',
+    description: 'Organize story beats and shot groups',
+    icon: <BranchesOutlined />,
+  },
+  {
+    type: 'shot',
+    label: 'Shot',
+    description: 'Create a storyboard shot and generate directly',
+    icon: <CameraOutlined />,
+  },
+  {
+    type: 'character',
+    label: 'Character',
+    description: 'Define a reusable character profile',
+    icon: <TeamOutlined />,
+  },
+  {
+    type: 'style',
+    label: 'Style',
+    description: 'Define the visual tone and framing language',
+    icon: <BgColorsOutlined />,
+  },
   {
     type: 'imageUpload',
     label: 'Image',

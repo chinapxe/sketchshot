@@ -1,5 +1,9 @@
-import type { AppNode, ImageGenNodeData, VideoGenNodeData } from '../types'
-import { buildGenerationSignature, buildVideoGenerationSignature } from './generationSignature'
+import type { AppNode, ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
+import {
+  buildGenerationSignature,
+  buildShotGenerationSignature,
+  buildVideoGenerationSignature,
+} from './generationSignature'
 
 export interface WorkflowCreditSummary {
   executableNodeCount: number
@@ -25,6 +29,16 @@ function getNodeCostAndCache(node: AppNode): { creditCost: number; hasCache: boo
   if (node.type === 'videoGen') {
     const data = node.data as VideoGenNodeData
     const signature = buildVideoGenerationSignature(data)
+
+    return {
+      creditCost: data.creditCost,
+      hasCache: Boolean(data.resultCache?.[signature]),
+    }
+  }
+
+  if (node.type === 'shot') {
+    const data = node.data as ShotNodeData
+    const signature = buildShotGenerationSignature(data)
 
     return {
       creditCost: data.creditCost,

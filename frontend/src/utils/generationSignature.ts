@@ -1,4 +1,4 @@
-import type { ImageGenNodeData, VideoGenNodeData } from '../types'
+import type { ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
 
 type ImageSignatureSource = Pick<
   ImageGenNodeData,
@@ -8,6 +8,31 @@ type ImageSignatureSource = Pick<
 type VideoSignatureSource = Pick<
   VideoGenNodeData,
   'prompt' | 'aspectRatio' | 'durationSeconds' | 'motionStrength' | 'adapter' | 'sourceImages'
+>
+
+type ShotSignatureSource = Pick<
+  ShotNodeData,
+  | 'prompt'
+  | 'title'
+  | 'description'
+  | 'continuityFrames'
+  | 'videoFirstFrame'
+  | 'videoLastFrame'
+  | 'shotSize'
+  | 'cameraAngle'
+  | 'motion'
+  | 'emotion'
+  | 'aspectRatio'
+  | 'resolution'
+  | 'outputType'
+  | 'imageAdapter'
+  | 'videoAdapter'
+  | 'durationSeconds'
+  | 'motionStrength'
+  | 'identityLock'
+  | 'identityStrength'
+  | 'referenceImages'
+  | 'contextSignature'
 >
 
 function normalizeAssetList(values: string[] | undefined): string[] {
@@ -40,5 +65,43 @@ export function buildVideoGenerationSignature(data: VideoSignatureSource): strin
     motionStrength: data.motionStrength,
     adapter: data.adapter,
     sourceImages: normalizeAssetList(data.sourceImages),
+  })
+}
+
+/**
+ * Build a stable signature for storyboard shot generation inputs.
+ */
+export function buildShotGenerationSignature(data: ShotSignatureSource): string {
+  const continuityFrames =
+    data.outputType === 'video'
+      ? (data.continuityFrames ?? [])
+          .map((frame) => frame.trim())
+          .filter((frame) => frame.length > 0)
+      : []
+  const videoFirstFrame = data.outputType === 'video' ? data.videoFirstFrame ?? '' : ''
+  const videoLastFrame = data.outputType === 'video' ? data.videoLastFrame ?? '' : ''
+
+  return JSON.stringify({
+    outputType: data.outputType,
+    title: data.title.trim(),
+    description: data.description.trim(),
+    prompt: data.prompt.trim(),
+    continuityFrames,
+    videoFirstFrame,
+    videoLastFrame,
+    shotSize: data.shotSize,
+    cameraAngle: data.cameraAngle,
+    motion: data.motion.trim(),
+    emotion: data.emotion.trim(),
+    aspectRatio: data.aspectRatio,
+    resolution: data.resolution,
+    imageAdapter: data.imageAdapter ?? 'auto',
+    videoAdapter: data.videoAdapter ?? 'volcengine',
+    durationSeconds: data.durationSeconds,
+    motionStrength: data.motionStrength,
+    identityLock: data.identityLock ?? false,
+    identityStrength: data.identityStrength ?? 0.7,
+    referenceImages: normalizeAssetList(data.referenceImages),
+    contextSignature: data.contextSignature ?? '',
   })
 }

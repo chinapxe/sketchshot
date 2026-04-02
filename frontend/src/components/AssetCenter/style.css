@@ -1,0 +1,150 @@
+.asset-center-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.asset-center-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #595959;
+  background: #fafafa;
+  border: 1px solid #e8e8e8;
+}
+
+.asset-center-chip.upload {
+  color: #0958d9;
+  background: #e6f4ff;
+  border-color: #91caff;
+}
+
+.asset-center-chip.generated {
+  color: #135200;
+  background: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.asset-center-filter {
+  margin-bottom: 16px;
+}
+
+.asset-center-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+}
+
+.asset-center-item {
+  display: flex;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.asset-center-preview {
+  width: 108px;
+  flex-shrink: 0;
+}
+
+.asset-center-media {
+  display: block;
+  width: 108px;
+  height: 108px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #111;
+  border: 1px solid #ececec;
+}
+
+.asset-center-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.asset-center-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.asset-center-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.asset-center-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.asset-center-url {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #8c8c8c;
+  word-break: break-all;
+}
+
+.asset-center-source-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.asset-center-source-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.asset-center-source-node {
+  color: #434343;
+  font-weight: 500;
+}
+
+.asset-center-source-relation {
+  color: #8c8c8c;
+}
+
+.asset-center-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+  .asset-center-item {
+    flex-direction: column;
+  }
+
+  .asset-center-preview,
+  .asset-center-media {
+    width: 100%;
+    height: 180px;
+  }
+
+  .asset-center-title-row {
+    flex-direction: column;
+  }
+
+  .asset-center-tags {
+    justify-content: flex-start;
+  }
+
+  .asset-center-actions {
+    justify-content: flex-start;
+  }
+}

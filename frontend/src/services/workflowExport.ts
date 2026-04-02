@@ -2,6 +2,7 @@ import type {
   AppNode,
   ImageDisplayNodeData,
   ImageGenNodeData,
+  ShotNodeData,
   VideoDisplayNodeData,
   VideoGenNodeData,
 } from '../types'
@@ -137,6 +138,26 @@ function createExportAssets(nodes: AppNode[]): ExportAsset[] {
               nodeLabel: data.label,
               url: data.outputVideo,
               suggestedName: `${sanitizeFilePart(data.label)}-output`,
+            }
+          : null
+      )
+      return
+    }
+
+    if (node.type === 'shot') {
+      const data = node.data as ShotNodeData
+      const outputUrl = data.outputType === 'video' ? data.outputVideo : data.outputImage
+
+      pushAsset(
+        assets,
+        seenUrls,
+        outputUrl
+          ? {
+              nodeId: node.id,
+              nodeType: node.type,
+              nodeLabel: data.label,
+              url: outputUrl,
+              suggestedName: `${sanitizeFilePart(data.title || data.label)}-output`,
             }
           : null
       )

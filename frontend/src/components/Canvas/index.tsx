@@ -11,9 +11,13 @@ import '@xyflow/react/dist/style.css'
 
 import ContextMenu from '../ContextMenu'
 import Toolbar from '../Toolbar'
+import CharacterNode from '../Nodes/CharacterNode'
 import ImageDisplayNode from '../Nodes/ImageDisplayNode'
 import ImageGenNode from '../Nodes/ImageGenNode'
 import ImageUploadNode from '../Nodes/ImageUploadNode'
+import SceneNode from '../Nodes/SceneNode'
+import ShotNode from '../Nodes/ShotNode'
+import StyleNode from '../Nodes/StyleNode'
 import VideoDisplayNode from '../Nodes/VideoDisplayNode'
 import VideoGenNode from '../Nodes/VideoGenNode'
 import { useFlowStore } from '../../stores/useFlowStore'
@@ -26,6 +30,10 @@ const nodeTypes = {
   imageDisplay: ImageDisplayNode,
   videoGen: VideoGenNode,
   videoDisplay: VideoDisplayNode,
+  scene: SceneNode,
+  character: CharacterNode,
+  style: StyleNode,
+  shot: ShotNode,
 }
 
 interface ContextMenuState {

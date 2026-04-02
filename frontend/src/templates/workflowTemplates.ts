@@ -4,9 +4,13 @@ import type {
   AppEdge,
   AppNode,
   AppNodeType,
+  CharacterNodeData,
   ImageDisplayNodeData,
   ImageGenNodeData,
   ImageUploadNodeData,
+  SceneNodeData,
+  ShotNodeData,
+  StyleNodeData,
   VideoDisplayNodeData,
   VideoGenNodeData,
 } from '../types'
@@ -15,6 +19,10 @@ export interface WorkflowTemplateDefinition {
   id: string
   name: string
   description: string
+  category: 'recommended' | 'storyboard' | 'character' | 'video' | 'compare' | 'basic'
+  recommended?: boolean
+  learningPoints: string[]
+  firstActionHint: string
   nodes: AppNode[]
   edges: AppEdge[]
 }
@@ -109,6 +117,92 @@ function createVideoDisplayNode(position: { x: number; y: number }, label: strin
   })
 }
 
+function createSceneNode(
+  position: { x: number; y: number },
+  options: Partial<SceneNodeData> & Pick<SceneNodeData, 'label' | 'title'>
+): AppNode {
+  return createNodeBase<SceneNodeData>('scene', position, {
+    label: options.label,
+    title: options.title,
+    synopsis: options.synopsis ?? '',
+    beat: options.beat ?? '',
+    notes: options.notes ?? '',
+  })
+}
+
+function createCharacterNode(
+  position: { x: number; y: number },
+  options: Partial<CharacterNodeData> & Pick<CharacterNodeData, 'label' | 'name'>
+): AppNode {
+  return createNodeBase<CharacterNodeData>('character', position, {
+    label: options.label,
+    name: options.name,
+    role: options.role ?? '',
+    appearance: options.appearance ?? '',
+    wardrobe: options.wardrobe ?? '',
+    props: options.props ?? '',
+    notes: options.notes ?? '',
+    referenceImages: options.referenceImages ?? [],
+    threeViewImages: options.threeViewImages ?? {},
+  })
+}
+
+function createStyleNode(
+  position: { x: number; y: number },
+  options: Partial<StyleNodeData> & Pick<StyleNodeData, 'label' | 'name'>
+): AppNode {
+  return createNodeBase<StyleNodeData>('style', position, {
+    label: options.label,
+    name: options.name,
+    keywords: options.keywords ?? '',
+    palette: options.palette ?? '',
+    lighting: options.lighting ?? '',
+    framing: options.framing ?? '',
+    notes: options.notes ?? '',
+  })
+}
+
+function createShotNode(
+  position: { x: number; y: number },
+  options: Partial<ShotNodeData> & Pick<ShotNodeData, 'label' | 'title' | 'description'>
+): AppNode {
+  const outputType = options.outputType ?? 'image'
+
+  return createNodeBase<ShotNodeData>('shot', position, {
+    label: options.label,
+    title: options.title,
+    description: options.description,
+    prompt: options.prompt ?? '',
+    continuityFrames: options.continuityFrames ?? Array.from({ length: 9 }, () => ''),
+    videoFirstFrame: options.videoFirstFrame,
+    videoLastFrame: options.videoLastFrame,
+    shotSize: options.shotSize ?? 'medium',
+    cameraAngle: options.cameraAngle ?? 'eye-level',
+    motion: options.motion ?? '',
+    emotion: options.emotion ?? '',
+    aspectRatio: options.aspectRatio ?? '16:9',
+    resolution: options.resolution ?? '2K',
+    outputType,
+    imageAdapter: options.imageAdapter ?? 'volcengine',
+    videoAdapter: options.videoAdapter ?? 'volcengine',
+    durationSeconds: options.durationSeconds ?? 4,
+    motionStrength: options.motionStrength ?? 0.6,
+    identityLock: options.identityLock ?? false,
+    identityStrength: options.identityStrength ?? 0.7,
+    referenceImages: [],
+    contextSignature: '',
+    status: 'idle',
+    progress: 0,
+    creditCost: outputType === 'video' ? 90 : 30,
+    outputImage: undefined,
+    outputVideo: undefined,
+    lastRunSignature: undefined,
+    resultCache: {},
+    needsRefresh: false,
+    errorMessage: undefined,
+  })
+}
+
 function createEdge(source: AppNode, target: AppNode): AppEdge {
   return {
     id: uuidv4(),
@@ -130,10 +224,69 @@ function createBasicStoryboardTemplate(): WorkflowTemplateDefinition {
 
   return {
     id: 'basic-storyboard',
-    name: 'Basic Storyboard',
-    description: 'Upload one reference image, generate a polished frame, and preview it.',
+    name: '基础出图链路',
+    description: '从上传参考图到图片生成的最小闭环，适合先熟悉画布、连线和生成按钮。',
+    category: 'basic',
+    learningPoints: ['上传图节点', '图片生成节点', '输出预览'],
+    firstActionHint: '先上传一张参考图，再点击图片生成节点的生成按钮。',
     nodes: [uploadNode, generateNode, displayNode],
     edges: [createEdge(uploadNode, generateNode), createEdge(generateNode, displayNode)],
+  }
+}
+
+function createStoryboardDirectorTemplate(): WorkflowTemplateDefinition {
+  const sceneNode = createSceneNode({ x: 60, y: 180 }, {
+    label: 'Scene',
+    title: '雨夜天台对峙',
+    synopsis: '主角终于逼近真相，在暴雨和霓虹之间与旧友摊牌。',
+    beat: '关系破裂，人物做出不可逆决定。',
+  })
+  const characterNode = createCharacterNode({ x: 60, y: 420 }, {
+    label: 'Character',
+    name: '沈迟',
+    role: '落魄调查记者',
+    appearance: '消瘦、短发、眼神警惕，长期奔波后的疲惫感明显。',
+    wardrobe: '深色风衣、旧皮靴',
+    props: '录音笔',
+  })
+  const styleNode = createStyleNode({ x: 420, y: 40 }, {
+    label: 'Style',
+    name: '冷峻都市悬疑',
+    keywords: '雨夜霓虹、低饱和、电影感、强对比',
+    palette: '冷青灰 + 局部暖橙',
+    lighting: '侧逆光、霓虹边缘光',
+    framing: '压迫式留白、人物偏边缘',
+  })
+  const shotNode = createShotNode({ x: 420, y: 280 }, {
+    label: 'Shot',
+    title: '主角回头定格',
+    description: '主角在雨中半侧身回头，眼神复杂，城市霓虹在身后虚化。',
+    motion: '衣摆被风吹动，雨水顺着发梢落下',
+    emotion: '压抑又决绝',
+    shotSize: 'medium',
+    cameraAngle: 'eye-level',
+    aspectRatio: '16:9',
+    outputType: 'image',
+  })
+  const displayNode = createImageDisplayNode({ x: 800, y: 280 }, 'Shot Output')
+  const uploadNode = createUploadNode({ x: 60, y: 660 }, 'Character Reference')
+
+  return {
+    id: 'storyboard-director',
+    name: '故事板单镜头入门',
+    description: '用场次、角色、风格、镜头四类新节点搭出第一个故事板镜头，快速理解新节点主链路。',
+    category: 'recommended',
+    recommended: true,
+    learningPoints: ['场次节点', '角色节点', '风格节点', '镜头节点'],
+    firstActionHint: '先把角色参考上传到角色节点，再直接生成镜头，感受四类节点的继承关系。',
+    nodes: [sceneNode, characterNode, styleNode, shotNode, displayNode, uploadNode],
+    edges: [
+      createEdge(sceneNode, shotNode),
+      createEdge(characterNode, shotNode),
+      createEdge(styleNode, shotNode),
+      createEdge(uploadNode, characterNode),
+      createEdge(shotNode, displayNode),
+    ],
   }
 }
 
@@ -154,8 +307,11 @@ function createDualStyleTemplate(): WorkflowTemplateDefinition {
 
   return {
     id: 'dual-style-compare',
-    name: 'Dual Style Compare',
-    description: 'Branch one reference into two image generation paths for quick visual comparison.',
+    name: '双风格对比',
+    description: '让同一角色在两套风格设定下分别出图，快速理解风格节点如何分支使用。',
+    category: 'compare',
+    learningPoints: ['风格分支', '同题材对比', '多结果预览'],
+    firstActionHint: '先上传一张角色参考图，再分别执行两个风格分支查看差异。',
     nodes: [uploadNode, editorialNode, cyberpunkNode, editorialDisplay, cyberpunkDisplay],
     edges: [
       createEdge(uploadNode, editorialNode),
@@ -189,8 +345,11 @@ function createThreeShotTemplate(): WorkflowTemplateDefinition {
 
   return {
     id: 'three-shot-storyboard',
-    name: 'Three Shot Storyboard',
-    description: 'Generate close, medium, and wide frames from a single reference input.',
+    name: '三景别分镜',
+    description: '从一个角色参考出发，分别生成近景、中景、远景，适合快速熟悉分镜拆解方式。',
+    category: 'storyboard',
+    learningPoints: ['分镜拆解', '景别变化', '多镜头组织'],
+    firstActionHint: '上传同一角色参考后，按近景、中景、远景顺序分别生成，观察镜头差异。',
     nodes: [uploadNode, closeupNode, mediumNode, wideNode, closeupDisplay, mediumDisplay, wideDisplay],
     edges: [
       createEdge(uploadNode, closeupNode),
@@ -216,16 +375,267 @@ function createImageToMotionTemplate(): WorkflowTemplateDefinition {
 
   return {
     id: 'image-to-motion',
-    name: 'Image To Motion',
-    description: 'Turn a still frame into a first-pass motion clip using the live Volcengine video pipeline.',
+    name: '图生视频最小链路',
+    description: '从一张关键帧生成视频片段，适合先熟悉视频生成入口和输出预览。',
+    category: 'video',
+    learningPoints: ['图生视频', '视频节点', '结果预览'],
+    firstActionHint: '先上传关键帧，再执行视频节点，熟悉最基础的视频链路。',
     nodes: [uploadNode, videoNode, displayNode],
     edges: [createEdge(uploadNode, videoNode), createEdge(videoNode, displayNode)],
   }
 }
 
+function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
+  const sceneNode = createSceneNode({ x: 60, y: 220 }, {
+    label: 'Scene',
+    title: '雨夜追逐',
+    synopsis: '主角在狭窄巷道里短暂停步，确认身后动静后继续向前冲。',
+    beat: '从警觉到决断，情绪逐步推高。',
+    notes: '建议按镜头 01 -> 镜头 02 -> 镜头 03 的顺序执行，感受镜头承接关系。',
+  })
+  const characterNode = createCharacterNode({ x: 60, y: 500 }, {
+    label: 'Character',
+    name: '林雾',
+    role: '被追踪的情报员',
+    appearance: '短发、冷白皮、眼神警觉，奔跑后呼吸急促。',
+    wardrobe: '深灰连帽外套、黑色长裤',
+    props: '加密芯片盒',
+    notes: '先上传角色参考，再依次生成镜头，观察角色状态如何延续。',
+  })
+  const styleNode = createStyleNode({ x: 420, y: 60 }, {
+    label: 'Style',
+    name: '冷雨都市动作感',
+    keywords: '雨夜反光地面、霓虹溢色、手持摄影感、压迫空间',
+    palette: '冷蓝灰 + 少量警灯红',
+    lighting: '背光 + 局部霓虹边缘光',
+    framing: '前景遮挡、斜线构图、动势明显',
+    notes: '适合演示多个镜头共享同一场次和风格设定。',
+  })
+  const uploadNode = createUploadNode({ x: 60, y: 760 }, '角色参考上传')
+  const shot1 = createShotNode({ x: 420, y: 260 }, {
+    label: 'Shot',
+    title: '镜头 01 · 巷口停步',
+    description: '主角从雨里冲进巷口，突然停下半步，肩膀还带着惯性。',
+    prompt: '先生成这个镜头，为后续镜头建立服装、状态和环境参考。',
+    shotSize: 'wide',
+    cameraAngle: 'eye-level',
+    motion: '冲刺后急停，水花飞溅',
+    emotion: '警觉',
+    aspectRatio: '16:9',
+    outputType: 'image',
+  })
+  const shot2 = createShotNode({ x: 780, y: 260 }, {
+    label: 'Shot',
+    title: '镜头 02 · 回头特写',
+    description: '主角缓慢回头，雨水顺着脸侧落下，眼神在昏暗中聚焦。',
+    prompt: '生成后可作为后续视频镜头的上游静帧参考。',
+    shotSize: 'close-up',
+    cameraAngle: 'over-shoulder',
+    motion: '头部缓慢回看',
+    emotion: '紧张克制',
+    aspectRatio: '16:9',
+    outputType: 'image',
+  })
+  const shot3 = createShotNode({ x: 1140, y: 260 }, {
+    label: 'Shot',
+    title: '镜头 03 · 冲刺转场',
+    description: '主角确认目标后重新启动，身体前压，快速冲向画面外侧。',
+    prompt: '可在生成前补充首帧/尾帧约束，体验连续镜头的视频生成方式。',
+    continuityFrames: [
+      '角色仍保持回头后的停顿状态',
+      '目光重新锁定前方',
+      '肩膀向前发力',
+      '脚步启动离地',
+      '身体重心前移',
+      '外套下摆被甩开',
+      '速度迅速拉起来',
+      '画面产生明显方向动势',
+      '角色冲出画面边缘',
+    ],
+    shotSize: 'medium',
+    cameraAngle: 'eye-level',
+    motion: '回头确认后立即再次冲刺',
+    emotion: '决断',
+    aspectRatio: '16:9',
+    outputType: 'video',
+    durationSeconds: 5,
+    motionStrength: 0.75,
+  })
+  const displayNode = createVideoDisplayNode({ x: 1480, y: 260 }, '片段预览')
+
+  return {
+    id: 'storyboard-sequence',
+    name: '推荐 · 一场戏三镜头',
+    description: '展示场次、角色、风格如何共同服务多个镜头，并通过 Shot -> Shot 表达片段顺序。',
+    category: 'recommended',
+    recommended: true,
+    learningPoints: ['多镜头片段', 'Shot -> Shot 承接', '连续视频镜头'],
+    firstActionHint: '建议先生成镜头 01，再生成镜头 02，最后再执行视频镜头 03。',
+    nodes: [sceneNode, characterNode, styleNode, uploadNode, shot1, shot2, shot3, displayNode],
+    edges: [
+      createEdge(uploadNode, characterNode),
+      createEdge(sceneNode, shot1),
+      createEdge(sceneNode, shot2),
+      createEdge(sceneNode, shot3),
+      createEdge(characterNode, shot1),
+      createEdge(characterNode, shot2),
+      createEdge(characterNode, shot3),
+      createEdge(styleNode, shot1),
+      createEdge(styleNode, shot2),
+      createEdge(styleNode, shot3),
+      createEdge(shot1, shot2),
+      createEdge(shot2, shot3),
+      createEdge(shot3, displayNode),
+    ],
+  }
+}
+
+function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
+  const uploadFront = createUploadNode({ x: 60, y: 120 }, '正面参考上传')
+  const uploadSide = createUploadNode({ x: 60, y: 300 }, '侧面参考上传')
+  const uploadBack = createUploadNode({ x: 60, y: 480 }, '背面参考上传')
+  const characterNode = createCharacterNode({ x: 420, y: 300 }, {
+    label: 'Character',
+    name: '苏离',
+    role: '故事主角 / 民国女画师',
+    appearance: '瘦高身形、眉眼清冷、发髻利落，神态内敛但专注。',
+    wardrobe: '素色旗袍、长风衣',
+    props: '画夹、旧钢笔',
+    notes: '把三张上传图连接到角色节点后，可在人物三视图 Lite 中指定正面 / 侧面 / 背面。',
+  })
+  const sceneNode = createSceneNode({ x: 760, y: 120 }, {
+    label: 'Scene',
+    title: '定妆拍摄',
+    synopsis: '用于先稳定角色形象，再把角色带进正式镜头。',
+    beat: '角色初次亮相',
+    notes: '这是一个偏“角色定妆”的入门模板。',
+  })
+  const styleNode = createStyleNode({ x: 760, y: 360 }, {
+    label: 'Style',
+    name: '复古电影定妆',
+    keywords: '柔光棚拍、细节质感、旧胶片色调、人物海报感',
+    palette: '米白 + 暗红',
+    lighting: '柔和主光 + 轮廓光',
+    framing: '稳定中近景、角色居中',
+    notes: '适合先熟悉角色节点如何向镜头提供统一设定。',
+  })
+  const shotNode = createShotNode({ x: 1100, y: 240 }, {
+    label: 'Shot',
+    title: '角色定妆镜头',
+    description: '角色站定看向镜头外侧，保留完整服装轮廓和气质。',
+    prompt: '先用这个镜头确认角色稳定性，再继续正式故事板镜头。',
+    shotSize: 'medium',
+    cameraAngle: 'eye-level',
+    motion: '站定，衣摆轻微摆动',
+    emotion: '平静克制',
+    aspectRatio: '3:4',
+    outputType: 'image',
+  })
+  const displayNode = createImageDisplayNode({ x: 1440, y: 240 }, '角色镜头预览')
+
+  return {
+    id: 'character-sheet-to-shot',
+    name: '推荐 · 角色设定到镜头',
+    description: '展示三张参考上传如何沉淀进角色设定，再统一供镜头复用，适合先学会角色节点。',
+    category: 'character',
+    recommended: true,
+    learningPoints: ['角色三视图', '角色设定复用', '角色到镜头继承'],
+    firstActionHint: '先把三张参考图接到角色节点，再在三视图 Lite 里指定正面、侧面、背面。',
+    nodes: [uploadFront, uploadSide, uploadBack, characterNode, sceneNode, styleNode, shotNode, displayNode],
+    edges: [
+      createEdge(uploadFront, characterNode),
+      createEdge(uploadSide, characterNode),
+      createEdge(uploadBack, characterNode),
+      createEdge(characterNode, shotNode),
+      createEdge(sceneNode, shotNode),
+      createEdge(styleNode, shotNode),
+      createEdge(shotNode, displayNode),
+    ],
+  }
+}
+
+function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
+  const firstFrameUpload = createUploadNode({ x: 60, y: 140 }, '首帧参考上传')
+  const lastFrameUpload = createUploadNode({ x: 60, y: 360 }, '尾帧参考上传')
+  const sceneNode = createSceneNode({ x: 420, y: 80 }, {
+    label: 'Scene',
+    title: '走廊惊觉',
+    synopsis: '角色在走廊尽头忽然停住，察觉异样后缓慢回头。',
+    beat: '从运动到停顿，再到情绪收紧。',
+    notes: '适合体验首帧/尾帧约束和九宫格连续动作。',
+  })
+  const characterNode = createCharacterNode({ x: 420, y: 360 }, {
+    label: 'Character',
+    name: '沈迟',
+    role: '调查记者',
+    appearance: '短发、消瘦、眼神带警觉感。',
+    wardrobe: '深色风衣',
+    props: '录音笔',
+    notes: '也可以把角色参考图连到这里，再一并连接到视频镜头。',
+  })
+  const styleNode = createStyleNode({ x: 760, y: 80 }, {
+    label: 'Style',
+    name: '冷峻悬疑长镜头',
+    keywords: '走廊透视、低饱和、静压感、微弱闪烁光源',
+    palette: '冷灰蓝',
+    lighting: '顶灯 + 尽头反光',
+    framing: '单点透视、空间纵深明显',
+    notes: '让视频镜头更强调连续动作和空间推进。',
+  })
+  const shotNode = createShotNode({ x: 1100, y: 240 }, {
+    label: 'Shot',
+    title: '停步回头视频镜头',
+    description: '角色在奔跑中停住，呼吸急促，随后缓慢回头看向后方。',
+    prompt: '上传首帧和尾帧后，可在镜头节点里分别选择约束图，再生成视频。',
+    continuityFrames: [
+      '角色仍保持前冲后的惯性',
+      '脚步开始减速',
+      '身体轻微失衡',
+      '停住呼吸急促',
+      '肩膀先回转',
+      '头部缓慢跟上',
+      '视线开始偏移',
+      '目光锁定后方目标',
+      '情绪最终收紧停住',
+    ],
+    shotSize: 'medium',
+    cameraAngle: 'eye-level',
+    motion: '先快后慢，最终停住回看',
+    emotion: '惊觉',
+    aspectRatio: '16:9',
+    outputType: 'video',
+    durationSeconds: 5,
+    motionStrength: 0.7,
+  })
+  const displayNode = createVideoDisplayNode({ x: 1440, y: 240 }, '视频结果预览')
+
+  return {
+    id: 'video-continuity-shot',
+    name: '推荐 · 连续动作视频镜头',
+    description: '展示首帧/尾帧上传、场次/角色/风格设定和视频镜头如何组合使用。',
+    category: 'video',
+    recommended: true,
+    learningPoints: ['首帧/尾帧约束', '九宫格连续动作', '视频镜头主链路'],
+    firstActionHint: '先上传首帧和尾帧参考，再在视频镜头里分别选择约束图后执行生成。',
+    nodes: [firstFrameUpload, lastFrameUpload, sceneNode, characterNode, styleNode, shotNode, displayNode],
+    edges: [
+      createEdge(firstFrameUpload, shotNode),
+      createEdge(lastFrameUpload, shotNode),
+      createEdge(sceneNode, shotNode),
+      createEdge(characterNode, shotNode),
+      createEdge(styleNode, shotNode),
+      createEdge(shotNode, displayNode),
+    ],
+  }
+}
+
 export const workflowTemplates: WorkflowTemplateDefinition[] = [
-  createBasicStoryboardTemplate(),
+  createStoryboardDirectorTemplate(),
+  createStoryboardSequenceTemplate(),
+  createCharacterSheetTemplate(),
+  createVideoContinuityTemplate(),
   createDualStyleTemplate(),
+  createBasicStoryboardTemplate(),
   createThreeShotTemplate(),
   createImageToMotionTemplate(),
 ]

@@ -16,14 +16,24 @@ import type {
   AppEdge,
   AppNode,
   AppNodeType,
+  CharacterNodeData,
+  CharacterThreeViewImages,
   ImageDisplayNodeData,
   ImageGenNodeData,
   ImageUploadNodeData,
   NodeStatus,
+  SceneNodeData,
+  ShotNodeData,
+  StyleNodeData,
   VideoDisplayNodeData,
   VideoGenNodeData,
 } from '../types'
-import { buildGenerationSignature, buildVideoGenerationSignature } from '../utils/generationSignature'
+import {
+  buildGenerationSignature,
+  buildShotGenerationSignature,
+  buildVideoGenerationSignature,
+} from '../utils/generationSignature'
+import { getShotContext } from '../utils/storyboard'
 
 const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
   switch (type) {
@@ -82,6 +92,66 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         videos: [],
         status: 'idle' as NodeStatus,
       } satisfies VideoDisplayNodeData
+    case 'scene':
+      return {
+        label: 'Scene',
+        title: '',
+        synopsis: '',
+        beat: '',
+        notes: '',
+      } satisfies SceneNodeData
+    case 'character':
+      return {
+        label: 'Character',
+        name: '',
+        role: '',
+        appearance: '',
+        wardrobe: '',
+        props: '',
+        notes: '',
+        referenceImages: [],
+        threeViewImages: {},
+      } satisfies CharacterNodeData
+    case 'style':
+      return {
+        label: 'Style',
+        name: '',
+        keywords: '',
+        palette: '',
+        lighting: '',
+        framing: '',
+        notes: '',
+      } satisfies StyleNodeData
+    case 'shot':
+      return {
+        label: 'Shot',
+        title: '',
+        description: '',
+        prompt: '',
+        continuityFrames: Array.from({ length: 9 }, () => ''),
+        videoFirstFrame: undefined,
+        videoLastFrame: undefined,
+        shotSize: 'medium',
+        cameraAngle: 'eye-level',
+        motion: '',
+        emotion: '',
+        aspectRatio: '16:9',
+        resolution: '2K',
+        outputType: 'image',
+        imageAdapter: 'volcengine',
+        videoAdapter: 'volcengine',
+        durationSeconds: 4,
+        motionStrength: 0.6,
+        identityLock: false,
+        identityStrength: 0.7,
+        referenceImages: [],
+        contextSignature: '',
+        status: 'idle' as NodeStatus,
+        progress: 0,
+        creditCost: 30,
+        resultCache: {},
+        needsRefresh: false,
+      } satisfies ShotNodeData
     default:
       return { label: 'Unknown Node' }
   }
@@ -170,6 +240,103 @@ const normalizeVideoGenData = (data: Partial<VideoGenNodeData>): VideoGenNodeDat
   }
 }
 
+const normalizeCharacterThreeViewImages = (
+  referenceImages: string[],
+  value: Partial<CharacterThreeViewImages> | undefined
+): CharacterThreeViewImages => {
+  const normalizedValue: CharacterThreeViewImages = {}
+  const slots: Array<keyof CharacterThreeViewImages> = ['front', 'side', 'back']
+
+  slots.forEach((slot) => {
+    const candidate = typeof value?.[slot] === 'string' ? value[slot] : undefined
+    if (candidate && referenceImages.includes(candidate)) {
+      normalizedValue[slot] = candidate
+    }
+  })
+
+  const used = new Set(Object.values(normalizedValue))
+  const remaining = referenceImages.filter((imageUrl) => !used.has(imageUrl))
+
+  slots.forEach((slot) => {
+    if (!normalizedValue[slot] && remaining.length > 0) {
+      normalizedValue[slot] = remaining.shift()
+    }
+  })
+
+  return normalizedValue
+}
+
+const normalizeCharacterData = (data: Partial<CharacterNodeData>): CharacterNodeData => {
+  const referenceImages = dedupeStringList(data.referenceImages)
+
+  return {
+    label: 'Character',
+    name: '',
+    role: '',
+    appearance: '',
+    wardrobe: '',
+    props: '',
+    notes: '',
+    ...data,
+    referenceImages,
+    threeViewImages: normalizeCharacterThreeViewImages(referenceImages, data.threeViewImages),
+  }
+}
+
+const normalizeShotData = (data: Partial<ShotNodeData>): ShotNodeData => {
+  const referenceImages = dedupeStringList(data.referenceImages)
+  const continuityFrames = Array.from({ length: 9 }, (_, index) => {
+    const value = Array.isArray(data.continuityFrames) ? data.continuityFrames[index] : undefined
+    return typeof value === 'string' ? value : ''
+  })
+  const videoFirstFrame =
+    typeof data.videoFirstFrame === 'string' && referenceImages.includes(data.videoFirstFrame)
+      ? data.videoFirstFrame
+      : undefined
+  const videoLastFrame =
+    typeof data.videoLastFrame === 'string' && referenceImages.includes(data.videoLastFrame)
+      ? data.videoLastFrame
+      : undefined
+  const restData = { ...data }
+  delete restData.referenceImages
+  delete restData.continuityFrames
+  delete restData.videoFirstFrame
+  delete restData.videoLastFrame
+
+  const outputType = data.outputType ?? 'image'
+
+  return {
+    label: 'Shot',
+    title: '',
+    description: '',
+    prompt: '',
+    continuityFrames,
+    videoFirstFrame,
+    videoLastFrame,
+    shotSize: 'medium',
+    cameraAngle: 'eye-level',
+    motion: '',
+    emotion: '',
+    aspectRatio: '16:9',
+    resolution: '2K',
+    outputType,
+    imageAdapter: 'volcengine',
+    videoAdapter: 'volcengine',
+    durationSeconds: 4,
+    motionStrength: 0.6,
+    identityLock: false,
+    identityStrength: 0.7,
+    contextSignature: typeof data.contextSignature === 'string' ? data.contextSignature : '',
+    status: 'idle' as NodeStatus,
+    progress: 0,
+    creditCost: outputType === 'video' ? 90 : 30,
+    resultCache: {},
+    needsRefresh: false,
+    ...restData,
+    referenceImages,
+  }
+}
+
 const syncImageGenDerivedState = (data: Partial<ImageGenNodeData>): ImageGenNodeData => {
   const normalizedData = normalizeImageGenData(data)
   const isGenerating = normalizedData.status === 'queued' || normalizedData.status === 'processing'
@@ -191,6 +358,19 @@ const syncVideoGenDerivedState = (data: Partial<VideoGenNodeData>): VideoGenNode
 
   return {
     ...normalizedData,
+    needsRefresh: hasRun && !isGenerating && currentSignature !== normalizedData.lastRunSignature,
+  }
+}
+
+const syncShotDerivedState = (data: Partial<ShotNodeData>): ShotNodeData => {
+  const normalizedData = normalizeShotData(data)
+  const isGenerating = normalizedData.status === 'queued' || normalizedData.status === 'processing'
+  const hasRun = Boolean(normalizedData.lastRunSignature)
+  const currentSignature = buildShotGenerationSignature(normalizedData)
+
+  return {
+    ...normalizedData,
+    identityLock: normalizedData.identityLock && normalizedData.referenceImages.length > 0,
     needsRefresh: hasRun && !isGenerating && currentSignature !== normalizedData.lastRunSignature,
   }
 }
@@ -283,9 +463,18 @@ const isValidConnection = (connection: Connection, nodes: AppNode[]): boolean =>
   const targetNode = nodes.find((node) => node.id === connection.target)
   if (!sourceNode || !targetNode) return false
 
+  if (sourceNode.type === 'shot') {
+    const outputType = (sourceNode.data as ShotNodeData).outputType ?? 'image'
+    const allowedTargets = outputType === 'video' ? ['videoDisplay', 'shot'] : ['imageDisplay', 'shot']
+    return allowedTargets.includes(targetNode.type || '')
+  }
+
   const validConnections: Record<string, string[]> = {
-    imageUpload: ['imageGen', 'videoGen'],
-    imageGen: ['imageDisplay', 'videoGen'],
+    scene: ['shot'],
+    character: ['shot'],
+    style: ['shot'],
+    imageUpload: ['imageGen', 'videoGen', 'character', 'shot'],
+    imageGen: ['imageDisplay', 'videoGen', 'character', 'shot'],
     videoGen: ['videoDisplay'],
   }
 
@@ -414,6 +603,20 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           } as AppNode
         }
 
+        if (node.type === 'character') {
+          return {
+            ...node,
+            data: normalizeCharacterData(mergedData as Partial<CharacterNodeData>),
+          } as AppNode
+        }
+
+        if (node.type === 'shot') {
+          return {
+            ...node,
+            data: syncShotDerivedState(mergedData as Partial<ShotNodeData>),
+          } as AppNode
+        }
+
         return { ...node, data: mergedData } as AppNode
       }),
     })
@@ -479,6 +682,9 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       } else if (sourceNode.type === 'imageGen') {
         const data = sourceNode.data as ImageGenNodeData
         if (data.outputImage) images.push(data.outputImage)
+      } else if (sourceNode.type === 'shot') {
+        const data = sourceNode.data as ShotNodeData
+        if (data.outputType === 'image' && data.outputImage) images.push(data.outputImage)
       }
     }
 
@@ -498,6 +704,9 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       if (sourceNode.type === 'videoGen') {
         const data = sourceNode.data as VideoGenNodeData
         if (data.outputVideo) videos.push(data.outputVideo)
+      } else if (sourceNode.type === 'shot') {
+        const data = sourceNode.data as ShotNodeData
+        if (data.outputType === 'video' && data.outputVideo) videos.push(data.outputVideo)
       }
     }
 
@@ -519,6 +728,20 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
       if (targetNode.type === 'videoGen') {
         updateNodeData(edge.target, { sourceImages: getUpstreamImages(edge.target) })
+        continue
+      }
+
+      if (targetNode.type === 'character') {
+        updateNodeData(edge.target, { referenceImages: getUpstreamImages(edge.target) })
+        continue
+      }
+
+      if (targetNode.type === 'shot') {
+        const shotContext = getShotContext(edge.target, nodes, edges)
+        updateNodeData(edge.target, {
+          referenceImages: shotContext.referenceImages,
+          contextSignature: shotContext.contextSignature,
+        })
         continue
       }
 
@@ -573,7 +796,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
 
   loadWorkflow: (workflow) => {
-    const normalizedNodes = workflow.nodes.map((node) => {
+    const initialNormalizedNodes = workflow.nodes.map((node) => {
       if (node.type === 'imageGen') {
         return {
           ...node,
@@ -590,10 +813,52 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         } as AppNode
       }
 
+      if (node.type === 'character') {
+        return {
+          ...node,
+          selected: false,
+          data: normalizeCharacterData(node.data as Partial<CharacterNodeData>),
+        } as AppNode
+      }
+
+      if (node.type === 'shot') {
+        return {
+          ...node,
+          selected: false,
+          data: syncShotDerivedState(node.data as Partial<ShotNodeData>),
+        } as AppNode
+      }
+
       return { ...node, selected: false } as AppNode
     })
 
     const normalizedEdges = workflow.edges.map((edge) => ({ ...edge, selected: false } as AppEdge))
+    const normalizedNodes = initialNormalizedNodes.map((node) => {
+      if (node.type === 'character') {
+        return {
+          ...node,
+          data: normalizeCharacterData({
+            ...(node.data as CharacterNodeData),
+            referenceImages: getShotContext(node.id, initialNormalizedNodes, normalizedEdges).referenceImages,
+          }),
+        } as AppNode
+      }
+
+      if (node.type === 'shot') {
+        const shotContext = getShotContext(node.id, initialNormalizedNodes, normalizedEdges)
+        return {
+          ...node,
+          data: syncShotDerivedState({
+            ...(node.data as ShotNodeData),
+            referenceImages: shotContext.referenceImages,
+            contextSignature: shotContext.contextSignature,
+          }),
+        } as AppNode
+      }
+
+      return node
+    })
+
     const initialHistory = cloneFlowState(normalizedNodes, normalizedEdges)
 
     set({

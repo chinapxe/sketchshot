@@ -8,13 +8,19 @@ vi.mock('./videoGeneration', () => ({
   executeVideoGenNode: vi.fn(),
 }))
 
+vi.mock('./storyboardGeneration', () => ({
+  executeShotNode: vi.fn(),
+}))
+
 import type { AppEdge, AppNode } from '../types'
 import { useFlowStore } from '../stores/useFlowStore'
 import { executeImageGenNode } from './nodeGeneration'
+import { executeShotNode } from './storyboardGeneration'
 import { executeVideoGenNode } from './videoGeneration'
 import { executeWorkflow } from './workflowRunner'
 
 const executeImageGenNodeMock = vi.mocked(executeImageGenNode)
+const executeShotNodeMock = vi.mocked(executeShotNode)
 const executeVideoGenNodeMock = vi.mocked(executeVideoGenNode)
 
 function createBaseState() {
@@ -35,6 +41,7 @@ function createBaseState() {
 describe('executeWorkflow', () => {
   beforeEach(() => {
     executeImageGenNodeMock.mockReset()
+    executeShotNodeMock.mockReset()
     executeVideoGenNodeMock.mockReset()
     useFlowStore.setState(createBaseState())
   })
@@ -160,5 +167,109 @@ describe('executeWorkflow', () => {
 
     await expect(executeWorkflow()).rejects.toThrow('no executable generation nodes')
     expect(executeVideoGenNodeMock).not.toHaveBeenCalled()
+  })
+
+  it('executes storyboard shot nodes in topological order', async () => {
+    const runOrder: string[] = []
+
+    executeShotNodeMock.mockImplementation(async (nodeId: string) => {
+      runOrder.push(`shot:${nodeId}`)
+    })
+
+    const nodes: AppNode[] = [
+      {
+        id: 'scene-1',
+        type: 'scene',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Scene',
+          title: 'Rooftop',
+          synopsis: 'Conflict peaks',
+          beat: 'Decision made',
+          notes: '',
+        },
+      } as AppNode,
+      {
+        id: 'shot-1',
+        type: 'shot',
+        position: { x: 320, y: 0 },
+        data: {
+          label: 'Shot',
+          title: 'Hero close up',
+          description: 'Hero turns back in rain',
+          prompt: '',
+          continuityFrames: Array.from({ length: 9 }, () => ''),
+          shotSize: 'close-up',
+          cameraAngle: 'eye-level',
+          motion: '',
+          emotion: 'tense',
+          aspectRatio: '16:9',
+          resolution: '2K',
+          outputType: 'image',
+          imageAdapter: 'mock',
+          videoAdapter: 'mock',
+          durationSeconds: 4,
+          motionStrength: 0.6,
+          identityLock: false,
+          identityStrength: 0.7,
+          referenceImages: [],
+          contextSignature: '',
+          status: 'idle',
+          progress: 0,
+          creditCost: 30,
+          resultCache: {},
+          needsRefresh: false,
+        },
+      } as AppNode,
+      {
+        id: 'shot-2',
+        type: 'shot',
+        position: { x: 640, y: 0 },
+        data: {
+          label: 'Shot',
+          title: 'Reaction shot',
+          description: 'The rival stares back',
+          prompt: '',
+          continuityFrames: Array.from({ length: 9 }, () => ''),
+          shotSize: 'medium',
+          cameraAngle: 'eye-level',
+          motion: '',
+          emotion: 'cold',
+          aspectRatio: '16:9',
+          resolution: '2K',
+          outputType: 'image',
+          imageAdapter: 'mock',
+          videoAdapter: 'mock',
+          durationSeconds: 4,
+          motionStrength: 0.6,
+          identityLock: false,
+          identityStrength: 0.7,
+          referenceImages: [],
+          contextSignature: '',
+          status: 'idle',
+          progress: 0,
+          creditCost: 30,
+          resultCache: {},
+          needsRefresh: false,
+        },
+      } as AppNode,
+    ]
+
+    const edges: AppEdge[] = [
+      { id: 'scene-shot', source: 'scene-1', target: 'shot-1' } as AppEdge,
+      { id: 'shot-shot', source: 'shot-1', target: 'shot-2' } as AppEdge,
+    ]
+
+    useFlowStore.setState({
+      ...createBaseState(),
+      nodes,
+      edges,
+    })
+
+    const result = await executeWorkflow()
+
+    expect(runOrder).toEqual(['shot:shot-1', 'shot:shot-2'])
+    expect(result.executedNodeIds).toEqual(['shot-1', 'shot-2'])
+    expect(result.skippedNodeIds).toContain('scene-1')
   })
 })

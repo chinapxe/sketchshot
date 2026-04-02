@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import type { AppNode, ImageGenNodeData, VideoGenNodeData } from '../types'
-import { buildGenerationSignature, buildVideoGenerationSignature } from './generationSignature'
+import type { AppNode, ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
+import { buildGenerationSignature, buildShotGenerationSignature, buildVideoGenerationSignature } from './generationSignature'
 import { getWorkflowCreditSummary } from './workflowMetrics'
 
 describe('getWorkflowCreditSummary', () => {
-  it('includes image and video generation nodes and honors cache hits', () => {
+  it('includes image, video, and shot generation nodes and honors cache hits', () => {
     const imageData: ImageGenNodeData = {
       label: 'Image Generate',
       prompt: 'hero portrait',
@@ -49,6 +49,39 @@ describe('getWorkflowCreditSummary', () => {
     }
     const videoSignature = buildVideoGenerationSignature(videoData)
 
+    const shotData: ShotNodeData = {
+      label: 'Shot',
+      title: 'Hero close up',
+      description: 'Hero turns in rain',
+      prompt: '',
+      continuityFrames: Array.from({ length: 9 }, () => ''),
+      shotSize: 'close-up',
+      cameraAngle: 'eye-level',
+      motion: '',
+      emotion: 'tense',
+      aspectRatio: '16:9',
+      resolution: '2K',
+      outputType: 'image',
+      imageAdapter: 'mock',
+      videoAdapter: 'mock',
+      durationSeconds: 4,
+      motionStrength: 0.6,
+      identityLock: false,
+      identityStrength: 0.7,
+      referenceImages: ['/uploads/ref.png'],
+      contextSignature: 'scene-1',
+      status: 'idle',
+      progress: 0,
+      creditCost: 30,
+      outputImage: undefined,
+      outputVideo: undefined,
+      lastRunSignature: undefined,
+      resultCache: {},
+      needsRefresh: false,
+      errorMessage: undefined,
+    }
+    const shotSignature = buildShotGenerationSignature(shotData)
+
     const nodes: AppNode[] = [
       {
         id: 'image-gen',
@@ -78,12 +111,23 @@ describe('getWorkflowCreditSummary', () => {
         position: { x: 640, y: 0 },
         data: videoData,
       } as AppNode,
+      {
+        id: 'shot-cached',
+        type: 'shot',
+        position: { x: 960, y: 0 },
+        data: {
+          ...shotData,
+          resultCache: {
+            [shotSignature]: '/outputs/shot.png',
+          },
+        },
+      } as AppNode,
     ]
 
     const summary = getWorkflowCreditSummary(nodes)
 
-    expect(summary.executableNodeCount).toBe(3)
-    expect(summary.cachedNodeCount).toBe(2)
+    expect(summary.executableNodeCount).toBe(4)
+    expect(summary.cachedNodeCount).toBe(3)
     expect(summary.estimatedCredits).toBe(90)
   })
 })

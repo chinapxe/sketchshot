@@ -2,6 +2,7 @@ import { useFlowStore } from '../stores/useFlowStore'
 import type { AppNode } from '../types'
 import { getTopologicallySortedNodes } from '../utils/workflowExecution'
 import { executeImageGenNode } from './nodeGeneration'
+import { executeShotNode } from './storyboardGeneration'
 import { executeVideoGenNode } from './videoGeneration'
 
 export interface WorkflowExecutionResult {
@@ -11,7 +12,7 @@ export interface WorkflowExecutionResult {
 }
 
 function isExecutableNode(node: AppNode): boolean {
-  return node.type === 'imageGen' || node.type === 'videoGen'
+  return node.type === 'imageGen' || node.type === 'videoGen' || node.type === 'shot'
 }
 
 export async function executeWorkflow(): Promise<WorkflowExecutionResult> {
@@ -44,6 +45,11 @@ export async function executeWorkflow(): Promise<WorkflowExecutionResult> {
 
       if (latestNode.type === 'imageGen') {
         await executeImageGenNode(node.id, {
+          showSuccessMessage: false,
+          showErrorMessage: false,
+        })
+      } else if (latestNode.type === 'shot') {
+        await executeShotNode(node.id, {
           showSuccessMessage: false,
           showErrorMessage: false,
         })

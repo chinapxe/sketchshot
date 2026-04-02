@@ -1,5 +1,7 @@
 import { generatePrompt, type PromptGenerateRequest } from './api'
-import type { ImageGenNodeData, VideoGenNodeData } from '../types'
+import type { ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
+import type { ShotContext } from '../utils/storyboard'
+import { buildShotPrompt } from '../utils/storyboard'
 
 function inferPromptLanguage(value: string): 'zh' | 'en' {
   return /[\u4e00-\u9fff]/.test(value) ? 'zh' : 'en'
@@ -51,6 +53,39 @@ export function buildVideoPromptRequest(data: VideoGenNodeData): PromptGenerateR
   }
 }
 
+export function buildShotPromptRequest(data: ShotNodeData, context: ShotContext): PromptGenerateRequest {
+  const baseIdea = buildShotPrompt(data, context).trim()
+    || (data.outputType === 'video'
+      ? 'Create a cinematic image-to-video shot prompt with clear subject motion and camera movement.'
+      : 'Create a cinematic storyboard shot prompt with strong visual detail and clear framing.')
+
+  const styleSummary = context.styles.map((style) => style.name).filter((value) => value.length > 0).join(' / ')
+
+  return {
+    task_type: data.outputType === 'video' ? 'video' : 'image',
+    user_input: baseIdea,
+    style: styleSummary || 'storyboard cinematic shot',
+    aspect_ratio: data.aspectRatio,
+    extra_requirements: compactRequirements([
+      `Shot size: ${data.shotSize}`,
+      `Camera angle: ${data.cameraAngle}`,
+      data.outputType === 'image' ? `Target resolution: ${data.resolution}` : null,
+      data.outputType === 'video' ? `Target duration: ${data.durationSeconds}s` : null,
+      data.outputType === 'video' ? `Motion strength: ${Math.round(data.motionStrength * 100)}%` : null,
+      data.outputType === 'video' && data.videoFirstFrame ? 'First frame locked' : null,
+      data.outputType === 'video' && data.videoLastFrame ? 'Last frame locked' : null,
+      context.previousShots.length > 0 ? `Upstream shots attached: ${context.previousShots.length}` : null,
+      context.characters.length > 0 ? `Characters attached: ${context.characters.length}` : null,
+      context.styles.length > 0 ? `Styles attached: ${context.styles.length}` : null,
+      context.referenceImages.length > 0 ? `Reference images available: ${context.referenceImages.length}` : null,
+      data.identityLock && data.outputType === 'image'
+        ? `Preserve character identity with strength ${data.identityStrength}`
+        : null,
+    ]),
+    language: inferPromptLanguage(baseIdea),
+  }
+}
+
 export async function generateImagePrompt(data: ImageGenNodeData): Promise<string> {
   const response = await generatePrompt(buildImagePromptRequest(data))
   return response.prompt
@@ -58,5 +93,10 @@ export async function generateImagePrompt(data: ImageGenNodeData): Promise<strin
 
 export async function generateVideoPrompt(data: VideoGenNodeData): Promise<string> {
   const response = await generatePrompt(buildVideoPromptRequest(data))
+  return response.prompt
+}
+
+export async function generateShotPrompt(data: ShotNodeData, context: ShotContext): Promise<string> {
+  const response = await generatePrompt(buildShotPromptRequest(data, context))
   return response.prompt
 }

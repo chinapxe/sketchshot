@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { buildVideoGenerationSignature } from '../utils/generationSignature'
-import type { AppEdge, AppNode, ImageGenNodeData, VideoGenNodeData } from '../types'
+import { buildShotGenerationSignature, buildVideoGenerationSignature } from '../utils/generationSignature'
+import type { AppEdge, AppNode, ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
 import { useFlowStore } from './useFlowStore'
 
 function createBaseState() {
@@ -149,5 +149,110 @@ describe('useFlowStore video workflow support', () => {
     const imageNode = useFlowStore.getState().nodes[0]
     expect(imageNode?.type).toBe('imageGen')
     expect((imageNode?.data as ImageGenNodeData).adapter).toBe('volcengine')
+  })
+
+  it('defaults new storyboard shot nodes to image output with storyboard credit cost', () => {
+    useFlowStore.getState().addNode('shot', { x: 120, y: 80 })
+
+    const shotNode = useFlowStore.getState().nodes[0]
+    expect(shotNode?.type).toBe('shot')
+    expect((shotNode?.data as ShotNodeData).outputType).toBe('image')
+    expect((shotNode?.data as ShotNodeData).imageAdapter).toBe('volcengine')
+    expect((shotNode?.data as ShotNodeData).creditCost).toBe(30)
+  })
+
+  it('syncs character references into downstream storyboard shots and marks refresh when context changes', async () => {
+    const shotData: ShotNodeData = {
+      label: 'Shot',
+      title: 'Hero close up',
+      description: 'Hero turns',
+      prompt: '',
+      continuityFrames: Array.from({ length: 9 }, () => ''),
+      shotSize: 'close-up',
+      cameraAngle: 'eye-level',
+      motion: '',
+      emotion: 'tense',
+      aspectRatio: '16:9',
+      resolution: '2K',
+      outputType: 'image',
+      imageAdapter: 'volcengine',
+      videoAdapter: 'volcengine',
+      durationSeconds: 4,
+      motionStrength: 0.6,
+      identityLock: false,
+      identityStrength: 0.7,
+      referenceImages: ['/uploads/hero.png'],
+      contextSignature: 'before',
+      status: 'success',
+      progress: 100,
+      creditCost: 30,
+      outputImage: '/outputs/shot.png',
+      resultCache: {},
+      needsRefresh: false,
+      errorMessage: undefined,
+    }
+
+    const signature = buildShotGenerationSignature(shotData)
+
+    useFlowStore.setState({
+      ...createBaseState(),
+      nodes: [
+        {
+          id: 'upload-1',
+          type: 'imageUpload',
+          position: { x: 0, y: 0 },
+          data: {
+            label: 'Upload',
+            imageUrl: '/uploads/hero.png',
+            fileName: 'hero.png',
+            isUploading: false,
+            uploadError: undefined,
+          },
+        } as AppNode,
+        {
+          id: 'character-1',
+          type: 'character',
+          position: { x: 240, y: 0 },
+          data: {
+            label: 'Character',
+            name: 'Hero',
+            role: 'Lead',
+            appearance: 'short hair',
+            wardrobe: '',
+            props: '',
+            notes: '',
+            referenceImages: [],
+            threeViewImages: {},
+          },
+        } as AppNode,
+        {
+          id: 'shot-1',
+          type: 'shot',
+          position: { x: 480, y: 0 },
+          data: {
+            ...shotData,
+            lastRunSignature: signature,
+          },
+        } as AppNode,
+      ],
+      edges: [
+        { id: 'edge-1', source: 'upload-1', target: 'character-1' } as AppEdge,
+        { id: 'edge-2', source: 'character-1', target: 'shot-1' } as AppEdge,
+      ],
+    })
+
+    useFlowStore.getState().syncDownstream('upload-1')
+    await flushTimers()
+    await flushTimers()
+
+    const characterNode = useFlowStore.getState().nodes.find((node) => node.id === 'character-1')
+    expect(characterNode?.type).toBe('character')
+    expect((characterNode?.data as { referenceImages: string[] }).referenceImages).toEqual(['/uploads/hero.png'])
+    expect((characterNode?.data as { threeViewImages: { front?: string } }).threeViewImages.front).toBe('/uploads/hero.png')
+
+    const shotNode = useFlowStore.getState().nodes.find((node) => node.id === 'shot-1')
+    expect(shotNode?.type).toBe('shot')
+    expect((shotNode?.data as ShotNodeData).referenceImages).toEqual(['/uploads/hero.png'])
+    expect((shotNode?.data as ShotNodeData).needsRefresh).toBe(true)
   })
 })
