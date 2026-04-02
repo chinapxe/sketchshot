@@ -2,7 +2,7 @@
  * 画布浮动工具栏
  * 补齐阶段 2.5 工具栏能力，并提供工作流保存/加载入口
  */
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useReactFlow } from '@xyflow/react'
 import {
   Button,
@@ -28,6 +28,8 @@ import {
   FullscreenOutlined,
   DeleteOutlined,
   PlayCircleOutlined,
+  ImportOutlined,
+  DownloadOutlined,
   ExportOutlined,
   OrderedListOutlined,
   PictureOutlined,
@@ -47,6 +49,10 @@ import {
 } from '../../services/api'
 import { executeWorkflow } from '../../services/workflowRunner'
 import { exportWorkflowAssetsAsZip } from '../../services/workflowExport'
+import {
+  exportProjectExchangeFile,
+  readProjectExchangeFile,
+} from '../../utils/projectExchange'
 import { WorkflowCycleError } from '../../utils/workflowExecution'
 import { getWorkflowCreditSummary } from '../../utils/workflowMetrics'
 import { workflowTemplates, type WorkflowTemplateDefinition } from '../../templates/workflowTemplates'
@@ -165,6 +171,7 @@ const Toolbar = memo(() => {
   const isWorkflowExecuting = useFlowStore((s) => s.isWorkflowExecuting)
   const setWorkflowMeta = useFlowStore((s) => s.setWorkflowMeta)
   const loadWorkflow = useFlowStore((s) => s.loadWorkflow)
+  const importFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false)
@@ -179,6 +186,8 @@ const Toolbar = memo(() => {
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingList, setIsLoadingList] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [isProjectExporting, setIsProjectExporting] = useState(false)
+  const [isProjectImporting, setIsProjectImporting] = useState(false)
   const [activeWorkflowId, setActiveWorkflowId] = useState<string | null>(null)
 
   const hasCanvasContent = nodes.length > 0 || edges.length > 0
@@ -291,6 +300,65 @@ const Toolbar = memo(() => {
       setIsExporting(false)
     }
   }, [currentWorkflowName, nodes])
+
+  const handleExportProjectFile = useCallback(async () => {
+    if (!hasCanvasContent) {
+      message.warning('画布为空，先添加节点后再导出项目文件')
+      return
+    }
+
+    setIsProjectExporting(true)
+
+    try {
+      const result = await exportProjectExchangeFile({
+        workflowId: currentWorkflowId,
+        name: currentWorkflowName,
+        nodes,
+        edges,
+      })
+      message.success(`项目文件已导出：${result.fileName}`)
+    } catch (error) {
+      console.error('[工具栏] 导出项目文件失败', error)
+      message.error(error instanceof Error ? error.message : '导出项目文件失败')
+    } finally {
+      setIsProjectExporting(false)
+    }
+  }, [currentWorkflowId, currentWorkflowName, edges, hasCanvasContent, nodes])
+
+  const handleOpenImportProjectFile = useCallback(() => {
+    importFileInputRef.current?.click()
+  }, [])
+
+  const handleImportProjectFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      event.target.value = ''
+
+      if (!file) {
+        return
+      }
+
+      setIsProjectImporting(true)
+
+      try {
+        const importedWorkflow = await readProjectExchangeFile(file)
+        loadWorkflow({
+          id: null,
+          name: importedWorkflow.name,
+          nodes: importedWorkflow.nodes,
+          edges: importedWorkflow.edges,
+        })
+        message.success(`已导入项目文件：${importedWorkflow.name}`)
+        scheduleFitView()
+      } catch (error) {
+        console.error('[工具栏] 导入项目文件失败', error)
+        message.error(error instanceof Error ? error.message : '导入项目文件失败')
+      } finally {
+        setIsProjectImporting(false)
+      }
+    },
+    [loadWorkflow, scheduleFitView]
+  )
 
   const openSaveModal = useCallback(() => {
     setWorkflowNameDraft(currentWorkflowName)
@@ -452,12 +520,32 @@ const Toolbar = memo(() => {
           </Button>
           <Button
             size="small"
+            icon={<ImportOutlined />}
+            className="toolbar-text-btn"
+            disabled={isWorkflowExecuting || isProjectImporting}
+            loading={isProjectImporting}
+            onClick={handleOpenImportProjectFile}
+          >
+            导入项目
+          </Button>
+          <Button
+            size="small"
             icon={<BorderOutlined />}
             className="toolbar-text-btn"
             disabled={isWorkflowExecuting}
             onClick={() => setIsTemplateModalOpen(true)}
           >
             模板
+          </Button>
+          <Button
+            size="small"
+            icon={<DownloadOutlined />}
+            className="toolbar-text-btn"
+            disabled={!hasCanvasContent || isWorkflowExecuting || isProjectExporting}
+            loading={isProjectExporting}
+            onClick={() => void handleExportProjectFile()}
+          >
+            导出项目
           </Button>
           <Popconfirm
             title="执行整个工作流"
@@ -486,7 +574,7 @@ const Toolbar = memo(() => {
             loading={isExporting}
             onClick={() => void handleExportWorkflow()}
           >
-            导出
+            导出资源
           </Button>
           <Button
             size="small"
@@ -604,6 +692,14 @@ const Toolbar = memo(() => {
           </Tooltip>
         </div>
       </div>
+
+      <input
+        ref={importFileInputRef}
+        type="file"
+        accept=".json,.wxhb.json,.zip,.wxhb.zip,application/zip"
+        className="toolbar-hidden-file-input"
+        onChange={(event) => void handleImportProjectFile(event)}
+      />
 
       <Modal
         title={currentWorkflowId ? '保存当前工作流' : '保存新工作流'}

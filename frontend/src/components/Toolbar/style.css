@@ -324,6 +324,10 @@
   padding: 10px 12px;
 }
 
+.toolbar-hidden-file-input {
+  display: none;
+}
+
 @media (max-width: 1100px) {
   .canvas-toolbar {
     left: 16px;

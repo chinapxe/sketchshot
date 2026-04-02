@@ -24,56 +24,56 @@ interface NodeTypeItem {
 const nodeTypes: NodeTypeItem[] = [
   {
     type: 'scene',
-    label: 'Scene',
-    description: 'Organize story beats and shot groups',
+    label: '场次',
+    description: '组织剧情段落和镜头组',
     icon: <BranchesOutlined />,
   },
   {
     type: 'shot',
-    label: 'Shot',
-    description: 'Create a storyboard shot and generate directly',
+    label: '镜头',
+    description: '故事板核心镜头，可直接生成',
     icon: <CameraOutlined />,
   },
   {
     type: 'character',
-    label: 'Character',
-    description: 'Define a reusable character profile',
+    label: '角色',
+    description: '定义可复用的人物设定',
     icon: <TeamOutlined />,
   },
   {
     type: 'style',
-    label: 'Style',
-    description: 'Define the visual tone and framing language',
+    label: '风格',
+    description: '统一视觉氛围与镜头语言',
     icon: <BgColorsOutlined />,
   },
   {
     type: 'imageUpload',
-    label: 'Image',
-    description: 'Upload a source image',
+    label: '图片上传',
+    description: '上传参考图或起始图',
     icon: <PictureOutlined />,
   },
   {
     type: 'imageGen',
-    label: 'Image Gen',
-    description: 'Generate a still image',
+    label: '图片生成',
+    description: '生成静态图像结果',
     icon: <HighlightOutlined />,
   },
   {
     type: 'imageDisplay',
-    label: 'Image Output',
-    description: 'Preview generated images',
+    label: '图片预览',
+    description: '查看生成出的图像',
     icon: <AppstoreOutlined />,
   },
   {
     type: 'videoGen',
-    label: 'Video Motion',
-    description: 'Turn upstream images into a motion clip',
+    label: '视频生成',
+    description: '基于上游图片生成动态片段',
     icon: <VideoCameraOutlined />,
   },
   {
     type: 'videoDisplay',
-    label: 'Video Output',
-    description: 'Preview generated motion clips',
+    label: '视频预览',
+    description: '查看生成出的视频片段',
     icon: <PlaySquareOutlined />,
   },
 ]
@@ -86,7 +86,7 @@ const Sidebar = memo(() => {
 
   return (
     <div className="sidebar">
-      <div className="sidebar-title">Node Library</div>
+      <div className="sidebar-title">节点库</div>
       <div className="sidebar-list">
         {nodeTypes.map((item) => (
           <div

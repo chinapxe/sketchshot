@@ -1,9 +1,15 @@
 const textEncoder = new TextEncoder()
+const textDecoder = new TextDecoder()
 
-interface ZipEntryInput {
+export interface ZipEntryInput {
   name: string
   data: Uint8Array
   lastModified?: Date
+}
+
+export interface ZipEntryOutput {
+  name: string
+  data: Uint8Array
 }
 
 const ZIP_LOCAL_FILE_HEADER_SIGNATURE = 0x04034b50
@@ -183,4 +189,69 @@ export function createZipBlob(entries: ZipEntryInput[]): Blob {
 
 export function encodeTextFile(text: string): Uint8Array {
   return textEncoder.encode(text)
+}
+
+export function decodeTextFile(data: Uint8Array): string {
+  return textDecoder.decode(data)
+}
+
+export function isZipData(data: Uint8Array): boolean {
+  if (data.byteLength < 4) {
+    return false
+  }
+
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  return view.getUint32(0, true) === ZIP_LOCAL_FILE_HEADER_SIGNATURE
+}
+
+export function readZipEntries(data: Uint8Array): ZipEntryOutput[] {
+  if (!isZipData(data)) {
+    throw new Error('Invalid zip data')
+  }
+
+  const entries: ZipEntryOutput[] = []
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+  let offset = 0
+
+  while (offset + 4 <= data.byteLength) {
+    const signature = view.getUint32(offset, true)
+
+    if (
+      signature === ZIP_CENTRAL_DIRECTORY_SIGNATURE
+      || signature === ZIP_END_OF_CENTRAL_DIRECTORY_SIGNATURE
+    ) {
+      break
+    }
+
+    if (signature !== ZIP_LOCAL_FILE_HEADER_SIGNATURE) {
+      throw new Error('Unsupported zip structure')
+    }
+
+    const compressionMethod = view.getUint16(offset + 8, true)
+    if (compressionMethod !== ZIP_STORE_METHOD) {
+      throw new Error('Only uncompressed zip entries are supported')
+    }
+
+    const fileNameLength = view.getUint16(offset + 26, true)
+    const extraFieldLength = view.getUint16(offset + 28, true)
+    const compressedSize = view.getUint32(offset + 18, true)
+    const fileNameStart = offset + 30
+    const fileNameEnd = fileNameStart + fileNameLength
+    const extraFieldEnd = fileNameEnd + extraFieldLength
+    const dataStart = extraFieldEnd
+    const dataEnd = dataStart + compressedSize
+
+    if (dataEnd > data.byteLength) {
+      throw new Error('Zip entry exceeds archive bounds')
+    }
+
+    entries.push({
+      name: textDecoder.decode(data.slice(fileNameStart, fileNameEnd)),
+      data: data.slice(dataStart, dataEnd),
+    })
+
+    offset = dataEnd
+  }
+
+  return entries
 }
