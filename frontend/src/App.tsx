@@ -21,7 +21,7 @@ function LocalDraftController() {
   const saveTimerRef = useRef<number | null>(null)
   const latestPayloadRef = useRef<ProjectExchangePayload>({
     workflowId: null,
-    name: 'Untitled Workflow',
+    name: '未命名工作流',
     nodes: [],
     edges: [],
   })

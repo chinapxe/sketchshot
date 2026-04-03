@@ -528,13 +528,6 @@ const Toolbar = memo(() => {
         onClick: handleOpenImportProjectFile,
       },
       {
-        key: 'template',
-        label: '套用模板',
-        icon: <BorderOutlined />,
-        disabled: isWorkflowExecuting,
-        onClick: () => setIsTemplateModalOpen(true),
-      },
-      {
         type: 'divider',
       },
       {
@@ -628,7 +621,7 @@ const Toolbar = memo(() => {
           {!isDockCollapsed && <div className="toolbar-dock-section-title">项目</div>}
 
           <Dropdown menu={{ items: projectMenuItems }} trigger={['click']} placement="bottomRight">
-            <Tooltip title="项目、模板、导入导出">
+            <Tooltip title="项目、保存、导入导出">
               <Button
                 className={`toolbar-dock-action${isDockCollapsed ? ' icon-only' : ''}`}
                 icon={<FolderOpenOutlined />}
@@ -637,6 +630,17 @@ const Toolbar = memo(() => {
               </Button>
             </Tooltip>
           </Dropdown>
+
+          <Tooltip title="打开模板库，快速套用常用故事板结构">
+            <Button
+              className={`toolbar-dock-action${isDockCollapsed ? ' icon-only' : ''}`}
+              icon={<BorderOutlined />}
+              disabled={isWorkflowExecuting}
+              onClick={() => setIsTemplateModalOpen(true)}
+            >
+              {!isDockCollapsed && '套用模板'}
+            </Button>
+          </Tooltip>
 
           <Popconfirm
             title="执行整个工作流"

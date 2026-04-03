@@ -40,7 +40,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
   switch (type) {
     case 'imageUpload':
       return {
-        label: 'Image Upload',
+        label: '图片上传',
         imageUrl: undefined,
         fileName: undefined,
         isUploading: false,
@@ -48,7 +48,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
       } satisfies ImageUploadNodeData
     case 'imageGen':
       return {
-        label: 'Image Generate',
+        label: '图片生成',
         prompt: '',
         aspectRatio: '1:1',
         resolution: '2K',
@@ -68,13 +68,13 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
       } satisfies ImageGenNodeData
     case 'imageDisplay':
       return {
-        label: 'Image Output',
+        label: '图片预览',
         images: [],
         status: 'idle' as NodeStatus,
       } satisfies ImageDisplayNodeData
     case 'videoGen':
       return {
-        label: 'Video Motion',
+        label: '视频生成',
         prompt: '',
         aspectRatio: '16:9',
         durationSeconds: 4,
@@ -89,13 +89,13 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
       } satisfies VideoGenNodeData
     case 'videoDisplay':
       return {
-        label: 'Video Output',
+        label: '视频预览',
         videos: [],
         status: 'idle' as NodeStatus,
       } satisfies VideoDisplayNodeData
     case 'scene':
       return {
-        label: 'Scene',
+        label: '场次',
         collapsed: false,
         title: '',
         synopsis: '',
@@ -104,7 +104,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
       } satisfies SceneNodeData
     case 'character':
       return {
-        label: 'Character',
+        label: '角色',
         collapsed: false,
         name: '',
         role: '',
@@ -117,7 +117,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
       } satisfies CharacterNodeData
     case 'style':
       return {
-        label: 'Style',
+        label: '风格',
         collapsed: false,
         name: '',
         keywords: '',
@@ -128,7 +128,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
       } satisfies StyleNodeData
     case 'shot':
       return {
-        label: 'Shot',
+        label: '镜头',
         collapsed: false,
         title: '',
         description: '',
@@ -158,7 +158,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         needsRefresh: false,
       } satisfies ShotNodeData
     default:
-      return { label: 'Unknown Node' }
+      return { label: '未知节点' }
   }
 }
 
@@ -197,7 +197,7 @@ const normalizeImageGenData = (data: Partial<ImageGenNodeData>): ImageGenNodeDat
   delete restData.referenceUploadError
 
   return {
-    label: 'Image Generate',
+    label: '图片生成',
     prompt: '',
     aspectRatio: '1:1',
     resolution: '2K',
@@ -224,7 +224,7 @@ const normalizeVideoGenData = (data: Partial<VideoGenNodeData>): VideoGenNodeDat
   delete restData.sourceImages
 
   return {
-    label: 'Video Motion',
+    label: '视频生成',
     prompt: '',
     aspectRatio: '16:9',
     durationSeconds: 4,
@@ -270,7 +270,7 @@ const normalizeCharacterData = (data: Partial<CharacterNodeData>): CharacterNode
   const referenceImages = dedupeStringList(data.referenceImages)
 
   return {
-    label: 'Character',
+    label: '角色',
     collapsed: data.collapsed === true,
     name: '',
     role: '',
@@ -307,7 +307,7 @@ const normalizeShotData = (data: Partial<ShotNodeData>): ShotNodeData => {
   const outputType = data.outputType ?? 'image'
 
   return {
-    label: 'Shot',
+    label: '镜头',
     collapsed: data.collapsed === true,
     title: '',
     description: '',
@@ -441,7 +441,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: [],
   edges: [],
   currentWorkflowId: null,
-  currentWorkflowName: 'Untitled Workflow',
+  currentWorkflowName: '未命名工作流',
   isWorkflowExecuting: false,
   activeExecutionNodeId: null,
   canUndo: false,

@@ -1,10 +1,11 @@
 /**
- * 图片展示节点
- * 展示 AI 生成的结果图片
+ * 图片展示节点。
+ * 展示 AI 生成的结果图片。
  */
 import { memo, useCallback, useRef } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { PictureOutlined, UploadOutlined } from '@ant-design/icons'
+
 import { useFlowStore } from '../../../stores/useFlowStore'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import type { ImageDisplayNode as ImageDisplayNodeType } from '../../../types'
@@ -23,49 +24,45 @@ const ImageDisplayNode = memo(({ id, data }: NodeProps<ImageDisplayNodeType>) =>
     openPreview({
       type: 'image',
       src: imageUrl,
-      title: `${data.label} · 结果 ${index + 1}`,
+      title: `${data.label} - 结果 ${index + 1}`,
     })
   }, [data.label, openPreview])
 
   const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = event.target.files
       if (!files || files.length === 0) return
 
-      const urls = Array.from(files).map((f) => URL.createObjectURL(f))
-      console.log(`[图片展示节点 ${id}] 手动上传 ${urls.length} 张图片`)
+      const urls = Array.from(files).map((file) => URL.createObjectURL(file))
       updateNodeData(id, { images: [...data.images, ...urls] })
-      e.target.value = ''
+      event.target.value = ''
     },
-    [id, data.images, updateNodeData]
+    [data.images, id, updateNodeData]
   )
 
   const isDisabled = (data as Record<string, unknown>).disabled === true
 
   return (
     <div className={`image-display-node${isDisabled ? ' node-disabled' : ''}`}>
-      {/* 输入连接点 - 左侧 */}
       <Handle type="target" position={Position.Left} className="node-handle" />
 
-      {/* 节点标题 */}
       <div className="node-header">
         <PictureOutlined className="node-icon" />
         <span className="node-title">{data.label}</span>
         {isDisabled && <span className="node-disabled-badge">已禁用</span>}
       </div>
 
-      {/* 图片展示区域 */}
-      <div className="node-body">
+      <div className="node-body nodrag nopan nowheel">
         {data.images.length > 0 ? (
           <div className="display-grid">
-            {data.images.map((img, i) => (
+            {data.images.map((imageUrl, index) => (
               <button
-                key={i}
+                key={index}
                 type="button"
                 className="display-image-button"
-                onClick={() => handleOpenPreview(img, i)}
+                onClick={() => handleOpenPreview(imageUrl, index)}
               >
-                <img src={img} alt={`结果${i + 1}`} className="display-image" />
+                <img src={imageUrl} alt={`结果 ${index + 1}`} className="display-image" />
                 <span className="display-image-hint">点击查看大图</span>
               </button>
             ))}
@@ -87,7 +84,6 @@ const ImageDisplayNode = memo(({ id, data }: NodeProps<ImageDisplayNodeType>) =>
         )}
       </div>
 
-      {/* 隐藏文件输入 */}
       <input
         ref={fileInputRef}
         type="file"
@@ -97,11 +93,11 @@ const ImageDisplayNode = memo(({ id, data }: NodeProps<ImageDisplayNodeType>) =>
         style={{ display: 'none' }}
       />
 
-      {/* 输出连接点 - 右侧 */}
       <Handle type="source" position={Position.Right} className="node-handle" />
     </div>
   )
 })
 
 ImageDisplayNode.displayName = 'ImageDisplayNode'
+
 export default ImageDisplayNode

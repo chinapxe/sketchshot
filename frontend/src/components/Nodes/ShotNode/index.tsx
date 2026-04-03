@@ -57,14 +57,14 @@ const outputTypeOptions = [
 ]
 
 const imageAdapterOptions = [
-  { value: 'volcengine', label: 'Volcengine' },
+  { value: 'volcengine', label: '火山引擎' },
   { value: 'comfyui', label: 'ComfyUI' },
-  { value: 'mock', label: 'Mock' },
+  { value: 'mock', label: '模拟模式' },
 ]
 
 const videoAdapterOptions = [
-  { value: 'volcengine', label: 'Volcengine' },
-  { value: 'mock', label: 'Mock' },
+  { value: 'volcengine', label: '火山引擎' },
+  { value: 'mock', label: '模拟模式' },
 ]
 
 const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
@@ -224,10 +224,10 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
           {needsRefresh && !isProcessing && (
             <span className="storyboard-badge refresh">
               <SyncOutlined />
-              Needs Refresh
+              待刷新
             </span>
           )}
-          {isDisabled && <span className="storyboard-badge disabled">Disabled</span>}
+          {isDisabled && <span className="storyboard-badge disabled">已禁用</span>}
           <Button
             type="text"
             size="small"
@@ -241,7 +241,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
       </div>
 
       {isCollapsed ? (
-        <div className="storyboard-node-body storyboard-node-body-collapsed">
+        <div className="storyboard-node-body storyboard-node-body-collapsed nodrag nopan nowheel">
           <div className="storyboard-summary-title">{summaryTitle}</div>
           <div className="storyboard-summary-item">
             <span className="storyboard-summary-label">镜头</span>
@@ -291,7 +291,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
           )}
         </div>
       ) : (
-        <div className="storyboard-node-body">
+        <div className="storyboard-node-body nodrag nopan nowheel">
           <div className="storyboard-field">
             <label className="storyboard-field-label">镜头标题</label>
             <Input
@@ -323,9 +323,9 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                 onClick={handleGeneratePrompt}
                 loading={isPromptGenerating}
                 disabled={isPromptGenerating || isProcessing || isDisabled || isBlockedByWorkflowExecution}
-                className="prompt-helper-btn shot-prompt-helper-btn"
+                className="prompt-helper-btn shot-prompt-helper-btn nodrag"
               >
-                AI Refine
+                AI 优化
               </Button>
             </div>
             <TextArea
@@ -344,7 +344,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                 value={data.shotSize}
                 onChange={(value) => updateField('shotSize', value)}
                 options={shotSizeOptions}
-                className="storyboard-select"
+                className="storyboard-select nodrag nopan"
               />
             </div>
             <div className="storyboard-field">
@@ -353,7 +353,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                 value={data.cameraAngle}
                 onChange={(value) => updateField('cameraAngle', value)}
                 options={cameraAngleOptions}
-                className="storyboard-select"
+                className="storyboard-select nodrag nopan"
               />
             </div>
           </div>
@@ -386,7 +386,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                 value={data.outputType}
                 onChange={(value) => updateField('outputType', value)}
                 options={outputTypeOptions}
-                className="storyboard-select"
+                className="storyboard-select nodrag nopan"
               />
             </div>
             <div className="storyboard-field">
@@ -395,7 +395,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                 value={data.aspectRatio}
                 onChange={(value) => updateField('aspectRatio', value)}
                 options={aspectRatioOptions}
-                className="storyboard-select"
+                className="storyboard-select nodrag nopan"
               />
             </div>
           </div>
@@ -409,7 +409,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                     value={data.resolution}
                     onChange={(value) => updateField('resolution', value)}
                     options={resolutionOptions}
-                    className="storyboard-select"
+                    className="storyboard-select nodrag nopan"
                   />
                 </div>
                 <div className="storyboard-field">
@@ -418,7 +418,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                     value={data.imageAdapter}
                     onChange={(value) => updateField('imageAdapter', value)}
                     options={imageAdapterOptions}
-                    className="storyboard-select"
+                    className="storyboard-select nodrag nopan"
                   />
                 </div>
               </div>
@@ -429,6 +429,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                   checked={data.identityLock}
                   disabled={!canUseIdentityLock}
                   onChange={(checked) => updateField('identityLock', checked)}
+                  className="nodrag"
                 />
                 {!canUseIdentityLock && (
                   <div className="storyboard-note">连接角色设定参考图、上传图或上游图像结果后可启用一致性锁定。</div>
@@ -445,6 +446,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                     value={data.identityStrength}
                     onChange={(value) => updateField('identityStrength', Number(value))}
                     tooltip={{ formatter: (value) => `${Math.round((value ?? 0) * 100)}%` }}
+                    className="nodrag"
                   />
                 </div>
               )}
@@ -459,7 +461,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                     max={12}
                     value={data.durationSeconds}
                     onChange={(value) => updateField('durationSeconds', Number(value ?? 4))}
-                    className="storyboard-number"
+                    className="storyboard-number nodrag"
                   />
                 </div>
                 <div className="storyboard-field">
@@ -468,7 +470,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                     value={data.videoAdapter}
                     onChange={(value) => updateField('videoAdapter', value)}
                     options={videoAdapterOptions}
-                    className="storyboard-select"
+                    className="storyboard-select nodrag nopan"
                   />
                 </div>
               </div>
@@ -482,6 +484,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                   value={data.motionStrength}
                   onChange={(value) => updateField('motionStrength', Number(value))}
                   tooltip={{ formatter: (value) => `${Math.round((value ?? 0) * 100)}%` }}
+                  className="nodrag"
                 />
               </div>
 
@@ -494,7 +497,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                     options={referenceAssetOptions}
                     onChange={(value) => updateField('videoFirstFrame', value)}
                     placeholder="选择视频起始画面"
-                    className="storyboard-select"
+                    className="storyboard-select nodrag nopan"
                   />
                 </div>
                 <div className="storyboard-field">
@@ -505,7 +508,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                     options={referenceAssetOptions}
                     onChange={(value) => updateField('videoLastFrame', value)}
                     placeholder="选择视频收束画面"
-                    className="storyboard-select"
+                    className="storyboard-select nodrag nopan"
                   />
                 </div>
               </div>
@@ -634,7 +637,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
               ) : null}
               <div className="storyboard-output-meta">
                 <span>{data.outputType === 'image' ? '镜头图像已生成' : '镜头视频已生成'}</span>
-                <Button size="small" onClick={handlePreviewOutput}>
+                <Button size="small" onClick={handlePreviewOutput} className="nodrag">
                   查看
                 </Button>
               </div>
@@ -648,7 +651,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
             onClick={handleGenerate}
             loading={isProcessing || (isWorkflowExecuting && activeExecutionNodeId === id)}
             disabled={isDisabled || isBlockedByWorkflowExecution}
-            className="storyboard-action-btn shot-generate-btn"
+            className="storyboard-action-btn shot-generate-btn nodrag"
           >
             {data.status === 'queued'
               ? '排队中...'

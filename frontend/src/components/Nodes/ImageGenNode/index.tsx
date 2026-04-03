@@ -1,5 +1,5 @@
 /**
- * Image generation node.
+ * 图片生成节点。
  */
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
@@ -36,10 +36,10 @@ const resolutionOptions = [
 ]
 
 const adapterOptions = [
-  { value: 'auto', label: 'Auto' },
-  { value: 'volcengine', label: 'Volcengine' },
+  { value: 'auto', label: '自动' },
+  { value: 'volcengine', label: '火山引擎' },
   { value: 'comfyui', label: 'ComfyUI' },
-  { value: 'mock', label: 'Mock' },
+  { value: 'mock', label: '模拟模式' },
 ]
 
 const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
@@ -103,14 +103,14 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
 
       const latestNode = useFlowStore.getState().nodes.find((node) => node.id === id)
       if (!latestNode || latestNode.type !== 'imageGen') {
-        throw new Error('Image generation node not found')
+        throw new Error('图片生成节点不存在')
       }
 
       const generatedPrompt = await generateImagePrompt(latestNode.data as ImageGenNodeData)
       updateNodeData(id, { prompt: generatedPrompt })
-      message.success('Prompt refined for image generation')
+      message.success('图片提示词已优化')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Prompt refinement failed'
+      const errorMessage = error instanceof Error ? error.message : '提示词优化失败'
       message.error(errorMessage)
     } finally {
       setIsPromptGenerating(false)
@@ -122,7 +122,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
       openPreview({
         type: 'image',
         src: imageUrl,
-        title: `${data.label} - Ref ${index + 1}`,
+        title: `${data.label} - 参考图 ${index + 1}`,
       })
     },
     [data.label, openPreview]
@@ -157,7 +157,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
         if (successUrls.length === 0) {
           const errorMessage = failedUploads[0]?.reason instanceof Error
             ? failedUploads[0].reason.message
-            : 'Upload failed'
+            : '上传失败'
 
           updateNodeData(id, {
             isUploadingReferences: false,
@@ -173,7 +173,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
           : (data.manualReferenceImages ?? [])
         const nextManualReferenceImages = Array.from(new Set([...currentManualReferenceImages, ...successUrls]))
         const partialFailureMessage = failedUploads.length > 0
-          ? `${failedUploads.length} upload(s) failed`
+          ? `${failedUploads.length} 个文件上传失败`
           : undefined
 
         updateNodeData(id, {
@@ -182,9 +182,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
           referenceUploadError: partialFailureMessage,
         })
 
-        message.success(
-          successUrls.length === 1 ? 'Reference image uploaded' : `${successUrls.length} reference images uploaded`
-        )
+        message.success(successUrls.length === 1 ? '参考图上传成功' : `已上传 ${successUrls.length} 张参考图`)
 
         if (partialFailureMessage) {
           message.warning(partialFailureMessage)
@@ -236,16 +234,16 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
         <span className="node-title">{data.label}</span>
         {needsRefresh && !isProcessing && (
           <span className="node-refresh-badge">
-            <SyncOutlined /> Needs Refresh
+            <SyncOutlined /> 待刷新
           </span>
         )}
-        {isDisabled && <span className="node-disabled-badge">Disabled</span>}
+        {isDisabled && <span className="node-disabled-badge">已禁用</span>}
       </div>
 
-      <div className="node-body">
+      <div className="node-body nodrag nopan nowheel">
         <div className="form-field">
           <div className="field-label-row">
-            <label className="field-label">Prompt</label>
+            <label className="field-label">提示词</label>
             <Button
               type="text"
               size="small"
@@ -253,56 +251,56 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
               onClick={handleGeneratePrompt}
               loading={isPromptGenerating}
               disabled={isPromptGenerating || isProcessing || isDisabled || isBlockedByWorkflowExecution}
-              className="prompt-helper-btn"
+              className="prompt-helper-btn nodrag"
             >
-              AI Refine
+              AI 优化
             </Button>
           </div>
           <textarea
-            className="prompt-textarea"
+            className="prompt-textarea nodrag"
             value={data.prompt}
             onChange={handlePromptChange}
-            placeholder="Describe the image you want to generate..."
+            placeholder="描述你想生成的画面内容..."
             rows={4}
           />
         </div>
 
         <div className="form-row">
           <div className="form-field flex-1">
-            <label className="field-label">Ratio</label>
+            <label className="field-label">画面比例</label>
             <Select
               size="small"
               value={data.aspectRatio}
               onChange={(value) => updateNodeData(id, { aspectRatio: value })}
               options={aspectRatioOptions}
-              className="field-select"
+              className="field-select nodrag nopan"
             />
           </div>
           <div className="form-field flex-1">
-            <label className="field-label">Resolution</label>
+            <label className="field-label">分辨率</label>
             <Select
               size="small"
               value={data.resolution}
               onChange={(value) => updateNodeData(id, { resolution: value })}
               options={resolutionOptions}
-              className="field-select"
+              className="field-select nodrag nopan"
             />
           </div>
         </div>
 
         <div className="form-field">
-          <label className="field-label">Adapter</label>
+          <label className="field-label">适配器</label>
           <Select
             size="small"
             value={data.adapter ?? 'volcengine'}
             onChange={(value) => updateNodeData(id, { adapter: value })}
             options={adapterOptions}
-            className="field-select"
+            className="field-select nodrag nopan"
           />
         </div>
 
         <div className="form-field">
-          <label className="field-label">References</label>
+          <label className="field-label">参考图</label>
           <div className="ref-images-row">
             {referenceImages.map((imageUrl, index) => {
               const isManualReference = manualReferenceImages.includes(imageUrl)
@@ -311,21 +309,21 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
                 <div
                   key={`${imageUrl}-${index}`}
                   className={`ref-image-card ${isManualReference ? 'is-manual' : 'is-upstream'}`}
-                  title={isManualReference ? 'Manual reference image' : 'Linked upstream reference'}
+                  title={isManualReference ? '手动上传的参考图' : '来自上游节点的参考图'}
                 >
                   <button
                     type="button"
                     className="ref-image-button"
                     onClick={() => handlePreviewReference(imageUrl, index)}
                   >
-                    <img src={imageUrl} alt={`reference-${index + 1}`} className="ref-image-thumb" />
+                    <img src={imageUrl} alt={`参考图 ${index + 1}`} className="ref-image-thumb" />
                   </button>
                   {isManualReference && (
                     <button
                       type="button"
                       className="ref-image-remove"
                       onClick={(event) => handleRemoveManualReference(event, imageUrl)}
-                      aria-label="Remove reference image"
+                      aria-label="移除参考图"
                     >
                       <CloseOutlined />
                     </button>
@@ -338,13 +336,13 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
               className="ref-image-add"
               onClick={handleOpenReferenceUpload}
               disabled={isUploadingReferences}
-              title="Upload reference images"
+              title="上传参考图"
             >
               {isUploadingReferences ? <LoadingOutlined /> : <PlusOutlined />}
             </button>
           </div>
           <div className="ref-images-tip">
-            Linked: {upstreamReferenceImages.length} | Manual: {manualReferenceImages.length}
+            上游引用：{upstreamReferenceImages.length} 张 | 手动上传：{manualReferenceImages.length} 张
           </div>
           {referenceUploadError && (
             <div className="error-message">{referenceUploadError}</div>
@@ -352,22 +350,23 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
         </div>
 
         <div className="form-field">
-          <label className="field-label">Identity Lock</label>
+          <label className="field-label">角色一致性锁定</label>
           <Switch
             checked={data.identityLock ?? false}
             disabled={!canUseIdentityLock}
             onChange={(checked) => updateNodeData(id, { identityLock: checked })}
+            className="nodrag"
           />
           {!canUseIdentityLock && (
             <div className="refresh-tip">
-              Add a reference image first to enable character consistency.
+              请先添加参考图，再启用角色一致性锁定。
             </div>
           )}
         </div>
 
         {canUseIdentityLock && (data.identityLock ?? false) && (
           <div className="form-field">
-            <label className="field-label">Identity Strength</label>
+            <label className="field-label">一致性强度</label>
             <Slider
               min={0}
               max={1}
@@ -375,13 +374,14 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
               value={data.identityStrength ?? 0.7}
               onChange={(value) => updateNodeData(id, { identityStrength: Number(value) })}
               tooltip={{ formatter: (value) => `${Math.round((value ?? 0) * 100)}%` }}
+              className="nodrag"
             />
           </div>
         )}
 
         {needsRefresh && !isProcessing && (
           <div className="refresh-tip">
-            Upstream inputs or current parameters changed. Run generation again to sync the latest output.
+            上游输入或当前参数已变化，建议重新生成以同步最新结果。
           </div>
         )}
 
@@ -406,15 +406,15 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
           onClick={handleGenerate}
           loading={isProcessing || (isWorkflowExecuting && activeExecutionNodeId === id)}
           disabled={isDisabled || isBlockedByWorkflowExecution}
-          className="generate-btn"
+          className="generate-btn nodrag"
         >
           {data.status === 'queued'
-            ? 'Queued...'
+            ? '排队中...'
             : isProcessing || (isWorkflowExecuting && activeExecutionNodeId === id)
-              ? 'Generating...'
+              ? '生成中...'
               : isBlockedByWorkflowExecution
-                ? 'Workflow Running...'
-                : `${needsRefresh ? 'Regenerate Image' : 'Generate Image'} - ${data.creditCost}`}
+                ? '工作流执行中...'
+                : `${needsRefresh ? '重新生成图片' : '生成图片'} - ${data.creditCost}`}
         </Button>
       </div>
 

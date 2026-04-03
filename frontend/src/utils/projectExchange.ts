@@ -223,7 +223,7 @@ function resetTransientNodeState(node: AppNode): AppNode {
 function sanitizePayload(payload: ProjectExchangePayload): ProjectExchangePayload {
   return {
     workflowId: payload.workflowId ?? null,
-    name: typeof payload.name === 'string' && payload.name.trim().length > 0 ? payload.name : 'Untitled Workflow',
+    name: typeof payload.name === 'string' && payload.name.trim().length > 0 ? payload.name : '未命名工作流',
     nodes: Array.isArray(payload.nodes) ? payload.nodes.map((node) => resetTransientNodeState(node)) : [],
     edges: Array.isArray(payload.edges)
       ? payload.edges.map((edge) => {
@@ -627,7 +627,7 @@ function normalizeProjectExchangePayload(value: unknown): ProjectExchangePayload
 
   return sanitizePayload({
     workflowId: typeof value.workflowId === 'string' ? value.workflowId : null,
-    name: typeof value.name === 'string' && value.name.trim().length > 0 ? value.name : 'Untitled Workflow',
+    name: typeof value.name === 'string' && value.name.trim().length > 0 ? value.name : '未命名工作流',
     nodes: rawNodes,
     edges: rawEdges,
   })

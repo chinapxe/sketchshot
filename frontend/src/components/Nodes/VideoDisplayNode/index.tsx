@@ -22,7 +22,7 @@ const VideoDisplayNode = memo(({ id, data }: NodeProps<VideoDisplayNodeType>) =>
       openPreview({
         type: getPreviewAssetType(url),
         src: url,
-        title: `${data.label} Asset ${index + 1}`,
+        title: `${data.label} - 结果 ${index + 1}`,
       })
     },
     [data.label, openPreview]
@@ -56,10 +56,10 @@ const VideoDisplayNode = memo(({ id, data }: NodeProps<VideoDisplayNodeType>) =>
       <div className="node-header">
         <VideoCameraOutlined className="node-icon" />
         <span className="node-title">{data.label}</span>
-        {isDisabled && <span className="node-disabled-badge">Disabled</span>}
+        {isDisabled && <span className="node-disabled-badge">已禁用</span>}
       </div>
 
-      <div className="node-body">
+      <div className="node-body nodrag nopan nowheel">
         {data.videos.length > 0 ? (
           <div className="video-display-grid">
             {data.videos.map((url, index) => {
@@ -85,10 +85,10 @@ const VideoDisplayNode = memo(({ id, data }: NodeProps<VideoDisplayNodeType>) =>
                     <img className="video-display-media" src={url} alt={`${data.label}-${index + 1}`} />
                   )}
                   <span className="video-display-tag">
-                    {assetType === 'video' ? 'Video Clip' : 'Animated Image'}
+                    {assetType === 'video' ? '视频片段' : '动图'}
                   </span>
                   <span className="video-display-hint">
-                    <PlayCircleOutlined /> Preview
+                    <PlayCircleOutlined /> 点击预览
                   </span>
                 </button>
               )
@@ -96,14 +96,14 @@ const VideoDisplayNode = memo(({ id, data }: NodeProps<VideoDisplayNodeType>) =>
 
             <button type="button" className="video-upload-tile" onClick={handleOpenUpload}>
               <UploadOutlined />
-              <span>Add Media</span>
+              <span>添加媒体</span>
             </button>
           </div>
         ) : (
           <div className="video-empty-state" onClick={handleOpenUpload}>
             <VideoCameraOutlined className="empty-icon" />
-            <span>Waiting for video output</span>
-            <span className="empty-hint">Or click to add a local video, GIF, or WebP</span>
+            <span>等待视频结果</span>
+            <span className="empty-hint">或点击添加本地视频、GIF、WebP</span>
           </div>
         )}
       </div>

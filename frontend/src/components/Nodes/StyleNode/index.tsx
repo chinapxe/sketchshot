@@ -45,7 +45,7 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
           <div className="storyboard-node-subtitle">统一视觉气质、构图和光影语言</div>
         </div>
         <div className="storyboard-node-actions">
-          {isDisabled && <span className="storyboard-badge disabled">Disabled</span>}
+          {isDisabled && <span className="storyboard-badge disabled">已禁用</span>}
           <Button
             type="text"
             size="small"
@@ -59,7 +59,7 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
       </div>
 
       {isCollapsed ? (
-        <div className="storyboard-node-body storyboard-node-body-collapsed">
+        <div className="storyboard-node-body storyboard-node-body-collapsed nodrag nopan nowheel">
           <div className="storyboard-summary-title">{summaryName}</div>
           <div className="storyboard-summary-item">
             <span className="storyboard-summary-label">关键词</span>
@@ -72,14 +72,14 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
           </div>
         </div>
       ) : (
-        <div className="storyboard-node-body">
+        <div className="storyboard-node-body nodrag nopan nowheel">
           <div className="storyboard-field">
             <label className="storyboard-field-label">风格名称</label>
             <Input
               value={data.name}
               onChange={(event) => updateField('name', event.target.value)}
               placeholder="例如：冷峻写实悬疑"
-              className="storyboard-input"
+              className="storyboard-input nodrag"
             />
           </div>
 
@@ -90,7 +90,7 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
               onChange={(event) => updateField('keywords', event.target.value)}
               placeholder="例如：胶片颗粒、雨夜霓虹、低饱和、高反差"
               autoSize={{ minRows: 2, maxRows: 4 }}
-              className="storyboard-textarea"
+              className="storyboard-textarea nodrag"
             />
           </div>
 
@@ -101,7 +101,7 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
                 value={data.palette}
                 onChange={(event) => updateField('palette', event.target.value)}
                 placeholder="例如：冷青灰、局部暖橙"
-                className="storyboard-input"
+                className="storyboard-input nodrag"
               />
             </div>
             <div className="storyboard-field">
@@ -110,7 +110,7 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
                 value={data.lighting}
                 onChange={(event) => updateField('lighting', event.target.value)}
                 placeholder="例如：侧逆光、局部硬光"
-                className="storyboard-input"
+                className="storyboard-input nodrag"
               />
             </div>
           </div>
@@ -121,7 +121,7 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
               value={data.framing}
               onChange={(event) => updateField('framing', event.target.value)}
               placeholder="例如：对称构图、压迫式留白、人物偏边缘"
-              className="storyboard-input"
+              className="storyboard-input nodrag"
             />
           </div>
 
@@ -132,7 +132,7 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
               onChange={(event) => updateField('notes', event.target.value)}
               placeholder="补充风格禁忌、材质质感、参考导演语言等"
               autoSize={{ minRows: 2, maxRows: 4 }}
-              className="storyboard-textarea"
+              className="storyboard-textarea nodrag"
             />
           </div>
         </div>

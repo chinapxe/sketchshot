@@ -25,15 +25,15 @@ const aspectRatioOptions = [
 ]
 
 const durationOptions = [
-  { value: 2, label: '2s' },
-  { value: 4, label: '4s' },
-  { value: 6, label: '6s' },
-  { value: 8, label: '8s' },
+  { value: 2, label: '2 秒' },
+  { value: 4, label: '4 秒' },
+  { value: 6, label: '6 秒' },
+  { value: 8, label: '8 秒' },
 ]
 
 const adapterOptions = [
-  { value: 'volcengine', label: 'Volcengine' },
-  { value: 'mock', label: 'Mock Motion' },
+  { value: 'volcengine', label: '火山引擎' },
+  { value: 'mock', label: '模拟模式' },
 ]
 
 const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
@@ -88,14 +88,14 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
 
       const latestNode = useFlowStore.getState().nodes.find((node) => node.id === id)
       if (!latestNode || latestNode.type !== 'videoGen') {
-        throw new Error('Video generation node not found')
+        throw new Error('视频生成节点不存在')
       }
 
       const generatedPrompt = await generateVideoPrompt(latestNode.data)
       updateNodeData(id, { prompt: generatedPrompt })
-      message.success('Motion prompt refined')
+      message.success('视频提示词已优化')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Prompt refinement failed'
+      const errorMessage = error instanceof Error ? error.message : '提示词优化失败'
       message.error(errorMessage)
     } finally {
       setIsPromptGenerating(false)
@@ -114,7 +114,7 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
       openPreview({
         type: 'image',
         src: imageUrl,
-        title: `${data.label} Source ${index + 1}`,
+        title: `${data.label} - 源图 ${index + 1}`,
       })
     },
     [data.label, openPreview]
@@ -126,7 +126,7 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
     openPreview({
       type: getPreviewAssetType(data.outputVideo),
       src: data.outputVideo,
-      title: `${data.label} Output`,
+      title: `${data.label} - 输出结果`,
     })
   }, [data.label, data.outputVideo, openPreview])
 
@@ -155,15 +155,15 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
         <span className="node-title">{data.label}</span>
         {needsRefresh && !isProcessing && (
           <span className="node-refresh-badge">
-            <SyncOutlined /> Needs Refresh
+            <SyncOutlined /> 待刷新
           </span>
         )}
-        {isDisabled && <span className="node-disabled-badge">Disabled</span>}
+        {isDisabled && <span className="node-disabled-badge">已禁用</span>}
       </div>
 
-      <div className="node-body">
+      <div className="node-body nodrag nopan nowheel">
         <div className="form-field">
-          <label className="field-label">Source Frames</label>
+          <label className="field-label">源图帧</label>
           {hasSourceImages ? (
             <div className="video-source-grid">
               {(data.sourceImages ?? []).map((imageUrl, index) => (
@@ -173,20 +173,20 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
                   className="video-source-button"
                   onClick={() => handlePreviewSource(imageUrl, index)}
                 >
-                  <img src={imageUrl} alt={`source-${index + 1}`} className="video-source-thumb" />
+                  <img src={imageUrl} alt={`源图 ${index + 1}`} className="video-source-thumb" />
                 </button>
               ))}
             </div>
           ) : (
             <div className="video-empty-panel">
-              Connect an image upload or image generation node first.
+              请先连接图片上传、图片生成或镜头节点的图像结果。
             </div>
           )}
         </div>
 
         <div className="form-field">
           <div className="field-label-row">
-            <label className="field-label">Motion Prompt</label>
+            <label className="field-label">运动提示词</label>
             <Button
               type="text"
               size="small"
@@ -194,46 +194,46 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
               onClick={handleGeneratePrompt}
               loading={isPromptGenerating}
               disabled={isPromptGenerating || isProcessing || isDisabled || isBlockedByWorkflowExecution}
-              className="prompt-helper-btn"
+              className="prompt-helper-btn nodrag"
             >
-              AI Refine
+              AI 优化
             </Button>
           </div>
           <textarea
-            className="prompt-textarea"
+            className="prompt-textarea nodrag"
             value={data.prompt}
             onChange={handlePromptChange}
-            placeholder="Describe the camera move or subject motion..."
+            placeholder="描述镜头运动、主体动作、速度节奏等内容..."
             rows={3}
           />
         </div>
 
         <div className="form-row">
           <div className="form-field flex-1">
-            <label className="field-label">Ratio</label>
+            <label className="field-label">画面比例</label>
             <Select
               size="small"
               value={data.aspectRatio}
               onChange={(value) => updateNodeData(id, { aspectRatio: value })}
               options={aspectRatioOptions}
-              className="field-select"
+              className="field-select nodrag nopan"
             />
           </div>
 
           <div className="form-field flex-1">
-            <label className="field-label">Duration</label>
+            <label className="field-label">时长</label>
             <Select
               size="small"
               value={data.durationSeconds}
               onChange={(value) => updateNodeData(id, { durationSeconds: value })}
               options={durationOptions}
-              className="field-select"
+              className="field-select nodrag nopan"
             />
           </div>
         </div>
 
         <div className="form-field">
-          <label className="field-label">Motion Strength</label>
+          <label className="field-label">运动强度</label>
           <Slider
             min={0.1}
             max={1}
@@ -241,29 +241,30 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
             value={data.motionStrength}
             onChange={(value) => updateNodeData(id, { motionStrength: Number(value) })}
             tooltip={{ formatter: (value) => `${Math.round((value ?? 0) * 100)}%` }}
+            className="nodrag"
           />
         </div>
 
         <div className="form-field">
-          <label className="field-label">Adapter</label>
+          <label className="field-label">适配器</label>
           <Select
             size="small"
             value={data.adapter}
             onChange={(value) => updateNodeData(id, { adapter: value })}
             options={adapterOptions}
-            className="field-select"
+            className="field-select nodrag nopan"
           />
         </div>
 
         {needsRefresh && !isProcessing && (
           <div className="refresh-tip">
-            Upstream images or motion settings changed. Run the node again to refresh the clip.
+            上游图片或当前运动参数已变化，建议重新执行以同步最新结果。
           </div>
         )}
 
         {data.outputVideo && (
           <div className="form-field">
-            <label className="field-label">Latest Output</label>
+            <label className="field-label">最新输出</label>
             <button type="button" className="video-output-card" onClick={handlePreviewOutput}>
               {outputAssetType === 'video' ? (
                 <video
@@ -275,9 +276,9 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
                   playsInline
                 />
               ) : (
-                <img className="video-output-media" src={data.outputVideo} alt={`${data.label} output`} />
+                <img className="video-output-media" src={data.outputVideo} alt={`${data.label} 输出`} />
               )}
-              <span className="video-output-hint">Click to preview full output</span>
+              <span className="video-output-hint">点击查看完整结果</span>
             </button>
           </div>
         )}
@@ -303,18 +304,18 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
           onClick={handleGenerate}
           loading={isProcessing || (isWorkflowExecuting && activeExecutionNodeId === id)}
           disabled={isDisabled || isBlockedByWorkflowExecution || !hasSourceImages}
-          className="generate-btn"
+          className="generate-btn nodrag"
           icon={<PlayCircleOutlined />}
         >
           {data.status === 'queued'
-            ? 'Queued...'
+            ? '排队中...'
             : isProcessing || (isWorkflowExecuting && activeExecutionNodeId === id)
-              ? 'Generating...'
+              ? '生成中...'
               : isBlockedByWorkflowExecution
-                ? 'Workflow Running...'
+                ? '工作流执行中...'
                 : !hasSourceImages
-                  ? 'Connect Image Input First'
-                  : `${needsRefresh ? 'Regenerate Motion' : 'Generate Motion'} - ${data.creditCost}`}
+                  ? '请先连接图像输入'
+                  : `${needsRefresh ? '重新生成视频' : '生成视频'} - ${data.creditCost}`}
         </Button>
       </div>
 

@@ -46,7 +46,7 @@ const SceneNode = memo(({ id, data }: NodeProps<SceneNodeType>) => {
           <div className="storyboard-node-subtitle">组织同一场次下的镜头与叙事目标</div>
         </div>
         <div className="storyboard-node-actions">
-          {isDisabled && <span className="storyboard-badge disabled">Disabled</span>}
+          {isDisabled && <span className="storyboard-badge disabled">已禁用</span>}
           <Button
             type="text"
             size="small"
@@ -60,7 +60,7 @@ const SceneNode = memo(({ id, data }: NodeProps<SceneNodeType>) => {
       </div>
 
       {isCollapsed ? (
-        <div className="storyboard-node-body storyboard-node-body-collapsed">
+        <div className="storyboard-node-body storyboard-node-body-collapsed nodrag nopan nowheel">
           <div className="storyboard-summary-title">{summaryTitle}</div>
           <div className="storyboard-summary-item">
             <span className="storyboard-summary-label">概述</span>
@@ -75,7 +75,7 @@ const SceneNode = memo(({ id, data }: NodeProps<SceneNodeType>) => {
           </div>
         </div>
       ) : (
-        <div className="storyboard-node-body">
+        <div className="storyboard-node-body nodrag nopan nowheel">
           <div className="storyboard-field">
             <label className="storyboard-field-label">场次标题</label>
             <Input

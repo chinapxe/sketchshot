@@ -1,10 +1,12 @@
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import {
   AppstoreOutlined,
   BgColorsOutlined,
   BranchesOutlined,
   CameraOutlined,
   HighlightOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   PictureOutlined,
   PlaySquareOutlined,
   TeamOutlined,
@@ -20,6 +22,8 @@ interface NodeTypeItem {
   description: string
   icon: React.ReactNode
 }
+
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sketchshot-sidebar-collapsed'
 
 const nodeTypes: NodeTypeItem[] = [
   {
@@ -79,14 +83,38 @@ const nodeTypes: NodeTypeItem[] = [
 ]
 
 const Sidebar = memo(() => {
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === '1'
+  })
+
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, isCollapsed ? '1' : '0')
+  }, [isCollapsed])
+
   const onDragStart = (event: React.DragEvent, nodeType: AppNodeType) => {
     event.dataTransfer.setData('application/reactflow', nodeType)
     event.dataTransfer.effectAllowed = 'move'
   }
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-title">节点库</div>
+    <aside className={`sidebar${isCollapsed ? ' is-collapsed' : ''}`}>
+      <div className="sidebar-header">
+        {!isCollapsed && <div className="sidebar-title">节点库</div>}
+        <button
+          type="button"
+          className="sidebar-toggle"
+          onClick={() => setIsCollapsed((value) => !value)}
+          aria-label={isCollapsed ? '展开节点栏' : '收起节点栏'}
+          title={isCollapsed ? '展开节点栏' : '收起节点栏'}
+        >
+          {isCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+        </button>
+      </div>
+
       <div className="sidebar-list">
         {nodeTypes.map((item) => (
           <div
@@ -94,16 +122,19 @@ const Sidebar = memo(() => {
             className="sidebar-item"
             draggable
             onDragStart={(event) => onDragStart(event, item.type)}
+            title={isCollapsed ? `${item.label}：${item.description}` : undefined}
           >
             <div className="sidebar-item-icon">{item.icon}</div>
-            <div className="sidebar-item-info">
-              <div className="sidebar-item-label">{item.label}</div>
-              <div className="sidebar-item-desc">{item.description}</div>
-            </div>
+            {!isCollapsed && (
+              <div className="sidebar-item-info">
+                <div className="sidebar-item-label">{item.label}</div>
+                <div className="sidebar-item-desc">{item.description}</div>
+              </div>
+            )}
           </div>
         ))}
       </div>
-    </div>
+    </aside>
   )
 })
 

@@ -1,5 +1,5 @@
 /**
- * Image upload node.
+ * 图片上传节点。
  */
 import { memo, useCallback, useRef } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
@@ -39,9 +39,9 @@ const ImageUploadNode = memo(({ id, data }: NodeProps<ImageUploadNodeType>) => {
           isUploading: false,
           uploadError: undefined,
         })
-        message.success('Reference image uploaded')
+        message.success('参考图上传成功')
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+        const errorMessage = error instanceof Error ? error.message : '上传失败'
         updateNodeData(id, {
           isUploading: false,
           uploadError: errorMessage,
@@ -63,7 +63,7 @@ const ImageUploadNode = memo(({ id, data }: NodeProps<ImageUploadNodeType>) => {
     openPreview({
       type: 'image',
       src: data.imageUrl,
-      title: data.fileName || 'Reference Image',
+      title: data.fileName || '参考图片',
     })
   }, [data.fileName, data.imageUrl, handleUpload, openPreview])
 
@@ -84,27 +84,27 @@ const ImageUploadNode = memo(({ id, data }: NodeProps<ImageUploadNodeType>) => {
       <div className="node-header">
         <PictureOutlined className="node-icon" />
         <span className="node-title">{data.label}</span>
-        {isDisabled && <span className="node-disabled-badge">Disabled</span>}
+        {isDisabled && <span className="node-disabled-badge">已禁用</span>}
       </div>
 
-      <div className="node-body" onClick={handlePreview}>
+      <div className="node-body nodrag nopan nowheel" onClick={handlePreview}>
         {data.imageUrl ? (
           <div className="image-preview-wrapper">
-            <img src={data.imageUrl} alt={data.fileName || 'Reference'} className="image-preview" />
-            <div className="preview-hint">{isUploading ? 'Uploading...' : 'Click to preview'}</div>
+            <img src={data.imageUrl} alt={data.fileName || '参考图'} className="image-preview" />
+            <div className="preview-hint">{isUploading ? '上传中...' : '点击预览'}</div>
             <div
               className="re-upload-overlay"
               onClick={handleReUpload}
               role="button"
               tabIndex={0}
             >
-              <UploadOutlined /> {isUploading ? 'Uploading...' : 'Re-upload'}
+              <UploadOutlined /> {isUploading ? '上传中...' : '重新上传'}
             </div>
           </div>
         ) : (
           <div className="upload-placeholder">
             <UploadOutlined className="upload-icon" />
-            <span>{isUploading ? 'Uploading...' : 'Click to upload image'}</span>
+            <span>{isUploading ? '上传中...' : '点击上传图片'}</span>
           </div>
         )}
 

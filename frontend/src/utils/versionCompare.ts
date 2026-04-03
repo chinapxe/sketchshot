@@ -43,7 +43,7 @@ function getNodeVersionSource(node: AppNode): {
       assetType: 'image',
       currentAssetUrl: data.outputImage,
       cache: data.resultCache,
-      title: compactText(data.label) || 'Image Generate',
+      title: compactText(data.label) || '图片生成',
       subtitle: compactText(data.prompt) || '等待填写图片提示词',
     }
   }
@@ -54,7 +54,7 @@ function getNodeVersionSource(node: AppNode): {
       assetType: 'video',
       currentAssetUrl: data.outputVideo,
       cache: data.resultCache,
-      title: compactText(data.label) || 'Video Motion',
+      title: compactText(data.label) || '视频生成',
       subtitle: compactText(data.prompt) || '等待填写视频提示词',
     }
   }
@@ -65,7 +65,7 @@ function getNodeVersionSource(node: AppNode): {
       assetType: data.outputType,
       currentAssetUrl: data.outputType === 'video' ? data.outputVideo : data.outputImage,
       cache: data.resultCache,
-      title: compactText(data.title) || compactText(data.label) || 'Shot',
+      title: compactText(data.title) || compactText(data.label) || '镜头',
       subtitle: compactText(data.description) || compactText(data.prompt) || '等待填写镜头描述',
     }
   }
