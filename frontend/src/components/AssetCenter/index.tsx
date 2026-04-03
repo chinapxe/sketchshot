@@ -78,7 +78,7 @@ const AssetCenter = memo(({ open, nodes, onClose }: AssetCenterProps) => {
       onCancel={onClose}
       footer={null}
       width={920}
-      destroyOnClose
+      destroyOnHidden
     >
       <div className="asset-center-summary">
         <span className="asset-center-chip">总资产 {summary.total}</span>

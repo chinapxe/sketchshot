@@ -218,6 +218,34 @@ describe('projectExchange', () => {
     expect((restoredNode?.data as { images: string[] }).images).toEqual(['blob:restored-1'])
   })
 
+  it('writes a fast local draft snapshot before async asset persistence finishes', async () => {
+    const fetchResolverRef: { current?: (response: Response) => void } = {}
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          fetchResolverRef.current = resolve
+        })
+    )
+
+    const savePromise = saveLocalDraft({
+      workflowId: null,
+      name: 'Fast Snapshot Draft',
+      nodes: [createImageDisplayNode('blob:temp-image')],
+      edges: [] as AppEdge[],
+    })
+
+    const storedContentBeforeFetchResolved = globalThis.localStorage.getItem(LOCAL_DRAFT_STORAGE_KEY)
+    expect(storedContentBeforeFetchResolved).toContain('Fast Snapshot Draft')
+
+    if (!fetchResolverRef.current) {
+      throw new Error('fetch resolver was not captured')
+    }
+
+    fetchResolverRef.current(new Response(new Blob(['draft-image'], { type: 'image/png' }), { status: 200 }))
+    await savePromise
+  })
+
   it('creates and restores zip project packages with bundled assets', async () => {
     const uploadNode = createImageUploadNode()
     const shotNode = createShotNode('success')

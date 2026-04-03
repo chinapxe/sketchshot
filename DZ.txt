@@ -85,3 +85,20 @@
 1 左侧边栏的节点选择区能不能汉化为中文展现
 2 浏览器刷新页面时当前页面的内容不丢失行不行
 3 导入导出能不能导出为可以保存在本地的文件
+
+
+WXHB_PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+WXHB_PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+
+docker compose --env-file .env.docker build backend --progress plain --no-cache
+
+.\scripts\docker-build.ps1 -Action up
+
+
+计划对项目进行正式定名，你帮我分析哪个名字合适
+ShotLink（镜头连线）
+FrameLink（帧连线）
+StoryNode（故事节点）
+SketchShot（草图镜头）
+Storyboard Canvas（最直白、最容易被搜到）
+

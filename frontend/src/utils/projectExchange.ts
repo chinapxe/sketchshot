@@ -832,16 +832,23 @@ export async function saveLocalDraft(payload: ProjectExchangePayload): Promise<v
     return
   }
 
-  const persistedPayload = await persistPayloadLocalAssets(payload)
-  const nextSerialized = serializeProjectExchange(persistedPayload)
-  const nextLocalAssetUrls = collectStoredLocalAssetUrls(persistedPayload.nodes)
-
-  storage.setItem(LOCAL_DRAFT_STORAGE_KEY, nextSerialized)
+  const sanitizedPayload = sanitizePayload(payload)
+  storage.setItem(LOCAL_DRAFT_STORAGE_KEY, serializeProjectExchange(sanitizedPayload))
   storage.removeItem(LEGACY_LOCAL_DRAFT_STORAGE_KEY_VALUE)
 
-  const nextLocalAssetSet = new Set(nextLocalAssetUrls)
-  const removedAssetUrls = previousLocalAssetUrls.filter((url) => !nextLocalAssetSet.has(url))
-  await removeLocalAssetUrls(removedAssetUrls)
+  try {
+    const persistedPayload = await persistPayloadLocalAssets(sanitizedPayload)
+    const nextSerialized = serializeProjectExchange(persistedPayload)
+    const nextLocalAssetUrls = collectStoredLocalAssetUrls(persistedPayload.nodes)
+
+    storage.setItem(LOCAL_DRAFT_STORAGE_KEY, nextSerialized)
+
+    const nextLocalAssetSet = new Set(nextLocalAssetUrls)
+    const removedAssetUrls = previousLocalAssetUrls.filter((url) => !nextLocalAssetSet.has(url))
+    await removeLocalAssetUrls(removedAssetUrls)
+  } catch (error) {
+    console.warn('[projectExchange] failed to persist local draft assets, kept fast snapshot', error)
+  }
 }
 
 export async function loadLocalDraft(): Promise<ProjectExchangePayload | null> {

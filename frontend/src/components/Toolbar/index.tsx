@@ -6,12 +6,14 @@ import { memo, useCallback, useMemo, useRef, useState, type ChangeEvent } from '
 import { useReactFlow } from '@xyflow/react'
 import {
   Button,
+  Dropdown,
   Empty,
   Input,
   Modal,
   Popconfirm,
   Tooltip,
   message,
+  type MenuProps,
 } from 'antd'
 import {
   UndoOutlined,
@@ -34,6 +36,8 @@ import {
   OrderedListOutlined,
   PictureOutlined,
   HistoryOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons'
 import AssetCenter from '../AssetCenter'
 import ExecutionCenter from '../ExecutionCenter'
@@ -189,6 +193,7 @@ const Toolbar = memo(() => {
   const [isProjectExporting, setIsProjectExporting] = useState(false)
   const [isProjectImporting, setIsProjectImporting] = useState(false)
   const [activeWorkflowId, setActiveWorkflowId] = useState<string | null>(null)
+  const [isDockCollapsed, setIsDockCollapsed] = useState(false)
 
   const hasCanvasContent = nodes.length > 0 || edges.length > 0
   const creditSummary = useMemo(() => getWorkflowCreditSummary(nodes), [nodes])
@@ -198,10 +203,10 @@ const Toolbar = memo(() => {
     }
 
     if (creditSummary.cachedNodeCount > 0) {
-      return `将执行 ${creditSummary.executableNodeCount} 个生成节点，预计消耗 💎${creditSummary.estimatedCredits}，其中 ${creditSummary.cachedNodeCount} 个节点可复用缓存。`
+      return `将执行 ${creditSummary.executableNodeCount} 个生成节点，预计消耗 ${creditSummary.estimatedCredits} 点，其中 ${creditSummary.cachedNodeCount} 个节点可复用缓存。`
     }
 
-    return `将执行 ${creditSummary.executableNodeCount} 个生成节点，预计消耗 💎${creditSummary.estimatedCredits}。`
+    return `将执行 ${creditSummary.executableNodeCount} 个生成节点，预计消耗 ${creditSummary.estimatedCredits} 点。`
   }, [creditSummary.cachedNodeCount, creditSummary.estimatedCredits, creditSummary.executableNodeCount])
 
   const workflowLabel = useMemo(() => {
@@ -248,6 +253,16 @@ const Toolbar = memo(() => {
     setWorkflowMeta(null, '未命名工作流')
     message.success('已新建空白工作流')
   }, [clearCanvas, setWorkflowMeta])
+
+  const showNewWorkflowConfirm = useCallback(() => {
+    Modal.confirm({
+      title: '新建工作流',
+      content: '将清空当前画布内容，并从一张新的故事板开始。',
+      okText: '确认',
+      cancelText: '取消',
+      onOk: handleNewWorkflow,
+    })
+  }, [handleNewWorkflow])
 
   const handleSelectAll = useCallback(() => {
     selectAll()
@@ -471,82 +486,158 @@ const Toolbar = memo(() => {
     setIsVersionCompareOpen(true)
   }, [])
 
+  const showClearCanvasConfirm = useCallback(() => {
+    Modal.confirm({
+      title: '确认清空画布',
+      content: '清空后所有节点与连线都会被移除，请确认当前内容已经不再需要。',
+      okText: '确认清空',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: clearCanvas,
+    })
+  }, [clearCanvas])
+
+  const projectMenuItems = useMemo<MenuProps['items']>(
+    () => [
+      {
+        key: 'new',
+        label: '新建画布',
+        icon: <FileAddOutlined />,
+        disabled: isWorkflowExecuting,
+        onClick: showNewWorkflowConfirm,
+      },
+      {
+        key: 'save',
+        label: '保存工作流',
+        icon: <SaveOutlined />,
+        disabled: isWorkflowExecuting,
+        onClick: openSaveModal,
+      },
+      {
+        key: 'load',
+        label: '加载工作流',
+        icon: <FolderOpenOutlined />,
+        disabled: isWorkflowExecuting,
+        onClick: () => void openLoadModal(),
+      },
+      {
+        key: 'import-project',
+        label: '导入项目文件',
+        icon: <ImportOutlined />,
+        disabled: isWorkflowExecuting || isProjectImporting,
+        onClick: handleOpenImportProjectFile,
+      },
+      {
+        key: 'template',
+        label: '套用模板',
+        icon: <BorderOutlined />,
+        disabled: isWorkflowExecuting,
+        onClick: () => setIsTemplateModalOpen(true),
+      },
+      {
+        type: 'divider',
+      },
+      {
+        key: 'export-project',
+        label: '导出项目文件',
+        icon: <DownloadOutlined />,
+        disabled: !hasCanvasContent || isWorkflowExecuting || isProjectExporting,
+        onClick: () => void handleExportProjectFile(),
+      },
+      {
+        key: 'export-assets',
+        label: '导出资源包',
+        icon: <ExportOutlined />,
+        disabled: nodes.length === 0 || isWorkflowExecuting || isExporting,
+        onClick: () => void handleExportWorkflow(),
+      },
+    ],
+    [
+      handleExportProjectFile,
+      handleExportWorkflow,
+      handleOpenImportProjectFile,
+      hasCanvasContent,
+      isExporting,
+      isProjectExporting,
+      isProjectImporting,
+      isWorkflowExecuting,
+      nodes.length,
+      openLoadModal,
+      openSaveModal,
+      showNewWorkflowConfirm,
+    ]
+  )
+
+  const panelMenuItems = useMemo<MenuProps['items']>(
+    () => [
+      {
+        key: 'asset-center',
+        label: '资产中心',
+        icon: <PictureOutlined />,
+        onClick: () => setIsAssetCenterOpen(true),
+      },
+      {
+        key: 'execution-center',
+        label: '执行中心',
+        icon: <OrderedListOutlined />,
+        onClick: () => setIsExecutionCenterOpen(true),
+      },
+      {
+        key: 'version-compare',
+        label: '版本对比',
+        icon: <HistoryOutlined />,
+        onClick: () => handleOpenVersionCompare(),
+      },
+    ],
+    [handleOpenVersionCompare]
+  )
+
   return (
     <>
-      <div className="canvas-toolbar">
-        <div className="toolbar-group">
-          <span className="toolbar-workflow-label">{workflowLabel}</span>
-          <span className="toolbar-credit-chip">
-            预计消耗 💎{creditSummary.estimatedCredits}
-          </span>
-          {creditSummary.cachedNodeCount > 0 && (
-            <span className="toolbar-cache-chip">
-              缓存复用 {creditSummary.cachedNodeCount}
-            </span>
+      <div className={`canvas-toolbar canvas-toolbar-dock${isDockCollapsed ? ' is-collapsed' : ''}`}>
+        <div className="toolbar-dock-header">
+          {!isDockCollapsed && (
+            <div className="toolbar-dock-title-wrap">
+              <div className="toolbar-dock-title">SketchShot</div>
+              <div className="toolbar-workflow-label" title={workflowLabel}>
+                {workflowLabel}
+              </div>
+            </div>
           )}
-          <Popconfirm
-            title="新建工作流"
-            description="将清空当前画布内容并开始新的工作流"
-            onConfirm={handleNewWorkflow}
-            okText="确认"
-            cancelText="取消"
-          >
+
+          <Tooltip title={isDockCollapsed ? '展开工具面板' : '收起工具面板'}>
             <Button
-              size="small"
-              icon={<FileAddOutlined />}
-              className="toolbar-text-btn"
-              disabled={isWorkflowExecuting}
-            >
-              新建
-            </Button>
-          </Popconfirm>
-          <Button
-            size="small"
-            icon={<SaveOutlined />}
-            className="toolbar-text-btn"
-            disabled={isWorkflowExecuting}
-            onClick={openSaveModal}
-          >
-            保存
-          </Button>
-          <Button
-            size="small"
-            icon={<FolderOpenOutlined />}
-            className="toolbar-text-btn"
-            disabled={isWorkflowExecuting}
-            onClick={() => void openLoadModal()}
-          >
-            加载
-          </Button>
-          <Button
-            size="small"
-            icon={<ImportOutlined />}
-            className="toolbar-text-btn"
-            disabled={isWorkflowExecuting || isProjectImporting}
-            loading={isProjectImporting}
-            onClick={handleOpenImportProjectFile}
-          >
-            导入项目
-          </Button>
-          <Button
-            size="small"
-            icon={<BorderOutlined />}
-            className="toolbar-text-btn"
-            disabled={isWorkflowExecuting}
-            onClick={() => setIsTemplateModalOpen(true)}
-          >
-            模板
-          </Button>
-          <Button
-            size="small"
-            icon={<DownloadOutlined />}
-            className="toolbar-text-btn"
-            disabled={!hasCanvasContent || isWorkflowExecuting || isProjectExporting}
-            loading={isProjectExporting}
-            onClick={() => void handleExportProjectFile()}
-          >
-            导出项目
-          </Button>
+              type="text"
+              icon={isDockCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              className="toolbar-btn toolbar-dock-toggle"
+              onClick={() => setIsDockCollapsed((value) => !value)}
+            />
+          </Tooltip>
+        </div>
+
+        {!isDockCollapsed && (
+          <div className="toolbar-dock-summary">
+            <span className="toolbar-credit-chip">预计消耗 {creditSummary.estimatedCredits} 点</span>
+            {creditSummary.cachedNodeCount > 0 && (
+              <span className="toolbar-cache-chip">缓存复用 {creditSummary.cachedNodeCount}</span>
+            )}
+          </div>
+        )}
+
+        <div className="toolbar-dock-section">
+          {!isDockCollapsed && <div className="toolbar-dock-section-title">项目</div>}
+
+          <Dropdown menu={{ items: projectMenuItems }} trigger={['click']} placement="bottomRight">
+            <Tooltip title="项目、模板、导入导出">
+              <Button
+                className={`toolbar-dock-action${isDockCollapsed ? ' icon-only' : ''}`}
+                icon={<FolderOpenOutlined />}
+              >
+                {!isDockCollapsed && '项目'}
+              </Button>
+            </Tooltip>
+          </Dropdown>
+
           <Popconfirm
             title="执行整个工作流"
             description={executeDescription}
@@ -555,141 +646,122 @@ const Toolbar = memo(() => {
             onConfirm={() => void handleExecuteWorkflow()}
             disabled={creditSummary.executableNodeCount === 0 || isWorkflowExecuting || isExporting}
           >
-            <Button
-              size="small"
-              type="primary"
-              icon={<PlayCircleOutlined />}
-              className="toolbar-text-btn"
-              disabled={creditSummary.executableNodeCount === 0 || isWorkflowExecuting || isExporting}
-              loading={isWorkflowExecuting}
-            >
-              一键执行
-            </Button>
+            <Tooltip title={executeDescription}>
+              <Button
+                type="primary"
+                icon={<PlayCircleOutlined />}
+                className={`toolbar-dock-action${isDockCollapsed ? ' icon-only' : ''}`}
+                disabled={creditSummary.executableNodeCount === 0 || isWorkflowExecuting || isExporting}
+                loading={isWorkflowExecuting}
+              >
+                {!isDockCollapsed && '执行'}
+              </Button>
+            </Tooltip>
           </Popconfirm>
-          <Button
-            size="small"
-            icon={<ExportOutlined />}
-            className="toolbar-text-btn"
-            disabled={nodes.length === 0 || isWorkflowExecuting || isExporting}
-            loading={isExporting}
-            onClick={() => void handleExportWorkflow()}
-          >
-            导出资源
-          </Button>
-          <Button
-            size="small"
-            icon={<PictureOutlined />}
-            className="toolbar-text-btn"
-            onClick={() => setIsAssetCenterOpen(true)}
-          >
-            资产中心
-          </Button>
-          <Button
-            size="small"
-            icon={<OrderedListOutlined />}
-            className="toolbar-text-btn"
-            onClick={() => setIsExecutionCenterOpen(true)}
-          >
-            执行中心
-          </Button>
-          <Button
-            size="small"
-            icon={<HistoryOutlined />}
-            className="toolbar-text-btn"
-            onClick={() => handleOpenVersionCompare()}
-          >
-            版本对比
-          </Button>
+
+          <Dropdown menu={{ items: panelMenuItems }} trigger={['click']} placement="bottomRight">
+            <Tooltip title="资产中心、执行中心、版本对比">
+              <Button
+                className={`toolbar-dock-action${isDockCollapsed ? ' icon-only' : ''}`}
+                icon={<AppstoreOutlined />}
+              >
+                {!isDockCollapsed && '面板'}
+              </Button>
+            </Tooltip>
+          </Dropdown>
         </div>
 
-        <div className="toolbar-divider" />
-
-        <div className="toolbar-group">
-          <Tooltip title="撤销 (Ctrl+Z)">
-            <Button
-              type="text"
-              icon={<UndoOutlined />}
-              disabled={!canUndo || isWorkflowExecuting}
-              onClick={undo}
-              className="toolbar-btn"
-            />
-          </Tooltip>
-          <Tooltip title="重做 (Ctrl+Shift+Z)">
-            <Button
-              type="text"
-              icon={<RedoOutlined />}
-              disabled={!canRedo || isWorkflowExecuting}
-              onClick={redo}
-              className="toolbar-btn"
-            />
-          </Tooltip>
-          <Tooltip title="全选节点">
-            <Button
-              type="text"
-              icon={<SelectOutlined />}
-              disabled={nodes.length === 0 || isWorkflowExecuting}
-              onClick={handleSelectAll}
-              className="toolbar-btn"
-            />
-          </Tooltip>
-          <Tooltip title="智能整理画布">
-            <Button
-              type="text"
-              icon={<AppstoreOutlined />}
-              disabled={nodes.length <= 1 || isWorkflowExecuting}
-              onClick={handleAutoLayout}
-              className="toolbar-btn"
-            />
-          </Tooltip>
-          <Popconfirm
-            title="确认清空"
-            description="清空画布后所有节点和连线将被删除"
-            onConfirm={clearCanvas}
-            okText="确认"
-            cancelText="取消"
-            disabled={!hasCanvasContent}
-          >
+        <div className="toolbar-dock-section">
+          {!isDockCollapsed && <div className="toolbar-dock-section-title">编辑</div>}
+          <div className="toolbar-icon-grid">
+            <Tooltip title="撤销 (Ctrl+Z)">
+              <Button
+                type="text"
+                icon={<UndoOutlined />}
+                disabled={!canUndo || isWorkflowExecuting}
+                onClick={undo}
+                className="toolbar-btn"
+              />
+            </Tooltip>
+            <Tooltip title="重做 (Ctrl+Shift+Z)">
+              <Button
+                type="text"
+                icon={<RedoOutlined />}
+                disabled={!canRedo || isWorkflowExecuting}
+                onClick={redo}
+                className="toolbar-btn"
+              />
+            </Tooltip>
+            <Tooltip title="全选节点">
+              <Button
+                type="text"
+                icon={<SelectOutlined />}
+                disabled={nodes.length === 0 || isWorkflowExecuting}
+                onClick={handleSelectAll}
+                className="toolbar-btn"
+              />
+            </Tooltip>
+            <Tooltip title="智能整理画布">
+              <Button
+                type="text"
+                icon={<AppstoreOutlined />}
+                disabled={nodes.length <= 1 || isWorkflowExecuting}
+                onClick={handleAutoLayout}
+                className="toolbar-btn"
+              />
+            </Tooltip>
+            <Tooltip title="新建空白工作流">
+              <Button
+                type="text"
+                icon={<FileAddOutlined />}
+                disabled={isWorkflowExecuting}
+                onClick={showNewWorkflowConfirm}
+                className="toolbar-btn"
+              />
+            </Tooltip>
             <Tooltip title="清空画布">
               <Button
                 type="text"
                 icon={<ClearOutlined />}
                 disabled={!hasCanvasContent || isWorkflowExecuting}
+                onClick={showClearCanvasConfirm}
                 className="toolbar-btn"
               />
             </Tooltip>
-          </Popconfirm>
+          </div>
         </div>
 
-        <div className="toolbar-divider" />
-
-        <div className="toolbar-group">
-          <Tooltip title="缩小">
-            <Button
-              type="text"
-              icon={<ZoomOutOutlined />}
-              disabled={isWorkflowExecuting}
-              onClick={handleZoomOut}
-              className="toolbar-btn"
-            />
-          </Tooltip>
-          <Tooltip title="放大">
-            <Button
-              type="text"
-              icon={<ZoomInOutlined />}
-              disabled={isWorkflowExecuting}
-              onClick={handleZoomIn}
-              className="toolbar-btn"
-            />
-          </Tooltip>
-          <Tooltip title="适配视图">
-            <Button
-              type="text"
-              icon={<FullscreenOutlined />}
-              disabled={isWorkflowExecuting}
-              onClick={handleFitView}
-              className="toolbar-btn"
-            />
-          </Tooltip>
+        <div className="toolbar-dock-section">
+          {!isDockCollapsed && <div className="toolbar-dock-section-title">视图</div>}
+          <div className="toolbar-icon-grid">
+            <Tooltip title="缩小">
+              <Button
+                type="text"
+                icon={<ZoomOutOutlined />}
+                disabled={isWorkflowExecuting}
+                onClick={handleZoomOut}
+                className="toolbar-btn"
+              />
+            </Tooltip>
+            <Tooltip title="放大">
+              <Button
+                type="text"
+                icon={<ZoomInOutlined />}
+                disabled={isWorkflowExecuting}
+                onClick={handleZoomIn}
+                className="toolbar-btn"
+              />
+            </Tooltip>
+            <Tooltip title="适配视图">
+              <Button
+                type="text"
+                icon={<FullscreenOutlined />}
+                disabled={isWorkflowExecuting}
+                onClick={handleFitView}
+                className="toolbar-btn"
+              />
+            </Tooltip>
+          </div>
         </div>
       </div>
 
@@ -709,7 +781,7 @@ const Toolbar = memo(() => {
             setIsSaveModalOpen(false)
           }
         }}
-        destroyOnClose
+        destroyOnHidden
         footer={[
           <Button key="cancel" disabled={isWorkflowExecuting} onClick={() => setIsSaveModalOpen(false)}>
             取消
@@ -758,7 +830,7 @@ const Toolbar = memo(() => {
           }
         }}
         width={720}
-        destroyOnClose
+        destroyOnHidden
         footer={[
           <Button
             key="refresh"
@@ -829,7 +901,7 @@ const Toolbar = memo(() => {
           }
         }}
         width={920}
-        destroyOnClose
+        destroyOnHidden
         footer={[
           <Button key="close" type="primary" disabled={isWorkflowExecuting} onClick={() => setIsTemplateModalOpen(false)}>
             关闭
@@ -894,7 +966,7 @@ const Toolbar = memo(() => {
         open={Boolean(appliedTemplateGuide)}
         onCancel={() => setAppliedTemplateGuide(null)}
         width={780}
-        destroyOnClose
+        destroyOnHidden
         footer={[
           <Button key="close" type="primary" onClick={() => setAppliedTemplateGuide(null)}>
             开始使用

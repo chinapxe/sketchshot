@@ -16,7 +16,7 @@ const AssetPreviewModal = memo(() => {
       onCancel={closePreview}
       width="min(92vw, 1080px)"
       centered
-      destroyOnClose
+      destroyOnHidden
       className="asset-preview-modal"
     >
       <div className="asset-preview-body">

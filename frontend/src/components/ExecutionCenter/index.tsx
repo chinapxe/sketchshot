@@ -66,7 +66,7 @@ const ExecutionCenter = memo(({ open, nodes, edges, onClose, onOpenVersionCompar
       onCancel={onClose}
       footer={null}
       width={780}
-      destroyOnClose
+      destroyOnHidden
     >
       <div className="execution-center-summary">
         <span className="execution-summary-chip">总节点 {summary.total}</span>

@@ -54,7 +54,7 @@ const VersionCompare = memo(({ open, nodes, edges, initialNodeId, onClose }: Ver
       onCancel={onClose}
       footer={null}
       width={1080}
-      destroyOnClose
+      destroyOnHidden
     >
       {entries.length === 0 ? (
         <Empty description="当前还没有可比较的多版本结果" image={Empty.PRESENTED_IMAGE_SIMPLE} />
