@@ -164,6 +164,27 @@ describe('projectExchange', () => {
     expect(globalThis.localStorage.getItem(LOCAL_DRAFT_STORAGE_KEY)).toBeNull()
   })
 
+  it('loads legacy wxhb local drafts and migrates them to the SketchShot key', async () => {
+    globalThis.localStorage.setItem(
+      'wxhb.localDraft',
+      JSON.stringify({
+        format: 'wxhb-project',
+        version: '1.0',
+        exportedAt: '2026-04-03T00:00:00.000Z',
+        workflowId: null,
+        name: 'Legacy Draft',
+        nodes: [createShotNode('success')],
+        edges: [],
+      })
+    )
+
+    const restored = await loadLocalDraft()
+
+    expect(restored?.name).toBe('Legacy Draft')
+    expect(globalThis.localStorage.getItem(LOCAL_DRAFT_STORAGE_KEY)).toContain('sketchshot-project')
+    expect(globalThis.localStorage.getItem('wxhb.localDraft')).toBeNull()
+  })
+
   it('persists blob assets inside local drafts so refresh can restore them', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = typeof input === 'string' ? input : String(input)
@@ -233,13 +254,13 @@ describe('projectExchange', () => {
       edges: [{ id: 'edge-1', source: 'upload-1', target: 'shot-1' }] as AppEdge[],
     })
 
-    expect(packageResult.fileName).toBe('Zip-Project.wxhb.zip')
+    expect(packageResult.fileName).toBe('Zip-Project.sketchshot.zip')
     expect(packageResult.assetCount).toBe(2)
 
     const packageBytes = new Uint8Array(await packageResult.blob.arrayBuffer())
     const zipEntries = readZipEntries(packageBytes)
 
-    expect(zipEntries.some((entry) => entry.name === 'project.wxhb.json')).toBe(true)
+    expect(zipEntries.some((entry) => entry.name === 'project.sketchshot.json')).toBe(true)
     expect(zipEntries.filter((entry) => entry.name.startsWith('assets/'))).toHaveLength(2)
 
     const restored = readProjectExchangeData(packageBytes)

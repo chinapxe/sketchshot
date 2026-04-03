@@ -696,7 +696,7 @@ const Toolbar = memo(() => {
       <input
         ref={importFileInputRef}
         type="file"
-        accept=".json,.wxhb.json,.zip,.wxhb.zip,application/zip"
+        accept=".json,.sketchshot.json,.wxhb.json,.zip,.sketchshot.zip,.wxhb.zip,application/zip"
         className="toolbar-hidden-file-input"
         onChange={(event) => void handleImportProjectFile(event)}
       />

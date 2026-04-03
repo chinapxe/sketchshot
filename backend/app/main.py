@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="AI visual workflow canvas backend API",
+    description="SketchShot AI Storyboard Canvas backend API",
     version="0.5.0",
     lifespan=lifespan,
 )

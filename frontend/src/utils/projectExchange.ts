@@ -42,7 +42,7 @@ interface ProjectAssetManifestEntry {
 }
 
 interface ProjectExchangeFile {
-  format: 'wxhb-project'
+  format: 'sketchshot-project' | 'wxhb-project'
   version: '1.0'
   exportedAt: string
   workflowId: string | null
@@ -63,11 +63,14 @@ interface AssetSourceCandidate {
   suggestedName: string
 }
 
-const PROJECT_EXCHANGE_FORMAT = 'wxhb-project'
+const PROJECT_EXCHANGE_FORMAT = 'sketchshot-project'
+const LEGACY_PROJECT_EXCHANGE_FORMAT = 'wxhb-project'
 const PROJECT_EXCHANGE_VERSION = '1.0'
-const PROJECT_JSON_ENTRY_NAME = 'project.wxhb.json'
+const PROJECT_JSON_ENTRY_NAME = 'project.sketchshot.json'
+const LEGACY_PROJECT_JSON_ENTRY_NAME = 'project.wxhb.json'
 const ASSET_URL_PREFIX = 'asset://'
-const LOCAL_DRAFT_STORAGE_KEY_VALUE = 'wxhb.localDraft'
+const LOCAL_DRAFT_STORAGE_KEY_VALUE = 'sketchshot.localDraft'
+const LEGACY_LOCAL_DRAFT_STORAGE_KEY_VALUE = 'wxhb.localDraft'
 
 const extensionByMimeType: Record<string, string> = {
   'image/gif': 'gif',
@@ -80,6 +83,15 @@ const extensionByMimeType: Record<string, string> = {
 }
 
 export const LOCAL_DRAFT_STORAGE_KEY = LOCAL_DRAFT_STORAGE_KEY_VALUE
+
+function getStoredDraftRawValue(storage: Storage): string | null {
+  return storage.getItem(LOCAL_DRAFT_STORAGE_KEY_VALUE) ?? storage.getItem(LEGACY_LOCAL_DRAFT_STORAGE_KEY_VALUE)
+}
+
+function clearStoredDraftKeys(storage: Storage): void {
+  storage.removeItem(LOCAL_DRAFT_STORAGE_KEY_VALUE)
+  storage.removeItem(LEGACY_LOCAL_DRAFT_STORAGE_KEY_VALUE)
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -627,7 +639,14 @@ function readProjectJsonEntry(entries: ZipEntryOutput[]): ZipEntryOutput {
     return directEntry
   }
 
-  const backupEntry = entries.find((entry) => entry.name.endsWith('.wxhb.json'))
+  const legacyNamedEntry = entries.find((entry) => entry.name === LEGACY_PROJECT_JSON_ENTRY_NAME)
+  if (legacyNamedEntry) {
+    return legacyNamedEntry
+  }
+
+  const backupEntry = entries.find(
+    (entry) => entry.name.endsWith('.sketchshot.json') || entry.name.endsWith('.wxhb.json')
+  )
   if (backupEntry) {
     return backupEntry
   }
@@ -704,7 +723,11 @@ export function serializeProjectExchange(payload: ProjectExchangePayload): strin
 export function parseProjectExchange(content: string): ProjectExchangePayload {
   const parsed = JSON.parse(content) as Record<string, unknown>
 
-  if (parsed.format && parsed.format !== PROJECT_EXCHANGE_FORMAT) {
+  if (
+    parsed.format
+    && parsed.format !== PROJECT_EXCHANGE_FORMAT
+    && parsed.format !== LEGACY_PROJECT_EXCHANGE_FORMAT
+  ) {
     throw new Error('Unsupported project file format')
   }
 
@@ -773,7 +796,7 @@ export async function createProjectExchangePackageBlob(
     data: encodeTextFile(JSON.stringify(packagedProjectFile, null, 2)),
   })
 
-  const fileName = `${sanitizeFilePart(projectFile.name || 'workflow-project')}.wxhb.zip`
+  const fileName = `${sanitizeFilePart(projectFile.name || 'workflow-project')}.sketchshot.zip`
 
   return {
     blob: createZipBlob(zipEntries),
@@ -800,11 +823,11 @@ export async function saveLocalDraft(payload: ProjectExchangePayload): Promise<v
     return
   }
 
-  const previousRawValue = storage.getItem(LOCAL_DRAFT_STORAGE_KEY)
+  const previousRawValue = getStoredDraftRawValue(storage)
   const previousLocalAssetUrls = readDraftLocalAssetUrls(previousRawValue)
 
   if (payload.nodes.length === 0 && payload.edges.length === 0) {
-    storage.removeItem(LOCAL_DRAFT_STORAGE_KEY)
+    clearStoredDraftKeys(storage)
     await removeLocalAssetUrls(previousLocalAssetUrls)
     return
   }
@@ -814,6 +837,7 @@ export async function saveLocalDraft(payload: ProjectExchangePayload): Promise<v
   const nextLocalAssetUrls = collectStoredLocalAssetUrls(persistedPayload.nodes)
 
   storage.setItem(LOCAL_DRAFT_STORAGE_KEY, nextSerialized)
+  storage.removeItem(LEGACY_LOCAL_DRAFT_STORAGE_KEY_VALUE)
 
   const nextLocalAssetSet = new Set(nextLocalAssetUrls)
   const removedAssetUrls = previousLocalAssetUrls.filter((url) => !nextLocalAssetSet.has(url))
@@ -826,17 +850,24 @@ export async function loadLocalDraft(): Promise<ProjectExchangePayload | null> {
     return null
   }
 
-  const rawValue = storage.getItem(LOCAL_DRAFT_STORAGE_KEY)
+  const rawValue = getStoredDraftRawValue(storage)
   if (!rawValue) {
     return null
   }
 
   try {
     const payload = parseProjectExchange(rawValue)
-    return hydratePayloadLocalAssets(payload)
+    const hydratedPayload = await hydratePayloadLocalAssets(payload)
+
+    if (!storage.getItem(LOCAL_DRAFT_STORAGE_KEY)) {
+      storage.setItem(LOCAL_DRAFT_STORAGE_KEY, serializeProjectExchange(payload))
+      storage.removeItem(LEGACY_LOCAL_DRAFT_STORAGE_KEY_VALUE)
+    }
+
+    return hydratedPayload
   } catch (error) {
     console.warn('[projectExchange] failed to parse local draft', error)
-    storage.removeItem(LOCAL_DRAFT_STORAGE_KEY)
+    clearStoredDraftKeys(storage)
     return null
   }
 }
@@ -847,9 +878,9 @@ export async function clearLocalDraft(): Promise<void> {
     return
   }
 
-  const rawValue = storage.getItem(LOCAL_DRAFT_STORAGE_KEY)
+  const rawValue = getStoredDraftRawValue(storage)
   const localAssetUrls = readDraftLocalAssetUrls(rawValue)
 
-  storage.removeItem(LOCAL_DRAFT_STORAGE_KEY)
+  clearStoredDraftKeys(storage)
   await removeLocalAssetUrls(localAssetUrls)
 }

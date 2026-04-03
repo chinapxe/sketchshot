@@ -14,6 +14,8 @@ venv/
 
 # Environment files
 backend/.env
+.env.docker
+offline-bundle/
 
 # Frontend build artifacts
 frontend/node_modules/

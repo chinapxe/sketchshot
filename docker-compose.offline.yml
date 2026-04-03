@@ -1,0 +1,67 @@
+name: wxhb-offline
+
+services:
+  backend:
+    image: wxhb-backend:offline
+    container_name: wxhb-backend
+    restart: unless-stopped
+    environment:
+      APP_NAME: "${APP_NAME:-SketchShot - AI Storyboard Canvas}"
+      DEBUG: "${DEBUG:-False}"
+      PORT: 8000
+      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:8080","http://127.0.0.1:8080"]}'
+      WORKFLOW_STORAGE_DIR: /app/data/workflows
+      UPLOAD_DIR: /app/data/uploads
+      OUTPUT_DIR: /app/data/outputs
+      MOCK_DELAY: "${MOCK_DELAY:-3.0}"
+      DEFAULT_ADAPTER: "${DEFAULT_ADAPTER:-volcengine}"
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-http://localhost:8080}"
+      COMFYUI_ENABLED: "${COMFYUI_ENABLED:-False}"
+      COMFYUI_BASE_URL: "${COMFYUI_BASE_URL:-http://127.0.0.1:8188}"
+      COMFYUI_POLL_INTERVAL: "${COMFYUI_POLL_INTERVAL:-1.0}"
+      COMFYUI_TIMEOUT: "${COMFYUI_TIMEOUT:-180.0}"
+      COMFYUI_NEGATIVE_PROMPT: "${COMFYUI_NEGATIVE_PROMPT:-low quality, blurry, distorted}"
+      VOLCENGINE_ENABLED: "${VOLCENGINE_ENABLED:-False}"
+      ARK_BASE_URL: "${ARK_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}"
+      ARK_API_KEY: "${ARK_API_KEY:-}"
+      VOLCENGINE_TIMEOUT: "${VOLCENGINE_TIMEOUT:-180}"
+      VOLCENGINE_REQUEST_TIMEOUT: "${VOLCENGINE_REQUEST_TIMEOUT:-180}"
+      VOLCENGINE_VIDEO_TIMEOUT: "${VOLCENGINE_VIDEO_TIMEOUT:-900}"
+      VOLCENGINE_POLL_INTERVAL: "${VOLCENGINE_POLL_INTERVAL:-3}"
+      VOLCENGINE_PROMPT_MODEL: "${VOLCENGINE_PROMPT_MODEL:-doubao-seed-1-6-251015}"
+      VOLCENGINE_IMAGE_MODEL: "${VOLCENGINE_IMAGE_MODEL:-doubao-seedream-5-0-260128}"
+      VOLCENGINE_IMAGE_EDIT_MODEL: "${VOLCENGINE_IMAGE_EDIT_MODEL:-doubao-seedream-5-0-260128}"
+      VOLCENGINE_VIDEO_MODEL: "${VOLCENGINE_VIDEO_MODEL:-doubao-seedance-1-5-pro-251215}"
+      VOLCENGINE_IMAGE_OUTPUT_FORMAT: "${VOLCENGINE_IMAGE_OUTPUT_FORMAT:-png}"
+      VOLCENGINE_WATERMARK: "${VOLCENGINE_WATERMARK:-False}"
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  frontend:
+    image: wxhb-frontend:offline
+    container_name: wxhb-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20

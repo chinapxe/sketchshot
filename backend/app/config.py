@@ -10,7 +10,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Global application settings."""
 
-    APP_NAME: str = "WXHB-AI-Workflow"
+    APP_NAME: str = "SketchShot - AI Storyboard Canvas"
     DEBUG: bool = True
     PORT: int = 8000
     CORS_ORIGINS: list[str] = [
