@@ -278,25 +278,27 @@ Files:
 - Deploy-OfflineBundle.sh: Linux deploy script
 - Verify-OfflineBundle.sh: Linux verify script
 - Cleanup-OfflineBundle.sh: Linux cleanup script
-- data/: local persistent directories for uploads, outputs and workflows
+- data/: local persistent directories for uploads, outputs, workflows and engine_config.json
 
 Windows steps:
 1. Copy this bundle directory to the target machine.
-2. Update .env only if you need to change ports or API keys.
+2. Update .env only if you need to change ports or preseed engine defaults.
 3. Double-click Start-SketchShot.cmd, or run:
    powershell -ExecutionPolicy Bypass -File .\Deploy-OfflineBundle.ps1
-4. If you need a separate health check later:
+4. For daily use, engine settings can also be edited in the frontend toolbar and will persist in data\engine_config.json.
+5. If you need a separate health check later:
    powershell -ExecutionPolicy Bypass -File .\Verify-OfflineBundle.ps1
-5. If you need a clean reinstall:
+6. If you need a clean reinstall:
    powershell -ExecutionPolicy Bypass -File .\Cleanup-OfflineBundle.ps1
    powershell -ExecutionPolicy Bypass -File .\Cleanup-OfflineBundle.ps1 -PurgeData
 
 Linux steps:
 1. Copy this bundle directory to the target machine.
-2. Update .env only if you need to change ports or API keys.
+2. Update .env only if you need to change ports or preseed engine defaults.
 3. Start services:
    bash ./Deploy-OfflineBundle.sh
-4. Verify deployment:
+4. Engine settings can also be edited in the frontend toolbar and will persist in data/engine_config.json.
+5. Verify deployment:
    bash ./Verify-OfflineBundle.sh
 5. If you need a clean reinstall:
    bash ./Cleanup-OfflineBundle.sh

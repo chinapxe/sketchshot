@@ -98,6 +98,9 @@ if [[ "$purge_data" -eq 1 ]]; then
     assert_child_path "$bundle_path" "$target_dir"
     clear_directory_contents "$target_dir"
   done
+  engine_config_file="${data_root}/engine_config.json"
+  assert_child_path "$bundle_path" "$engine_config_file"
+  rm -f "$engine_config_file"
   echo '[Cleanup] Data directories cleaned.'
 else
   echo '[Cleanup] Data directories kept. Use --purge-data to remove local runtime data.'

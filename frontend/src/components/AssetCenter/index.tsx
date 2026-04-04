@@ -32,11 +32,11 @@ function getNodeTypeLabel(nodeType: AppNode['type']): string {
     case 'character':
       return '角色'
     case 'imageUpload':
-      return '上传'
+      return '图片上传'
     case 'imageGen':
-      return '图片节点'
+      return '图片生成'
     case 'videoGen':
-      return '视频节点'
+      return '视频生成'
     default:
       return nodeType
   }
@@ -104,7 +104,7 @@ const AssetCenter = memo(({ open, nodes, onClose }: AssetCenterProps) => {
 
       <div className="asset-center-list">
         {filteredEntries.length === 0 ? (
-          <Empty description="当前筛选条件下没有资产" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <Empty description="当前筛选条件下还没有匹配资产" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         ) : (
           filteredEntries.map((entry) => (
             <div key={entry.key} className="asset-center-item">
@@ -150,7 +150,7 @@ const AssetCenter = memo(({ open, nodes, onClose }: AssetCenterProps) => {
                     })
                   }
                 >
-                  预览
+                  查看预览
                 </Button>
               </div>
             </div>

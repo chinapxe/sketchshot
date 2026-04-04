@@ -6,12 +6,15 @@ import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import type { VideoDisplayNode as VideoDisplayNodeType } from '../../../types'
 import { getPreviewAssetType } from '../../../utils/media'
+import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
+import NodeWidthResizer from '../NodeWidthResizer'
 import './style.css'
 
-const VideoDisplayNode = memo(({ id, data }: NodeProps<VideoDisplayNodeType>) => {
+const VideoDisplayNode = memo(({ id, data, selected = false }: NodeProps<VideoDisplayNodeType>) => {
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.videoDisplay.width)
 
   const handleOpenUpload = useCallback(() => {
     fileInputRef.current?.click()
@@ -22,7 +25,7 @@ const VideoDisplayNode = memo(({ id, data }: NodeProps<VideoDisplayNodeType>) =>
       openPreview({
         type: getPreviewAssetType(url),
         src: url,
-        title: `${data.label} - 结果 ${index + 1}`,
+        title: `${data.label} - 视频结果 ${index + 1}`,
       })
     },
     [data.label, openPreview]
@@ -50,8 +53,15 @@ const VideoDisplayNode = memo(({ id, data }: NodeProps<VideoDisplayNodeType>) =>
   const isDisabled = (data as Record<string, unknown>).disabled === true
 
   return (
-    <div className={`video-display-node${isDisabled ? ' node-disabled' : ''}`}>
-      <Handle type="target" position={Position.Left} className="node-handle" />
+    <>
+      <NodeWidthResizer
+        nodeId={id}
+        selected={selected}
+        currentWidth={nodeWidth}
+        minWidth={DEFAULT_NODE_SIZES.videoDisplay.width}
+      />
+      <div className={`video-display-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+        <Handle type="target" position={Position.Left} className="node-handle" />
 
       <div className="node-header">
         <VideoCameraOutlined className="node-icon" />
@@ -85,10 +95,10 @@ const VideoDisplayNode = memo(({ id, data }: NodeProps<VideoDisplayNodeType>) =>
                     <img className="video-display-media" src={url} alt={`${data.label}-${index + 1}`} />
                   )}
                   <span className="video-display-tag">
-                    {assetType === 'video' ? '视频片段' : '动图'}
+                    {assetType === 'video' ? '视频结果' : '动图结果'}
                   </span>
                   <span className="video-display-hint">
-                    <PlayCircleOutlined /> 点击预览
+                    <PlayCircleOutlined /> 查看预览
                   </span>
                 </button>
               )
@@ -96,27 +106,28 @@ const VideoDisplayNode = memo(({ id, data }: NodeProps<VideoDisplayNodeType>) =>
 
             <button type="button" className="video-upload-tile" onClick={handleOpenUpload}>
               <UploadOutlined />
-              <span>添加媒体</span>
+              <span>补充媒体</span>
             </button>
           </div>
         ) : (
           <div className="video-empty-state" onClick={handleOpenUpload}>
             <VideoCameraOutlined className="empty-icon" />
-            <span>等待视频结果</span>
-            <span className="empty-hint">或点击添加本地视频、GIF、WebP</span>
+            <span>等待视频结果汇入</span>
+            <span className="empty-hint">连接视频生成或镜头视频结果后会自动显示，也可点击导入本地媒体</span>
           </div>
         )}
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="video/*,image/gif,image/webp"
-        multiple
-        onChange={handleFileChange}
-        style={{ display: 'none' }}
-      />
-    </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="video/*,image/gif,image/webp"
+          multiple
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+      </div>
+    </>
   )
 })
 

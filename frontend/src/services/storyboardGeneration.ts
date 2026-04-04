@@ -3,6 +3,7 @@ import { message } from 'antd'
 import { createGenerateTask, createVideoGenerateTask } from './api'
 import { connectProgress } from './websocket'
 import { useFlowStore } from '../stores/useFlowStore'
+import { MAX_CHARACTER_IDENTITY_STRENGTH, appendCharacterConsistencyPrompt, hasCharacterReferenceImages } from '../utils/characterConsistency'
 import { buildShotGenerationSignature } from '../utils/generationSignature'
 import { buildShotPrompt, getShotContext, getShotVideoSourceImages } from '../utils/storyboard'
 import type { NodeStatus, ShotNodeData } from '../types'
@@ -52,7 +53,9 @@ export async function executeShotNode(
 
   const data = latestNode.data as ShotNodeData
   const prompt = buildShotPrompt(data, context)
+  const imagePrompt = appendCharacterConsistencyPrompt(prompt, context.referenceImages)
   const videoSourceImages = data.outputType === 'video' ? getShotVideoSourceImages(data, context) : []
+  const hasCharacterConsistency = hasCharacterReferenceImages(context.referenceImages)
 
   if (!prompt.trim()) {
     throw new Error('请先填写镜头描述或连接角色、风格、场次信息')
@@ -193,13 +196,13 @@ export async function executeShotNode(
     const submitTask = data.outputType === 'image'
       ? createGenerateTask({
           node_id: nodeId,
-          prompt,
+          prompt: imagePrompt,
           aspect_ratio: data.aspectRatio,
           resolution: data.resolution,
           reference_images: context.referenceImages,
-          adapter: data.imageAdapter || 'auto',
-          identity_lock: data.identityLock || false,
-          identity_strength: data.identityStrength ?? 0.7,
+          adapter: data.imageAdapter || 'volcengine',
+          identity_lock: hasCharacterConsistency,
+          identity_strength: MAX_CHARACTER_IDENTITY_STRENGTH,
         })
       : createVideoGenerateTask({
           node_id: nodeId,

@@ -25,6 +25,12 @@ class AdapterRegistry:
         self._adapters[name] = adapter
         logger.info(f"[AdapterRegistry] 注册适配器: {name}")
 
+    def unregister(self, name: str) -> None:
+        """移除适配器"""
+        if name in self._adapters:
+            self._adapters.pop(name, None)
+            logger.info(f"[AdapterRegistry] 移除适配器: {name}")
+
     def get(self, name: str) -> Optional[BaseAdapter]:
         """获取适配器"""
         return self._adapters.get(name)
@@ -36,4 +42,3 @@ class AdapterRegistry:
 
 # 全局单例
 adapter_registry = AdapterRegistry()
-

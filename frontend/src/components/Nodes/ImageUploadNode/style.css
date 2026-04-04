@@ -56,8 +56,8 @@
 
 .image-preview {
   width: 100%;
-  aspect-ratio: 3 / 4;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   display: block;
   border-radius: 8px;
 }

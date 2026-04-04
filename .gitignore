@@ -28,3 +28,4 @@ backend/data/outputs/*
 !backend/data/outputs/.gitkeep
 backend/data/workflows/*
 !backend/data/workflows/.gitkeep
+backend/data/engine_config.json

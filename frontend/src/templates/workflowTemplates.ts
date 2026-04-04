@@ -14,6 +14,7 @@ import type {
   VideoDisplayNodeData,
   VideoGenNodeData,
 } from '../types'
+import { MAX_CHARACTER_IDENTITY_STRENGTH } from '../utils/characterConsistency'
 
 export interface WorkflowTemplateDefinition {
   id: string
@@ -65,8 +66,8 @@ function createImageGenNode(
     referenceImages: [],
     isUploadingReferences: false,
     referenceUploadError: undefined,
-    identityLock: options.identityLock ?? false,
-    identityStrength: options.identityStrength ?? 0.7,
+    identityLock: options.identityLock ?? true,
+    identityStrength: options.identityStrength ?? MAX_CHARACTER_IDENTITY_STRENGTH,
     status: 'idle',
     progress: 0,
     creditCost: options.creditCost ?? 30,
@@ -187,8 +188,8 @@ function createShotNode(
     videoAdapter: options.videoAdapter ?? 'volcengine',
     durationSeconds: options.durationSeconds ?? 4,
     motionStrength: options.motionStrength ?? 0.6,
-    identityLock: options.identityLock ?? false,
-    identityStrength: options.identityStrength ?? 0.7,
+    identityLock: options.identityLock ?? true,
+    identityStrength: options.identityStrength ?? MAX_CHARACTER_IDENTITY_STRENGTH,
     referenceImages: [],
     contextSignature: '',
     status: 'idle',
@@ -214,13 +215,13 @@ function createEdge(source: AppNode, target: AppNode): AppEdge {
 }
 
 function createBasicStoryboardTemplate(): WorkflowTemplateDefinition {
-  const uploadNode = createUploadNode({ x: 80, y: 140 }, 'Character Reference')
+  const uploadNode = createUploadNode({ x: 80, y: 140 }, '角色参考图')
   const generateNode = createImageGenNode({ x: 420, y: 120 }, {
-    label: 'Hero Portrait',
-    prompt: 'cinematic portrait, soft key light, rich skin detail, sharp focus',
+    label: '主角定妆图',
+    prompt: '电影感肖像，柔和主光，肤质细节丰富，锐利对焦',
     aspectRatio: '3:4',
   })
-  const displayNode = createImageDisplayNode({ x: 760, y: 120 }, 'Image Output')
+  const displayNode = createImageDisplayNode({ x: 760, y: 120 }, '图像结果')
 
   return {
     id: 'basic-storyboard',
@@ -236,13 +237,13 @@ function createBasicStoryboardTemplate(): WorkflowTemplateDefinition {
 
 function createStoryboardDirectorTemplate(): WorkflowTemplateDefinition {
   const sceneNode = createSceneNode({ x: 60, y: 180 }, {
-    label: 'Scene',
+    label: '场次',
     title: '雨夜天台对峙',
     synopsis: '主角终于逼近真相，在暴雨和霓虹之间与旧友摊牌。',
     beat: '关系破裂，人物做出不可逆决定。',
   })
   const characterNode = createCharacterNode({ x: 60, y: 420 }, {
-    label: 'Character',
+    label: '角色',
     name: '沈迟',
     role: '落魄调查记者',
     appearance: '消瘦、短发、眼神警惕，长期奔波后的疲惫感明显。',
@@ -250,7 +251,7 @@ function createStoryboardDirectorTemplate(): WorkflowTemplateDefinition {
     props: '录音笔',
   })
   const styleNode = createStyleNode({ x: 420, y: 40 }, {
-    label: 'Style',
+    label: '风格',
     name: '冷峻都市悬疑',
     keywords: '雨夜霓虹、低饱和、电影感、强对比',
     palette: '冷青灰 + 局部暖橙',
@@ -258,7 +259,7 @@ function createStoryboardDirectorTemplate(): WorkflowTemplateDefinition {
     framing: '压迫式留白、人物偏边缘',
   })
   const shotNode = createShotNode({ x: 420, y: 280 }, {
-    label: 'Shot',
+    label: '镜头',
     title: '主角回头定格',
     description: '主角在雨中半侧身回头，眼神复杂，城市霓虹在身后虚化。',
     motion: '衣摆被风吹动，雨水顺着发梢落下',
@@ -268,8 +269,8 @@ function createStoryboardDirectorTemplate(): WorkflowTemplateDefinition {
     aspectRatio: '16:9',
     outputType: 'image',
   })
-  const displayNode = createImageDisplayNode({ x: 800, y: 280 }, 'Shot Output')
-  const uploadNode = createUploadNode({ x: 60, y: 660 }, 'Character Reference')
+  const displayNode = createImageDisplayNode({ x: 800, y: 280 }, '镜头结果')
+  const uploadNode = createUploadNode({ x: 60, y: 660 }, '角色参考图')
 
   return {
     id: 'storyboard-director',
@@ -291,19 +292,19 @@ function createStoryboardDirectorTemplate(): WorkflowTemplateDefinition {
 }
 
 function createDualStyleTemplate(): WorkflowTemplateDefinition {
-  const uploadNode = createUploadNode({ x: 80, y: 220 }, 'Character Reference')
+  const uploadNode = createUploadNode({ x: 80, y: 220 }, '角色参考图')
   const editorialNode = createImageGenNode({ x: 420, y: 80 }, {
-    label: 'Editorial Look',
-    prompt: 'luxury editorial poster, golden light, premium texture, polished styling',
+    label: '杂志风方案',
+    prompt: '高级时尚海报质感，鎏金光线，极致质感，精致造型',
     aspectRatio: '3:4',
   })
   const cyberpunkNode = createImageGenNode({ x: 420, y: 320 }, {
-    label: 'Cyberpunk Look',
-    prompt: 'cyberpunk character concept, neon haze, futuristic skyline, vivid contrast',
+    label: '赛博风方案',
+    prompt: '赛博朋克角色设定，霓虹薄雾，未来都市天际线，强烈色彩对比',
     aspectRatio: '3:4',
   })
-  const editorialDisplay = createImageDisplayNode({ x: 760, y: 80 }, 'Editorial Output')
-  const cyberpunkDisplay = createImageDisplayNode({ x: 760, y: 320 }, 'Cyberpunk Output')
+  const editorialDisplay = createImageDisplayNode({ x: 760, y: 80 }, '杂志风结果')
+  const cyberpunkDisplay = createImageDisplayNode({ x: 760, y: 320 }, '赛博风结果')
 
   return {
     id: 'dual-style-compare',
@@ -323,25 +324,25 @@ function createDualStyleTemplate(): WorkflowTemplateDefinition {
 }
 
 function createThreeShotTemplate(): WorkflowTemplateDefinition {
-  const uploadNode = createUploadNode({ x: 80, y: 280 }, 'Lead Character')
+  const uploadNode = createUploadNode({ x: 80, y: 280 }, '主角参考图')
   const closeupNode = createImageGenNode({ x: 420, y: 40 }, {
-    label: 'Close Up',
-    prompt: 'cinematic close-up, emotional expression, shallow depth of field',
+    label: '近景方案',
+    prompt: '电影感特写，情绪表达强烈，浅景深',
     aspectRatio: '3:4',
   })
   const mediumNode = createImageGenNode({ x: 420, y: 260 }, {
-    label: 'Medium Shot',
-    prompt: 'cinematic medium shot, natural pose, balanced composition',
+    label: '中景方案',
+    prompt: '电影感中景，姿态自然，构图均衡',
     aspectRatio: '16:9',
   })
   const wideNode = createImageGenNode({ x: 420, y: 480 }, {
-    label: 'Wide Shot',
-    prompt: 'cinematic wide shot, strong environment storytelling, atmospheric scene',
+    label: '远景方案',
+    prompt: '电影感全景，环境叙事强烈，氛围氛围感场景',
     aspectRatio: '16:9',
   })
-  const closeupDisplay = createImageDisplayNode({ x: 780, y: 40 }, 'Close Up Output')
-  const mediumDisplay = createImageDisplayNode({ x: 780, y: 260 }, 'Medium Output')
-  const wideDisplay = createImageDisplayNode({ x: 780, y: 480 }, 'Wide Output')
+  const closeupDisplay = createImageDisplayNode({ x: 780, y: 40 }, '近景结果')
+  const mediumDisplay = createImageDisplayNode({ x: 780, y: 260 }, '中景结果')
+  const wideDisplay = createImageDisplayNode({ x: 780, y: 480 }, '远景结果')
 
   return {
     id: 'three-shot-storyboard',
@@ -363,15 +364,15 @@ function createThreeShotTemplate(): WorkflowTemplateDefinition {
 }
 
 function createImageToMotionTemplate(): WorkflowTemplateDefinition {
-  const uploadNode = createUploadNode({ x: 80, y: 180 }, 'Key Frame')
+  const uploadNode = createUploadNode({ x: 80, y: 180 }, '关键帧上传')
   const videoNode = createVideoGenNode({ x: 420, y: 160 }, {
-    label: 'Motion Clip',
-    prompt: 'subtle camera push-in, fabric movement, cinematic motion',
+    label: '动态片段',
+    prompt: '轻微缓慢推镜，衣物自然飘动，电影级动态感',
     aspectRatio: '16:9',
     durationSeconds: 4,
     motionStrength: 0.6,
   })
-  const displayNode = createVideoDisplayNode({ x: 780, y: 160 }, 'Video Output')
+  const displayNode = createVideoDisplayNode({ x: 780, y: 160 }, '视频结果')
 
   return {
     id: 'image-to-motion',
@@ -387,14 +388,14 @@ function createImageToMotionTemplate(): WorkflowTemplateDefinition {
 
 function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
   const sceneNode = createSceneNode({ x: 60, y: 220 }, {
-    label: 'Scene',
+    label: '场次',
     title: '雨夜追逐',
     synopsis: '主角在狭窄巷道里短暂停步，确认身后动静后继续向前冲。',
     beat: '从警觉到决断，情绪逐步推高。',
     notes: '建议按镜头 01 -> 镜头 02 -> 镜头 03 的顺序执行，感受镜头承接关系。',
   })
   const characterNode = createCharacterNode({ x: 60, y: 500 }, {
-    label: 'Character',
+    label: '角色',
     name: '林雾',
     role: '被追踪的情报员',
     appearance: '短发、冷白皮、眼神警觉，奔跑后呼吸急促。',
@@ -403,7 +404,7 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
     notes: '先上传角色参考，再依次生成镜头，观察角色状态如何延续。',
   })
   const styleNode = createStyleNode({ x: 420, y: 60 }, {
-    label: 'Style',
+    label: '风格',
     name: '冷雨都市动作感',
     keywords: '雨夜反光地面、霓虹溢色、手持摄影感、压迫空间',
     palette: '冷蓝灰 + 少量警灯红',
@@ -413,7 +414,7 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
   })
   const uploadNode = createUploadNode({ x: 60, y: 760 }, '角色参考上传')
   const shot1 = createShotNode({ x: 420, y: 260 }, {
-    label: 'Shot',
+    label: '镜头',
     title: '镜头 01 · 巷口停步',
     description: '主角从雨里冲进巷口，突然停下半步，肩膀还带着惯性。',
     prompt: '先生成这个镜头，为后续镜头建立服装、状态和环境参考。',
@@ -425,7 +426,7 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
     outputType: 'image',
   })
   const shot2 = createShotNode({ x: 780, y: 260 }, {
-    label: 'Shot',
+    label: '镜头',
     title: '镜头 02 · 回头特写',
     description: '主角缓慢回头，雨水顺着脸侧落下，眼神在昏暗中聚焦。',
     prompt: '生成后可作为后续视频镜头的上游静帧参考。',
@@ -437,7 +438,7 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
     outputType: 'image',
   })
   const shot3 = createShotNode({ x: 1140, y: 260 }, {
-    label: 'Shot',
+    label: '镜头',
     title: '镜头 03 · 冲刺转场',
     description: '主角确认目标后重新启动，身体前压，快速冲向画面外侧。',
     prompt: '可在生成前补充首帧/尾帧约束，体验连续镜头的视频生成方式。',
@@ -466,10 +467,10 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
   return {
     id: 'storyboard-sequence',
     name: '推荐 · 一场戏三镜头',
-    description: '展示场次、角色、风格如何共同服务多个镜头，并通过 Shot -> Shot 表达片段顺序。',
+    description: '展示场次、角色、风格如何共同服务多个镜头，并通过镜头连线表达片段顺序。',
     category: 'recommended',
     recommended: true,
-    learningPoints: ['多镜头片段', 'Shot -> Shot 承接', '连续视频镜头'],
+    learningPoints: ['多镜头片段', '镜头串联承接', '连续视频镜头'],
     firstActionHint: '建议先生成镜头 01，再生成镜头 02，最后再执行视频镜头 03。',
     nodes: [sceneNode, characterNode, styleNode, uploadNode, shot1, shot2, shot3, displayNode],
     edges: [
@@ -495,7 +496,7 @@ function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
   const uploadSide = createUploadNode({ x: 60, y: 300 }, '侧面参考上传')
   const uploadBack = createUploadNode({ x: 60, y: 480 }, '背面参考上传')
   const characterNode = createCharacterNode({ x: 420, y: 300 }, {
-    label: 'Character',
+    label: '角色',
     name: '苏离',
     role: '故事主角 / 民国女画师',
     appearance: '瘦高身形、眉眼清冷、发髻利落，神态内敛但专注。',
@@ -504,14 +505,14 @@ function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
     notes: '把三张上传图连接到角色节点后，可在人物三视图 Lite 中指定正面 / 侧面 / 背面。',
   })
   const sceneNode = createSceneNode({ x: 760, y: 120 }, {
-    label: 'Scene',
+    label: '场次',
     title: '定妆拍摄',
     synopsis: '用于先稳定角色形象，再把角色带进正式镜头。',
     beat: '角色初次亮相',
     notes: '这是一个偏“角色定妆”的入门模板。',
   })
   const styleNode = createStyleNode({ x: 760, y: 360 }, {
-    label: 'Style',
+    label: '风格',
     name: '复古电影定妆',
     keywords: '柔光棚拍、细节质感、旧胶片色调、人物海报感',
     palette: '米白 + 暗红',
@@ -520,7 +521,7 @@ function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
     notes: '适合先熟悉角色节点如何向镜头提供统一设定。',
   })
   const shotNode = createShotNode({ x: 1100, y: 240 }, {
-    label: 'Shot',
+    label: '镜头',
     title: '角色定妆镜头',
     description: '角色站定看向镜头外侧，保留完整服装轮廓和气质。',
     prompt: '先用这个镜头确认角色稳定性，再继续正式故事板镜头。',
@@ -558,14 +559,14 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
   const firstFrameUpload = createUploadNode({ x: 60, y: 140 }, '首帧参考上传')
   const lastFrameUpload = createUploadNode({ x: 60, y: 360 }, '尾帧参考上传')
   const sceneNode = createSceneNode({ x: 420, y: 80 }, {
-    label: 'Scene',
+    label: '场次',
     title: '走廊惊觉',
     synopsis: '角色在走廊尽头忽然停住，察觉异样后缓慢回头。',
     beat: '从运动到停顿，再到情绪收紧。',
     notes: '适合体验首帧/尾帧约束和九宫格连续动作。',
   })
   const characterNode = createCharacterNode({ x: 420, y: 360 }, {
-    label: 'Character',
+    label: '角色',
     name: '沈迟',
     role: '调查记者',
     appearance: '短发、消瘦、眼神带警觉感。',
@@ -574,7 +575,7 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
     notes: '也可以把角色参考图连到这里，再一并连接到视频镜头。',
   })
   const styleNode = createStyleNode({ x: 760, y: 80 }, {
-    label: 'Style',
+    label: '风格',
     name: '冷峻悬疑长镜头',
     keywords: '走廊透视、低饱和、静压感、微弱闪烁光源',
     palette: '冷灰蓝',
@@ -583,7 +584,7 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
     notes: '让视频镜头更强调连续动作和空间推进。',
   })
   const shotNode = createShotNode({ x: 1100, y: 240 }, {
-    label: 'Shot',
+    label: '镜头',
     title: '停步回头视频镜头',
     description: '角色在奔跑中停住，呼吸急促，随后缓慢回头看向后方。',
     prompt: '上传首帧和尾帧后，可在镜头节点里分别选择约束图，再生成视频。',

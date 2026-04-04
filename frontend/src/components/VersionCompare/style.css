@@ -127,14 +127,20 @@
 }
 
 .version-compare-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #111;
+  overflow: hidden;
 }
 
 .version-compare-card-media {
   display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: min(42vh, 360px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 .version-compare-card-body {

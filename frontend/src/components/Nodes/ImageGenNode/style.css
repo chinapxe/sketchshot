@@ -104,18 +104,26 @@
 }
 
 .ref-image-button {
+  width: 40px;
+  height: 40px;
   border: 0;
   padding: 0;
   border-radius: 6px;
-  background: transparent;
+  background: #111;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .ref-image-thumb {
-  width: 40px;
-  height: 40px;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
   border-radius: 6px;
-  object-fit: cover;
+  object-fit: contain;
   border: 1px solid #e0e0e0;
   display: block;
 }

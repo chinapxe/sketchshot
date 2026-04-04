@@ -1,5 +1,6 @@
 import { generatePrompt, type PromptGenerateRequest } from './api'
 import type { ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
+import { buildCharacterConsistencyRequirement } from '../utils/characterConsistency'
 import type { ShotContext } from '../utils/storyboard'
 import { buildShotPrompt } from '../utils/storyboard'
 
@@ -27,7 +28,7 @@ export function buildImagePromptRequest(data: ImageGenNodeData): PromptGenerateR
     extra_requirements: compactRequirements([
       `Target resolution: ${data.resolution}`,
       data.referenceImages.length > 0 ? `Reference images available: ${data.referenceImages.length}` : null,
-      data.identityLock ? `Preserve character identity with strength ${data.identityStrength}` : null,
+      buildCharacterConsistencyRequirement(data.referenceImages),
     ]),
     language: inferPromptLanguage(baseIdea),
   }
@@ -78,9 +79,7 @@ export function buildShotPromptRequest(data: ShotNodeData, context: ShotContext)
       context.characters.length > 0 ? `Characters attached: ${context.characters.length}` : null,
       context.styles.length > 0 ? `Styles attached: ${context.styles.length}` : null,
       context.referenceImages.length > 0 ? `Reference images available: ${context.referenceImages.length}` : null,
-      data.identityLock && data.outputType === 'image'
-        ? `Preserve character identity with strength ${data.identityStrength}`
-        : null,
+      data.outputType === 'image' ? buildCharacterConsistencyRequirement(context.referenceImages) : null,
     ]),
     language: inferPromptLanguage(baseIdea),
   }

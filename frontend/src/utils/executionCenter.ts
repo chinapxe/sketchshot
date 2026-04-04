@@ -50,7 +50,7 @@ export function getExecutionCenterEntriesWithEdges(nodes: AppNode[], edges: AppE
         return {
           id: node.id,
           nodeType: node.type,
-          title: compactText(node.data.label) || 'Image Generate',
+          title: compactText(node.data.label) || '图片生成',
           subtitle: compactText(node.data.prompt) || '等待填写图片提示词',
           status: node.data.status,
           progress: node.data.progress,
@@ -67,7 +67,7 @@ export function getExecutionCenterEntriesWithEdges(nodes: AppNode[], edges: AppE
         return {
           id: node.id,
           nodeType: node.type,
-          title: compactText(data.label) || 'Video Motion',
+          title: compactText(data.label) || '视频生成',
           subtitle: compactText(data.prompt) || '等待填写视频提示词',
           status: data.status,
           progress: data.progress,
@@ -84,7 +84,7 @@ export function getExecutionCenterEntriesWithEdges(nodes: AppNode[], edges: AppE
       return {
         id: node.id,
         nodeType: node.type,
-        title: compactText(shotData.title) || compactText(shotData.label) || 'Shot',
+        title: compactText(shotData.title) || compactText(shotData.label) || '镜头',
         subtitle: compactText(shotData.description) || compactText(shotData.prompt) || '等待填写镜头描述',
         status: shotData.status,
         progress: shotData.progress,

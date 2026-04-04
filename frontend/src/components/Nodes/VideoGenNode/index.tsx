@@ -14,6 +14,8 @@ import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import type { VideoGenNode as VideoGenNodeType } from '../../../types'
 import { getPreviewAssetType } from '../../../utils/media'
+import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
+import NodeWidthResizer from '../NodeWidthResizer'
 import './style.css'
 
 const aspectRatioOptions = [
@@ -31,12 +33,7 @@ const durationOptions = [
   { value: 8, label: '8 秒' },
 ]
 
-const adapterOptions = [
-  { value: 'volcengine', label: '火山引擎' },
-  { value: 'mock', label: '模拟模式' },
-]
-
-const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
+const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNodeType>) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
   const getUpstreamImages = useFlowStore((state) => state.getUpstreamImages)
@@ -45,6 +42,7 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
   const activeExecutionNodeId = useFlowStore((state) => state.activeExecutionNodeId)
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
   const [isPromptGenerating, setIsPromptGenerating] = useState(false)
+  const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.videoGen.width)
 
   useEffect(() => {
     updateNodeData(id, { sourceImages: getUpstreamImages(id) })
@@ -93,9 +91,9 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
 
       const generatedPrompt = await generateVideoPrompt(latestNode.data)
       updateNodeData(id, { prompt: generatedPrompt })
-      message.success('视频提示词已优化')
+      message.success('视频描述已润色')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '提示词优化失败'
+      const errorMessage = error instanceof Error ? error.message : '视频描述润色失败'
       message.error(errorMessage)
     } finally {
       setIsPromptGenerating(false)
@@ -114,7 +112,7 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
       openPreview({
         type: 'image',
         src: imageUrl,
-        title: `${data.label} - 源图 ${index + 1}`,
+        title: `${data.label} - 输入画面 ${index + 1}`,
       })
     },
     [data.label, openPreview]
@@ -126,7 +124,7 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
     openPreview({
       type: getPreviewAssetType(data.outputVideo),
       src: data.outputVideo,
-      title: `${data.label} - 输出结果`,
+      title: `${data.label} - 最新视频结果`,
     })
   }, [data.label, data.outputVideo, openPreview])
 
@@ -144,18 +142,26 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
   }, [activeExecutionNodeId, blurButtonIfFocused, id, isProcessing, isWorkflowExecuting])
 
   return (
-    <div
-      ref={nodeRef}
-      className={`video-gen-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
-    >
-      <Handle type="target" position={Position.Left} className="node-handle" />
+    <>
+      <NodeWidthResizer
+        nodeId={id}
+        selected={selected}
+        currentWidth={nodeWidth}
+        minWidth={DEFAULT_NODE_SIZES.videoGen.width}
+      />
+      <div
+        ref={nodeRef}
+        className={`video-gen-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
+        style={{ width: nodeWidth }}
+      >
+        <Handle type="target" position={Position.Left} className="node-handle" />
 
       <div className="node-header">
         <VideoCameraOutlined className="node-icon" />
         <span className="node-title">{data.label}</span>
         {needsRefresh && !isProcessing && (
           <span className="node-refresh-badge">
-            <SyncOutlined /> 待刷新
+            <SyncOutlined /> 需更新
           </span>
         )}
         {isDisabled && <span className="node-disabled-badge">已禁用</span>}
@@ -163,7 +169,7 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
 
       <div className="node-body nodrag nopan nowheel">
         <div className="form-field">
-          <label className="field-label">源图帧</label>
+          <label className="field-label">起始画面</label>
           {hasSourceImages ? (
             <div className="video-source-grid">
               {(data.sourceImages ?? []).map((imageUrl, index) => (
@@ -179,14 +185,14 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
             </div>
           ) : (
             <div className="video-empty-panel">
-              请先连接图片上传、图片生成或镜头节点的图像结果。
+              请先连接图片上传、图片生成或镜头节点的图像结果，再开始生成视频。
             </div>
           )}
         </div>
 
         <div className="form-field">
           <div className="field-label-row">
-            <label className="field-label">运动提示词</label>
+            <label className="field-label">镜头运动描述</label>
             <Button
               type="text"
               size="small"
@@ -196,14 +202,14 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
               disabled={isPromptGenerating || isProcessing || isDisabled || isBlockedByWorkflowExecution}
               className="prompt-helper-btn nodrag"
             >
-              AI 优化
+              AI 润色
             </Button>
           </div>
           <textarea
             className="prompt-textarea nodrag"
             value={data.prompt}
             onChange={handlePromptChange}
-            placeholder="描述镜头运动、主体动作、速度节奏等内容..."
+            placeholder="描述镜头怎么动、主体怎么动，以及节奏和氛围..."
             rows={3}
           />
         </div>
@@ -245,26 +251,15 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
           />
         </div>
 
-        <div className="form-field">
-          <label className="field-label">适配器</label>
-          <Select
-            size="small"
-            value={data.adapter}
-            onChange={(value) => updateNodeData(id, { adapter: value })}
-            options={adapterOptions}
-            className="field-select nodrag nopan"
-          />
-        </div>
-
         {needsRefresh && !isProcessing && (
           <div className="refresh-tip">
-            上游图片或当前运动参数已变化，建议重新执行以同步最新结果。
+            起始画面或当前参数已变化，建议重新生成以同步最新结果。
           </div>
         )}
 
         {data.outputVideo && (
           <div className="form-field">
-            <label className="field-label">最新输出</label>
+            <label className="field-label">最新结果</label>
             <button type="button" className="video-output-card" onClick={handlePreviewOutput}>
               {outputAssetType === 'video' ? (
                 <video
@@ -278,7 +273,7 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
               ) : (
                 <img className="video-output-media" src={data.outputVideo} alt={`${data.label} 输出`} />
               )}
-              <span className="video-output-hint">点击查看完整结果</span>
+              <span className="video-output-hint">点击查看完整预览</span>
             </button>
           </div>
         )}
@@ -312,15 +307,16 @@ const VideoGenNode = memo(({ id, data }: NodeProps<VideoGenNodeType>) => {
             : isProcessing || (isWorkflowExecuting && activeExecutionNodeId === id)
               ? '生成中...'
               : isBlockedByWorkflowExecution
-                ? '工作流执行中...'
+                ? '工作流执行中，请稍候'
                 : !hasSourceImages
-                  ? '请先连接图像输入'
-                  : `${needsRefresh ? '重新生成视频' : '生成视频'} - ${data.creditCost}`}
+                  ? '请先接入图像输入'
+                  : needsRefresh ? '重新生成视频' : '开始生成视频'}
         </Button>
       </div>
 
-      <Handle type="source" position={Position.Right} className="node-handle" />
-    </div>
+        <Handle type="source" position={Position.Right} className="node-handle" />
+      </div>
+    </>
   )
 })
 

@@ -6,11 +6,13 @@ import { Button, Input, Select } from 'antd'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import type { CharacterNode as CharacterNodeType } from '../../../types'
+import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
+import NodeWidthResizer from '../NodeWidthResizer'
 import '../storyboard.css'
 
 const { TextArea } = Input
 
-const CharacterNode = memo(({ id, data }: NodeProps<CharacterNodeType>) => {
+const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterNodeType>) => {
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
   const toggleNodeCollapsed = useFlowStore((state) => state.toggleNodeCollapsed)
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
@@ -20,6 +22,7 @@ const CharacterNode = memo(({ id, data }: NodeProps<CharacterNodeType>) => {
   const referenceImages = data.referenceImages ?? []
   const threeViewImages = data.threeViewImages ?? {}
   const threeViewAssignedCount = Object.values(threeViewImages).filter(Boolean).length
+  const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.character.width)
 
   useEffect(() => {
     window.requestAnimationFrame(() => updateNodeInternals(id))
@@ -58,8 +61,15 @@ const CharacterNode = memo(({ id, data }: NodeProps<CharacterNodeType>) => {
   const summaryAppearance = data.appearance.trim() || '未填写外观描述'
 
   return (
-    <div className={`storyboard-node${isDisabled ? ' node-disabled' : ''}`}>
-      <Handle type="target" position={Position.Left} className="storyboard-handle" />
+    <>
+      <NodeWidthResizer
+        nodeId={id}
+        selected={selected}
+        currentWidth={nodeWidth}
+        minWidth={DEFAULT_NODE_SIZES.character.width}
+      />
+      <div className={`storyboard-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+        <Handle type="target" position={Position.Left} className="storyboard-handle" />
 
       <div className="storyboard-node-header">
         <span className="storyboard-node-icon">
@@ -245,8 +255,9 @@ const CharacterNode = memo(({ id, data }: NodeProps<CharacterNodeType>) => {
         </div>
       )}
 
-      <Handle type="source" position={Position.Right} className="storyboard-handle" />
-    </div>
+        <Handle type="source" position={Position.Right} className="storyboard-handle" />
+      </div>
+    </>
   )
 })
 

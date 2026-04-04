@@ -11,7 +11,7 @@ import {
   PlusOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
-import { Button, Progress, Select, Slider, Switch, message } from 'antd'
+import { Button, Progress, Select, message } from 'antd'
 
 import { uploadImageAsset, type UploadedAssetResponse } from '../../../services/api'
 import { disconnectNodeGeneration, executeImageGenNode } from '../../../services/nodeGeneration'
@@ -19,6 +19,8 @@ import { generateImagePrompt } from '../../../services/promptGeneration'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import type { ImageGenNode as ImageGenNodeType, ImageGenNodeData } from '../../../types'
+import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
+import NodeWidthResizer from '../NodeWidthResizer'
 import './style.css'
 
 const aspectRatioOptions = [
@@ -35,14 +37,7 @@ const resolutionOptions = [
   { value: '4K', label: '4K' },
 ]
 
-const adapterOptions = [
-  { value: 'auto', label: '自动' },
-  { value: 'volcengine', label: '火山引擎' },
-  { value: 'comfyui', label: 'ComfyUI' },
-  { value: 'mock', label: '模拟模式' },
-]
-
-const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
+const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNodeType>) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
   const getUpstreamImages = useFlowStore((state) => state.getUpstreamImages)
@@ -52,6 +47,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isPromptGenerating, setIsPromptGenerating] = useState(false)
+  const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.imageGen.width)
 
   useEffect(() => {
     const upstreamImages = getUpstreamImages(id)
@@ -108,9 +104,9 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
 
       const generatedPrompt = await generateImagePrompt(latestNode.data as ImageGenNodeData)
       updateNodeData(id, { prompt: generatedPrompt })
-      message.success('图片提示词已优化')
+      message.success('出图描述已润色')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '提示词优化失败'
+      const errorMessage = error instanceof Error ? error.message : '出图描述润色失败'
       message.error(errorMessage)
     } finally {
       setIsPromptGenerating(false)
@@ -157,7 +153,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
         if (successUrls.length === 0) {
           const errorMessage = failedUploads[0]?.reason instanceof Error
             ? failedUploads[0].reason.message
-            : '上传失败'
+            : '参考图上传失败'
 
           updateNodeData(id, {
             isUploadingReferences: false,
@@ -173,7 +169,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
           : (data.manualReferenceImages ?? [])
         const nextManualReferenceImages = Array.from(new Set([...currentManualReferenceImages, ...successUrls]))
         const partialFailureMessage = failedUploads.length > 0
-          ? `${failedUploads.length} 个文件上传失败`
+          ? `${failedUploads.length} 张参考图上传失败`
           : undefined
 
         updateNodeData(id, {
@@ -182,7 +178,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
           referenceUploadError: partialFailureMessage,
         })
 
-        message.success(successUrls.length === 1 ? '参考图上传成功' : `已上传 ${successUrls.length} 张参考图`)
+        message.success(`已上传 ${successUrls.length} 张参考图`)
 
         if (partialFailureMessage) {
           message.warning(partialFailureMessage)
@@ -214,8 +210,6 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
   const referenceImages = data.referenceImages ?? []
   const isUploadingReferences = data.isUploadingReferences === true
   const referenceUploadError = typeof data.referenceUploadError === 'string' ? data.referenceUploadError : ''
-  const canUseIdentityLock = referenceImages.length > 0
-
   useEffect(() => {
     if (!isProcessing && (!isWorkflowExecuting || activeExecutionNodeId !== id)) {
       blurButtonIfFocused('.generate-btn')
@@ -223,18 +217,26 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
   }, [activeExecutionNodeId, blurButtonIfFocused, id, isProcessing, isWorkflowExecuting])
 
   return (
-    <div
-      ref={nodeRef}
-      className={`image-gen-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
-    >
-      <Handle type="target" position={Position.Left} className="node-handle" />
+    <>
+      <NodeWidthResizer
+        nodeId={id}
+        selected={selected}
+        currentWidth={nodeWidth}
+        minWidth={DEFAULT_NODE_SIZES.imageGen.width}
+      />
+      <div
+        ref={nodeRef}
+        className={`image-gen-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
+        style={{ width: nodeWidth }}
+      >
+        <Handle type="target" position={Position.Left} className="node-handle" />
 
       <div className="node-header">
         <PictureOutlined className="node-icon" />
         <span className="node-title">{data.label}</span>
         {needsRefresh && !isProcessing && (
           <span className="node-refresh-badge">
-            <SyncOutlined /> 待刷新
+            <SyncOutlined /> 需更新
           </span>
         )}
         {isDisabled && <span className="node-disabled-badge">已禁用</span>}
@@ -243,7 +245,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
       <div className="node-body nodrag nopan nowheel">
         <div className="form-field">
           <div className="field-label-row">
-            <label className="field-label">提示词</label>
+            <label className="field-label">出图描述</label>
             <Button
               type="text"
               size="small"
@@ -253,14 +255,14 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
               disabled={isPromptGenerating || isProcessing || isDisabled || isBlockedByWorkflowExecution}
               className="prompt-helper-btn nodrag"
             >
-              AI 优化
+              AI 润色
             </Button>
           </div>
           <textarea
             className="prompt-textarea nodrag"
             value={data.prompt}
             onChange={handlePromptChange}
-            placeholder="描述你想生成的画面内容..."
+            placeholder="描述想看到的主体、场景、动作和画面气质..."
             rows={4}
           />
         </div>
@@ -289,17 +291,6 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
         </div>
 
         <div className="form-field">
-          <label className="field-label">适配器</label>
-          <Select
-            size="small"
-            value={data.adapter ?? 'volcengine'}
-            onChange={(value) => updateNodeData(id, { adapter: value })}
-            options={adapterOptions}
-            className="field-select nodrag nopan"
-          />
-        </div>
-
-        <div className="form-field">
           <label className="field-label">参考图</label>
           <div className="ref-images-row">
             {referenceImages.map((imageUrl, index) => {
@@ -309,7 +300,7 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
                 <div
                   key={`${imageUrl}-${index}`}
                   className={`ref-image-card ${isManualReference ? 'is-manual' : 'is-upstream'}`}
-                  title={isManualReference ? '手动上传的参考图' : '来自上游节点的参考图'}
+                  title={isManualReference ? '手动补充的参考图' : '来自上游节点的参考图'}
                 >
                   <button
                     type="button"
@@ -336,52 +327,24 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
               className="ref-image-add"
               onClick={handleOpenReferenceUpload}
               disabled={isUploadingReferences}
-              title="上传参考图"
+              title="补充参考图"
             >
               {isUploadingReferences ? <LoadingOutlined /> : <PlusOutlined />}
             </button>
           </div>
           <div className="ref-images-tip">
-            上游引用：{upstreamReferenceImages.length} 张 | 手动上传：{manualReferenceImages.length} 张
+            {referenceImages.length > 0
+              ? `已接入参考：上游 ${upstreamReferenceImages.length} 张，本地补充 ${manualReferenceImages.length} 张`
+              : '可连接角色设定、图片上传或上游出图结果，系统会自动汇总到这里'}
           </div>
           {referenceUploadError && (
             <div className="error-message">{referenceUploadError}</div>
           )}
         </div>
 
-        <div className="form-field">
-          <label className="field-label">角色一致性锁定</label>
-          <Switch
-            checked={data.identityLock ?? false}
-            disabled={!canUseIdentityLock}
-            onChange={(checked) => updateNodeData(id, { identityLock: checked })}
-            className="nodrag"
-          />
-          {!canUseIdentityLock && (
-            <div className="refresh-tip">
-              请先添加参考图，再启用角色一致性锁定。
-            </div>
-          )}
-        </div>
-
-        {canUseIdentityLock && (data.identityLock ?? false) && (
-          <div className="form-field">
-            <label className="field-label">一致性强度</label>
-            <Slider
-              min={0}
-              max={1}
-              step={0.05}
-              value={data.identityStrength ?? 0.7}
-              onChange={(value) => updateNodeData(id, { identityStrength: Number(value) })}
-              tooltip={{ formatter: (value) => `${Math.round((value ?? 0) * 100)}%` }}
-              className="nodrag"
-            />
-          </div>
-        )}
-
         {needsRefresh && !isProcessing && (
           <div className="refresh-tip">
-            上游输入或当前参数已变化，建议重新生成以同步最新结果。
+            上游参考或当前参数已变化，建议重新出图以同步最新画面。
           </div>
         )}
 
@@ -411,24 +374,25 @@ const ImageGenNode = memo(({ id, data }: NodeProps<ImageGenNodeType>) => {
           {data.status === 'queued'
             ? '排队中...'
             : isProcessing || (isWorkflowExecuting && activeExecutionNodeId === id)
-              ? '生成中...'
+              ? '出图中...'
               : isBlockedByWorkflowExecution
-                ? '工作流执行中...'
-                : `${needsRefresh ? '重新生成图片' : '生成图片'} - ${data.creditCost}`}
+                ? '工作流执行中，请稍候'
+                : needsRefresh ? '重新出图' : '开始出图'}
         </Button>
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleReferenceUploadChange}
-        style={{ display: 'none' }}
-      />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleReferenceUploadChange}
+          style={{ display: 'none' }}
+        />
 
-      <Handle type="source" position={Position.Right} className="node-handle" />
-    </div>
+        <Handle type="source" position={Position.Right} className="node-handle" />
+      </div>
+    </>
   )
 })
 

@@ -78,6 +78,52 @@ function createShotNode(
   } as AppNode
 }
 
+function createUploadNode(id: string, x: number, y: number, measuredHeight = 180): AppNode {
+  return {
+    id,
+    type: 'imageUpload',
+    position: { x, y },
+    measured: {
+      width: 240,
+      height: measuredHeight,
+    },
+    data: {
+      label: 'Upload',
+    },
+  } as AppNode
+}
+
+function createCharacterNode(id: string, x: number, y: number, measuredHeight = 620): AppNode {
+  return {
+    id,
+    type: 'character',
+    position: { x, y },
+    measured: {
+      width: 320,
+      height: measuredHeight,
+    },
+    data: {
+      label: 'Character',
+      collapsed: false,
+    },
+  } as AppNode
+}
+
+function createImageDisplayNode(id: string, x: number, y: number, measuredHeight = 240): AppNode {
+  return {
+    id,
+    type: 'imageDisplay',
+    position: { x, y },
+    measured: {
+      width: 280,
+      height: measuredHeight,
+    },
+    data: {
+      label: 'Preview',
+    },
+  } as AppNode
+}
+
 describe('computeAutoLayoutNodes', () => {
   it('stacks sibling nodes vertically with enough spacing for their heights', () => {
     const nodes = [
@@ -137,5 +183,68 @@ describe('computeAutoLayoutNodes', () => {
     const expandedNode = layoutNodes.find((node) => node.id === 'shot-expanded')!
 
     expect(expandedNode.position.y - collapsedNode.position.y).toBe(152 + 96)
+  })
+
+  it('spreads tall sibling groups into extra columns before downstream nodes', () => {
+    const nodes = [
+      createSceneNode('scene-1', 0, 0, {}, 340),
+      createUploadNode('upload-1', 0, 0),
+      createUploadNode('upload-2', 0, 20),
+      createUploadNode('upload-3', 0, 40),
+      createUploadNode('upload-4', 0, 60),
+      createCharacterNode('character-1', 0, 80),
+      createShotNode('shot-1', 100, 0, { title: 'Main Shot' }, 780),
+      createImageDisplayNode('display-1', 200, 0),
+    ]
+
+    const edges = [
+      { id: 'edge-1', source: 'scene-1', target: 'shot-1' },
+      { id: 'edge-2', source: 'upload-1', target: 'shot-1' },
+      { id: 'edge-3', source: 'upload-2', target: 'shot-1' },
+      { id: 'edge-4', source: 'upload-3', target: 'shot-1' },
+      { id: 'edge-5', source: 'upload-4', target: 'shot-1' },
+      { id: 'edge-6', source: 'character-1', target: 'shot-1' },
+      { id: 'edge-7', source: 'shot-1', target: 'display-1' },
+    ] as AppEdge[]
+
+    const layoutNodes = computeAutoLayoutNodes(nodes, edges)
+    const shot = layoutNodes.find((node) => node.id === 'shot-1')!
+    const display = layoutNodes.find((node) => node.id === 'display-1')!
+    const inputNodes = layoutNodes.filter((node) => node.id !== 'shot-1' && node.id !== 'display-1')
+    const inputColumnCount = new Set(inputNodes.map((node) => node.position.x)).size
+    const totalColumnCount = new Set(layoutNodes.map((node) => node.position.x)).size
+
+    expect(inputColumnCount).toBeGreaterThan(1)
+    expect(Math.max(...inputNodes.map((node) => node.position.x))).toBeLessThan(shot.position.x)
+    expect(display.position.x).toBeGreaterThan(shot.position.x)
+    expect(totalColumnCount).toBeGreaterThanOrEqual(4)
+  })
+
+  it('uses stored custom node width during auto layout before measurement refresh', () => {
+    const nodes = [
+      {
+        id: 'scene-wide',
+        type: 'scene',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Scene',
+          collapsed: false,
+          title: 'Wide Scene',
+          synopsis: '',
+          beat: '',
+          notes: '',
+          nodeWidth: 520,
+        },
+      } as AppNode,
+      createShotNode('shot-1', 0, 0, { title: 'Shot 1' }, 360),
+    ]
+
+    const edges = [{ id: 'edge-1', source: 'scene-wide', target: 'shot-1' }] as AppEdge[]
+
+    const layoutNodes = computeAutoLayoutNodes(nodes, edges)
+    const scene = layoutNodes.find((node) => node.id === 'scene-wide')!
+    const shot = layoutNodes.find((node) => node.id === 'shot-1')!
+
+    expect(shot.position.x - scene.position.x).toBeGreaterThanOrEqual(520 + 120)
   })
 })

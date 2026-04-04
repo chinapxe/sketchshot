@@ -165,7 +165,7 @@ describe('executeWorkflow', () => {
       edges: [],
     })
 
-    await expect(executeWorkflow()).rejects.toThrow('no executable generation nodes')
+    await expect(executeWorkflow()).rejects.toThrow('当前工作流中没有可执行的生成节点')
     expect(executeVideoGenNodeMock).not.toHaveBeenCalled()
   })
 

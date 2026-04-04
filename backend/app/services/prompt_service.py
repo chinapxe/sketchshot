@@ -3,8 +3,8 @@ Prompt generation service backed by Volcengine Ark chat completions.
 """
 from __future__ import annotations
 
-from ..config import settings
 from ..models.schemas import PromptGenerateRequest, PromptGenerateResponse
+from .engine_config_service import engine_config_service
 from .volcengine_client import VolcengineClient
 
 IMAGE_SYSTEM_PROMPT = (
@@ -29,15 +29,17 @@ GENERAL_SYSTEM_PROMPT = (
 class PromptGenerationService:
     """Service wrapper around Ark chat completions."""
 
-    def __init__(self, client: VolcengineClient, model: str):
+    def __init__(self, client: VolcengineClient | None = None, model: str | None = None):
         self._client = client
         self._model = model
 
     @property
     def is_available(self) -> bool:
-        return self._client.is_configured
+        client, _ = self._resolve_runtime()
+        return client.is_configured
 
     async def generate_prompt(self, req: PromptGenerateRequest) -> PromptGenerateResponse:
+        client, model = self._resolve_runtime()
         system_prompt = {
             "image": IMAGE_SYSTEM_PROMPT,
             "video": VIDEO_SYSTEM_PROMPT,
@@ -57,11 +59,11 @@ class PromptGenerationService:
             user_lines.append("Extra requirements:")
             user_lines.extend(f"- {item.strip()}" for item in req.extra_requirements if item.strip())
 
-        response = await self._client.request_json(
+        response = await client.request_json(
             path="/chat/completions",
             method="POST",
             payload={
-                "model": self._model,
+                "model": model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": "\n".join(user_lines)},
@@ -74,7 +76,21 @@ class PromptGenerationService:
         return PromptGenerateResponse(
             prompt=prompt,
             task_type=req.task_type,
-            model=self._model,
+            model=model,
+        )
+
+    def _resolve_runtime(self) -> tuple[VolcengineClient, str]:
+        if self._client is not None and self._model is not None:
+            return self._client, self._model
+
+        runtime = engine_config_service.get_runtime_volcengine_config()
+        return (
+            VolcengineClient(
+                base_url=runtime.ark_base_url,
+                api_key=runtime.ark_api_key,
+                timeout=runtime.request_timeout,
+            ),
+            runtime.prompt_model,
         )
 
     def _extract_prompt_text(self, payload: dict) -> str:
@@ -97,12 +113,4 @@ class PromptGenerationService:
 
         raise RuntimeError("Volcengine prompt response does not contain text content")
 
-
-prompt_service = PromptGenerationService(
-    VolcengineClient(
-        base_url=settings.ARK_BASE_URL,
-        api_key=settings.ARK_API_KEY,
-        timeout=settings.VOLCENGINE_REQUEST_TIMEOUT,
-    ),
-    settings.VOLCENGINE_PROMPT_MODEL,
-)
+prompt_service = PromptGenerationService()

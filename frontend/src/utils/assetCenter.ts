@@ -87,11 +87,11 @@ function pushAsset(
 function labelForNode(node: AppNode): string {
   if (node.type === 'shot') {
     const data = node.data as ShotNodeData
-    return compactText(data.title) || compactText(data.label) || 'Shot'
+    return compactText(data.title) || compactText(data.label) || '镜头'
   }
 
   if (node.type === 'character') {
-    return compactText(node.data.name) || compactText(node.data.label) || 'Character'
+    return compactText(node.data.name) || compactText(node.data.label) || '角色'
   }
 
   return compactText((node.data as { label?: string }).label) || node.type

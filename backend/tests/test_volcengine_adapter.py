@@ -95,6 +95,7 @@ class VolcengineAdapterTests(unittest.IsolatedAsyncioTestCase):
             GenerateParams(
                 task_type="image",
                 prompt="hero portrait",
+                aspect_ratio="3:4",
                 resolution="2K",
                 reference_images=["/uploads/source.png"],
             )
@@ -108,11 +109,33 @@ class VolcengineAdapterTests(unittest.IsolatedAsyncioTestCase):
         image_request = self.client.requests[0]
         self.assertEqual(image_request["path"], "/images/generations")
         self.assertEqual(image_request["payload"]["model"], "seedream-edit")
+        self.assertEqual(image_request["payload"]["size"], "1536x2048")
         encoded_input = image_request["payload"]["image"]
         self.assertTrue(encoded_input.startswith("data:image/png;base64,"))
 
         saved_path = self.output_dir / Path(final_update.output_image.removeprefix("/outputs/")).name
         self.assertTrue(saved_path.exists())
+
+    async def test_image_generation_resolves_explicit_size_from_aspect_ratio(self):
+        updates = []
+        async for update in self.adapter.generate(
+            GenerateParams(
+                task_type="image",
+                prompt="two people talking in a city office",
+                aspect_ratio="9:16",
+                resolution="2K",
+                reference_images=[],
+            )
+        ):
+            updates.append(update)
+
+        final_update = updates[-1]
+        self.assertEqual(final_update.status, "success")
+
+        image_request = self.client.requests[0]
+        self.assertEqual(image_request["path"], "/images/generations")
+        self.assertEqual(image_request["payload"]["model"], "seedream")
+        self.assertEqual(image_request["payload"]["size"], "1152x2048")
 
     async def test_video_generation_polls_until_success_and_stores_local_file(self):
         updates = []

@@ -11,6 +11,8 @@ import {
   Input,
   Modal,
   Popconfirm,
+  Segmented,
+  Spin,
   Tooltip,
   message,
   type MenuProps,
@@ -38,6 +40,7 @@ import {
   HistoryOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 import AssetCenter from '../AssetCenter'
 import ExecutionCenter from '../ExecutionCenter'
@@ -47,8 +50,11 @@ import {
   createWorkflow,
   deleteWorkflow,
   getWorkflow,
+  getVolcengineConfig,
   listWorkflows,
+  updateVolcengineConfig,
   updateWorkflow,
+  type VolcengineConfigResponse,
   type WorkflowListItem,
 } from '../../services/api'
 import { executeWorkflow } from '../../services/workflowRunner'
@@ -98,6 +104,24 @@ type TemplateGuideSection = {
   title: string
   description: string
   nodes: string[]
+}
+
+type VolcengineConfigDraft = {
+  ark_base_url: string
+  ark_api_key: string
+  prompt_model: string
+  image_model: string
+  image_edit_model: string
+  video_model: string
+}
+
+const emptyVolcengineConfigDraft: VolcengineConfigDraft = {
+  ark_base_url: '',
+  ark_api_key: '',
+  prompt_model: '',
+  image_model: '',
+  image_edit_model: '',
+  video_model: '',
 }
 
 const templateSetupTypes = new Set<AppNodeType>(['imageUpload', 'scene', 'character', 'style'])
@@ -180,10 +204,17 @@ const Toolbar = memo(() => {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false)
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+  const [activeTemplateCategory, setActiveTemplateCategory] =
+    useState<WorkflowTemplateDefinition['category']>('recommended')
   const [appliedTemplateGuide, setAppliedTemplateGuide] = useState<WorkflowTemplateDefinition | null>(null)
   const [isAssetCenterOpen, setIsAssetCenterOpen] = useState(false)
   const [isExecutionCenterOpen, setIsExecutionCenterOpen] = useState(false)
   const [isVersionCompareOpen, setIsVersionCompareOpen] = useState(false)
+  const [isEngineConfigModalOpen, setIsEngineConfigModalOpen] = useState(false)
+  const [isEngineConfigLoading, setIsEngineConfigLoading] = useState(false)
+  const [isEngineConfigSaving, setIsEngineConfigSaving] = useState(false)
+  const [engineConfigDraft, setEngineConfigDraft] = useState<VolcengineConfigDraft>(emptyVolcengineConfigDraft)
+  const [isVolcengineConfigured, setIsVolcengineConfigured] = useState(false)
   const [compareNodeId, setCompareNodeId] = useState<string | null>(null)
   const [workflowNameDraft, setWorkflowNameDraft] = useState(currentWorkflowName)
   const [workflowList, setWorkflowList] = useState<WorkflowListItem[]>([])
@@ -203,11 +234,11 @@ const Toolbar = memo(() => {
     }
 
     if (creditSummary.cachedNodeCount > 0) {
-      return `将执行 ${creditSummary.executableNodeCount} 个生成节点，预计消耗 ${creditSummary.estimatedCredits} 点，其中 ${creditSummary.cachedNodeCount} 个节点可复用缓存。`
+      return `将执行 ${creditSummary.executableNodeCount} 个生成节点，其中 ${creditSummary.cachedNodeCount} 个节点可复用缓存。`
     }
 
-    return `将执行 ${creditSummary.executableNodeCount} 个生成节点，预计消耗 ${creditSummary.estimatedCredits} 点。`
-  }, [creditSummary.cachedNodeCount, creditSummary.estimatedCredits, creditSummary.executableNodeCount])
+    return `将执行 ${creditSummary.executableNodeCount} 个生成节点。`
+  }, [creditSummary.cachedNodeCount, creditSummary.executableNodeCount])
 
   const workflowLabel = useMemo(() => {
     if (currentWorkflowId) return `当前工作流：${currentWorkflowName}`
@@ -231,6 +262,11 @@ const Toolbar = memo(() => {
       }))
       .filter((group) => group.templates.length > 0)
   }, [])
+  const activeTemplateGroup = useMemo(
+    () =>
+      groupedTemplates.find((group) => group.category === activeTemplateCategory) ?? groupedTemplates[0] ?? null,
+    [activeTemplateCategory, groupedTemplates]
+  )
   const appliedTemplateSections = useMemo(
     () => (appliedTemplateGuide ? buildTemplateGuideSections(appliedTemplateGuide) : []),
     [appliedTemplateGuide]
@@ -246,6 +282,18 @@ const Toolbar = memo(() => {
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return value
     return date.toLocaleString('zh-CN', { hour12: false })
+  }, [])
+
+  const applyVolcengineConfig = useCallback((config: VolcengineConfigResponse) => {
+    setEngineConfigDraft({
+      ark_base_url: config.ark_base_url,
+      ark_api_key: config.ark_api_key,
+      prompt_model: config.prompt_model,
+      image_model: config.image_model,
+      image_edit_model: config.image_edit_model,
+      video_model: config.video_model,
+    })
+    setIsVolcengineConfigured(config.configured)
   }, [])
 
   const handleNewWorkflow = useCallback(() => {
@@ -380,6 +428,48 @@ const Toolbar = memo(() => {
     setIsSaveModalOpen(true)
   }, [currentWorkflowName])
 
+  const openEngineConfigModal = useCallback(async () => {
+    setIsEngineConfigModalOpen(true)
+    setIsEngineConfigLoading(true)
+
+    try {
+      const config = await getVolcengineConfig()
+      applyVolcengineConfig(config)
+    } catch (error) {
+      console.error('[工具栏] 获取引擎配置失败:', error)
+      message.error(error instanceof Error ? error.message : '获取引擎配置失败')
+    } finally {
+      setIsEngineConfigLoading(false)
+    }
+  }, [applyVolcengineConfig])
+
+  const updateEngineConfigField = useCallback(
+    (field: keyof VolcengineConfigDraft, value: string) => {
+      setEngineConfigDraft((current) => ({ ...current, [field]: value }))
+    },
+    []
+  )
+
+  const handleSaveEngineConfig = useCallback(async () => {
+    setIsEngineConfigSaving(true)
+
+    try {
+      const saved = await updateVolcengineConfig(engineConfigDraft)
+      applyVolcengineConfig(saved)
+      setIsEngineConfigModalOpen(false)
+      message.success(
+        saved.configured
+          ? '引擎配置已保存，新的火山配置已立即生效'
+          : '引擎配置已保存，当前未填写 API Key，火山引擎暂不可用'
+      )
+    } catch (error) {
+      console.error('[工具栏] 保存引擎配置失败:', error)
+      message.error(error instanceof Error ? error.message : '保存引擎配置失败')
+    } finally {
+      setIsEngineConfigSaving(false)
+    }
+  }, [applyVolcengineConfig, engineConfigDraft])
+
   const refreshWorkflowList = useCallback(async () => {
     setIsLoadingList(true)
     try {
@@ -397,6 +487,11 @@ const Toolbar = memo(() => {
     setIsLoadModalOpen(true)
     await refreshWorkflowList()
   }, [refreshWorkflowList])
+
+  const handleOpenTemplateModal = useCallback(() => {
+    setActiveTemplateCategory(groupedTemplates[0]?.category ?? 'recommended')
+    setIsTemplateModalOpen(true)
+  }, [groupedTemplates])
 
   const handleApplyTemplate = useCallback((template: WorkflowTemplateDefinition) => {
     loadWorkflow({
@@ -610,7 +705,7 @@ const Toolbar = memo(() => {
 
         {!isDockCollapsed && (
           <div className="toolbar-dock-summary">
-            <span className="toolbar-credit-chip">预计消耗 {creditSummary.estimatedCredits} 点</span>
+            <span className="toolbar-credit-chip">可执行节点 {creditSummary.executableNodeCount}</span>
             {creditSummary.cachedNodeCount > 0 && (
               <span className="toolbar-cache-chip">缓存复用 {creditSummary.cachedNodeCount}</span>
             )}
@@ -636,9 +731,20 @@ const Toolbar = memo(() => {
               className={`toolbar-dock-action${isDockCollapsed ? ' icon-only' : ''}`}
               icon={<BorderOutlined />}
               disabled={isWorkflowExecuting}
-              onClick={() => setIsTemplateModalOpen(true)}
+              onClick={handleOpenTemplateModal}
             >
-              {!isDockCollapsed && '套用模板'}
+              {!isDockCollapsed && '模板'}
+            </Button>
+          </Tooltip>
+
+          <Tooltip title="配置火山引擎地址、API Key 和模型 ID">
+            <Button
+              className={`toolbar-dock-action${isDockCollapsed ? ' icon-only' : ''}`}
+              icon={<SettingOutlined />}
+              disabled={isWorkflowExecuting}
+              onClick={() => void openEngineConfigModal()}
+            >
+              {!isDockCollapsed && '引擎'}
             </Button>
           </Tooltip>
 
@@ -826,6 +932,120 @@ const Toolbar = memo(() => {
       </Modal>
 
       <Modal
+        title="引擎配置"
+        open={isEngineConfigModalOpen}
+        onCancel={() => {
+          if (!isEngineConfigSaving) {
+            setIsEngineConfigModalOpen(false)
+          }
+        }}
+        width={720}
+        destroyOnHidden
+        footer={[
+          <Button
+            key="cancel"
+            disabled={isEngineConfigSaving}
+            onClick={() => setIsEngineConfigModalOpen(false)}
+          >
+            取消
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={isEngineConfigSaving}
+            onClick={() => void handleSaveEngineConfig()}
+          >
+            保存并立即生效
+          </Button>,
+        ]}
+      >
+        {isEngineConfigLoading ? (
+          <div className="toolbar-engine-loading">
+            <Spin />
+          </div>
+        ) : (
+          <div className="toolbar-modal-body toolbar-engine-form">
+            <div className="toolbar-template-hint">
+              配置仅保存在当前后端本机文件中，保存后新任务立即使用，无需手动修改 `.env`。
+            </div>
+            <div className={`toolbar-engine-status${isVolcengineConfigured ? ' is-ready' : ''}`}>
+              {isVolcengineConfigured ? '火山引擎已配置，可直接用于生成。' : '当前未配置 API Key，火山引擎暂不可用。'}
+            </div>
+
+            <label className="toolbar-modal-label" htmlFor="engine-ark-base-url">
+              Ark Base URL
+            </label>
+            <Input
+              id="engine-ark-base-url"
+              value={engineConfigDraft.ark_base_url}
+              placeholder="https://ark.cn-beijing.volces.com/api/v3"
+              onChange={(event) => updateEngineConfigField('ark_base_url', event.target.value)}
+            />
+
+            <label className="toolbar-modal-label" htmlFor="engine-ark-api-key">
+              Ark API Key
+            </label>
+            <Input.Password
+              id="engine-ark-api-key"
+              value={engineConfigDraft.ark_api_key}
+              placeholder="请输入你自己的 Ark API Key"
+              onChange={(event) => updateEngineConfigField('ark_api_key', event.target.value)}
+            />
+
+            <div className="toolbar-engine-grid">
+              <div className="toolbar-modal-body">
+                <label className="toolbar-modal-label" htmlFor="engine-prompt-model">
+                  提示词模型
+                </label>
+                <Input
+                  id="engine-prompt-model"
+                  value={engineConfigDraft.prompt_model}
+                  placeholder="doubao-seed-1-6-251015"
+                  onChange={(event) => updateEngineConfigField('prompt_model', event.target.value)}
+                />
+              </div>
+
+              <div className="toolbar-modal-body">
+                <label className="toolbar-modal-label" htmlFor="engine-video-model">
+                  视频模型
+                </label>
+                <Input
+                  id="engine-video-model"
+                  value={engineConfigDraft.video_model}
+                  placeholder="doubao-seedance-1-5-pro-251215"
+                  onChange={(event) => updateEngineConfigField('video_model', event.target.value)}
+                />
+              </div>
+
+              <div className="toolbar-modal-body">
+                <label className="toolbar-modal-label" htmlFor="engine-image-model">
+                  文生图模型
+                </label>
+                <Input
+                  id="engine-image-model"
+                  value={engineConfigDraft.image_model}
+                  placeholder="doubao-seedream-5-0-260128"
+                  onChange={(event) => updateEngineConfigField('image_model', event.target.value)}
+                />
+              </div>
+
+              <div className="toolbar-modal-body">
+                <label className="toolbar-modal-label" htmlFor="engine-image-edit-model">
+                  图像编辑模型
+                </label>
+                <Input
+                  id="engine-image-edit-model"
+                  value={engineConfigDraft.image_edit_model}
+                  placeholder="doubao-seedream-5-0-260128"
+                  onChange={(event) => updateEngineConfigField('image_edit_model', event.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
         title="加载工作流"
         open={isLoadModalOpen}
         onCancel={() => {
@@ -912,56 +1132,70 @@ const Toolbar = memo(() => {
           </Button>,
         ]}
       >
-        <div className="toolbar-template-groups">
-          {groupedTemplates.map((group) => (
-            <section key={group.category} className="toolbar-template-group">
-              <div className="toolbar-template-group-header">
-                <div className="toolbar-template-group-title">{group.meta.title}</div>
-                <div className="toolbar-template-group-description">{group.meta.description}</div>
-              </div>
+        <div className="toolbar-template-browser">
+          <div className="toolbar-template-group-header">
+            <div className="toolbar-template-group-title">{activeTemplateGroup?.meta.title ?? '模板分类'}</div>
+            <div className="toolbar-template-group-description">
+              {activeTemplateGroup?.meta.description ?? '选择一个分类后，再挑选适合当前任务的模板。'}
+            </div>
+          </div>
 
-              <div className="toolbar-template-group-list">
-                {group.templates.map((template) => (
-                  <div key={template.id} className="toolbar-workflow-item toolbar-template-item">
-                    <div className="toolbar-workflow-meta">
-                      <div className="toolbar-template-title-row">
-                        <div className="toolbar-workflow-name">{template.name}</div>
-                        <div className="toolbar-template-tags">
-                          {template.recommended && <span className="toolbar-template-badge recommended">推荐</span>}
-                          <span className="toolbar-template-badge">{group.meta.title}</span>
-                        </div>
-                      </div>
-                      <div className="toolbar-template-description">{template.description}</div>
-                      <div className="toolbar-workflow-detail">
-                        <span>{template.nodes.length} 个节点</span>
-                        <span>{template.edges.length} 条连线</span>
-                      </div>
-                      <div className="toolbar-template-points">
-                        {template.learningPoints.map((point) => (
-                          <span key={point} className="toolbar-template-point">
-                            {point}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="toolbar-template-hint">
-                        第一步：{template.firstActionHint}
+          <div className="toolbar-template-category-switcher">
+            <Segmented
+              value={activeTemplateGroup?.category}
+              onChange={(value) => setActiveTemplateCategory(value as WorkflowTemplateDefinition['category'])}
+              options={groupedTemplates.map((group) => ({
+                label: `${group.meta.title} (${group.templates.length})`,
+                value: group.category,
+              }))}
+              className="toolbar-template-category-tabs"
+            />
+          </div>
+
+          <div className="toolbar-template-group-list">
+            {activeTemplateGroup ? (
+              activeTemplateGroup.templates.map((template) => (
+                <div key={template.id} className="toolbar-workflow-item toolbar-template-item">
+                  <div className="toolbar-workflow-meta">
+                    <div className="toolbar-template-title-row">
+                      <div className="toolbar-workflow-name">{template.name}</div>
+                      <div className="toolbar-template-tags">
+                        {template.recommended && <span className="toolbar-template-badge recommended">推荐</span>}
+                        <span className="toolbar-template-badge">{activeTemplateGroup.meta.title}</span>
                       </div>
                     </div>
-                    <div className="toolbar-workflow-actions">
-                      <Button
-                        size="small"
-                        type="primary"
-                        disabled={isWorkflowExecuting}
-                        onClick={() => handleApplyTemplate(template)}
-                      >
-                        应用模板
-                      </Button>
+                    <div className="toolbar-template-description">{template.description}</div>
+                    <div className="toolbar-workflow-detail">
+                      <span>{template.nodes.length} 个节点</span>
+                      <span>{template.edges.length} 条连线</span>
+                    </div>
+                    <div className="toolbar-template-points">
+                      {template.learningPoints.map((point) => (
+                        <span key={point} className="toolbar-template-point">
+                          {point}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="toolbar-template-hint">
+                      第一步：{template.firstActionHint}
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
-          ))}
+                  <div className="toolbar-workflow-actions">
+                    <Button
+                      size="small"
+                      type="primary"
+                      disabled={isWorkflowExecuting}
+                      onClick={() => handleApplyTemplate(template)}
+                    >
+                      应用模板
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <Empty description="当前没有可用模板" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
+          </div>
         </div>
       </Modal>
 

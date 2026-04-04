@@ -175,6 +175,18 @@ describe('useFlowStore video workflow support', () => {
     expect((useFlowStore.getState().nodes[0].data as ShotNodeData).collapsed).toBe(false)
   })
 
+  it('stores manual node width for resized nodes', () => {
+    useFlowStore.getState().addNode('imageGen', { x: 120, y: 80 })
+
+    const imageNode = useFlowStore.getState().nodes[0]
+    expect(imageNode?.type).toBe('imageGen')
+
+    useFlowStore.getState().updateNodeWidth(imageNode.id, 460)
+
+    const updatedNode = useFlowStore.getState().nodes[0]
+    expect((updatedNode.data as Record<string, unknown>).nodeWidth).toBe(460)
+  })
+
   it('syncs character references into downstream storyboard shots and marks refresh when context changes', async () => {
     const shotData: ShotNodeData = {
       label: 'Shot',

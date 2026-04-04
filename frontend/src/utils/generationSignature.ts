@@ -2,7 +2,7 @@ import type { ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
 
 type ImageSignatureSource = Pick<
   ImageGenNodeData,
-  'prompt' | 'aspectRatio' | 'resolution' | 'adapter' | 'referenceImages' | 'identityLock' | 'identityStrength'
+  'prompt' | 'aspectRatio' | 'resolution' | 'adapter' | 'referenceImages'
 >
 
 type VideoSignatureSource = Pick<
@@ -29,8 +29,6 @@ type ShotSignatureSource = Pick<
   | 'videoAdapter'
   | 'durationSeconds'
   | 'motionStrength'
-  | 'identityLock'
-  | 'identityStrength'
   | 'referenceImages'
   | 'contextSignature'
 >
@@ -48,8 +46,6 @@ export function buildGenerationSignature(data: ImageSignatureSource): string {
     aspectRatio: data.aspectRatio,
     resolution: data.resolution,
     adapter: data.adapter ?? 'auto',
-    identityLock: data.identityLock ?? false,
-    identityStrength: data.identityStrength ?? 0.7,
     referenceImages: normalizeAssetList(data.referenceImages),
   })
 }
@@ -99,8 +95,6 @@ export function buildShotGenerationSignature(data: ShotSignatureSource): string 
     videoAdapter: data.videoAdapter ?? 'volcengine',
     durationSeconds: data.durationSeconds,
     motionStrength: data.motionStrength,
-    identityLock: data.identityLock ?? false,
-    identityStrength: data.identityStrength ?? 0.7,
     referenceImages: normalizeAssetList(data.referenceImages),
     contextSignature: data.contextSignature ?? '',
   })

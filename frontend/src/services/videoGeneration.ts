@@ -30,12 +30,12 @@ export async function executeVideoGenNode(
   const node = store.nodes.find((item) => item.id === nodeId)
 
   if (!node || node.type !== 'videoGen') {
-    throw new Error('Target node is missing or is not a video generation node')
+    throw new Error('目标节点不存在，或不是视频生成节点')
   }
 
   const isDisabled = (node.data as Record<string, unknown>).disabled === true
   if (isDisabled) {
-    throw new Error('This node is disabled and cannot generate a motion clip')
+    throw new Error('该节点已禁用，无法生成视频')
   }
 
   const sourceImages = store.getUpstreamImages(nodeId)
@@ -43,12 +43,12 @@ export async function executeVideoGenNode(
 
   const latestNode = useFlowStore.getState().nodes.find((item) => item.id === nodeId)
   if (!latestNode || latestNode.type !== 'videoGen') {
-    throw new Error('Unable to refresh video generation inputs before execution')
+    throw new Error('同步视频输入后未找到目标节点')
   }
 
   const data = latestNode.data as VideoGenNodeData
   if ((data.sourceImages ?? []).length === 0) {
-    throw new Error('Connect at least one image node before generating a motion clip')
+    throw new Error('请先连接至少一个图像输入节点，再生成视频')
   }
 
   const signature = buildVideoGenerationSignature(data)
@@ -69,7 +69,7 @@ export async function executeVideoGenNode(
     }, 50)
 
     if (showSuccessMessage) {
-      message.success('Reused cached motion clip')
+      message.success('已复用缓存视频结果')
     }
 
     return
@@ -106,7 +106,7 @@ export async function executeVideoGenNode(
           if (!outputVideo) {
             settled = true
             disconnectVideoGeneration(nodeId)
-            reject(new Error('Video generation completed without a motion asset URL'))
+            reject(new Error('视频生成完成，但未返回可用资源'))
             return
           }
 
@@ -135,7 +135,7 @@ export async function executeVideoGenNode(
 
           disconnectVideoGeneration(nodeId)
           if (showSuccessMessage) {
-            message.success('Motion clip generated')
+            message.success('视频生成完成')
           }
           resolve()
           return
@@ -149,7 +149,7 @@ export async function executeVideoGenNode(
         disconnectVideoGeneration(nodeId)
 
         if (showErrorMessage) {
-          message.error(`Video generation failed: ${progressMessage.message}`)
+          message.error(`视频生成失败: ${progressMessage.message}`)
         }
         reject(new Error(progressMessage.message))
       },
@@ -178,7 +178,7 @@ export async function executeVideoGenNode(
       duration_seconds: data.durationSeconds,
       motion_strength: data.motionStrength,
       source_images: data.sourceImages ?? [],
-      adapter: data.adapter,
+      adapter: data.adapter || 'volcengine',
     })
       .then(() => {
         useFlowStore.getState().updateNodeData(nodeId, {
@@ -190,14 +190,14 @@ export async function executeVideoGenNode(
         settled = true
         useFlowStore.getState().updateNodeData(nodeId, {
           status: 'error' as NodeStatus,
-          errorMessage: 'Task submission failed, please verify the backend service',
+          errorMessage: '任务提交失败，请检查后端服务',
         })
         disconnectVideoGeneration(nodeId)
 
         if (showErrorMessage) {
-          message.error('Task submission failed, please verify the backend service')
+          message.error('任务提交失败，请检查后端服务是否启动')
         }
-        reject(error instanceof Error ? error : new Error('Task submission failed'))
+        reject(error instanceof Error ? error : new Error('任务提交失败，请检查后端服务'))
       })
   })
 }

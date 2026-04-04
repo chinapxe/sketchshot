@@ -518,7 +518,7 @@ async function fetchAssetBlob(url: string): Promise<Blob> {
   if (isLocalAssetUrl(url)) {
     const storedBlob = await getStoredAssetBlob(url)
     if (!storedBlob) {
-      throw new Error('Local draft asset is missing')
+      throw new Error('本地草稿资源不存在')
     }
 
     return storedBlob
@@ -526,7 +526,7 @@ async function fetchAssetBlob(url: string): Promise<Blob> {
 
   const response = await fetch(url)
   if (!response.ok) {
-    throw new Error(`Failed to download project asset: ${response.status}`)
+    throw new Error(`下载项目资源失败: ${response.status}`)
   }
 
   return response.blob()
@@ -585,7 +585,7 @@ function toArrayBuffer(data: Uint8Array): ArrayBuffer {
 
 function triggerBrowserDownload(fileName: string, blob: Blob): void {
   if (typeof document === 'undefined') {
-    throw new Error('Browser download is not available in the current environment')
+    throw new Error('当前环境不支持浏览器下载')
   }
 
   const objectUrl = URL.createObjectURL(blob)
@@ -615,14 +615,14 @@ function buildProjectExchangeFile(payload: ProjectExchangePayload): ProjectExcha
 
 function normalizeProjectExchangePayload(value: unknown): ProjectExchangePayload {
   if (!isRecord(value)) {
-    throw new Error('Invalid project file content')
+    throw new Error('项目文件内容无效')
   }
 
   const rawNodes = Array.isArray(value.nodes) ? (value.nodes as AppNode[]) : null
   const rawEdges = Array.isArray(value.edges) ? (value.edges as AppEdge[]) : null
 
   if (!rawNodes || !rawEdges) {
-    throw new Error('Project file is missing nodes or edges')
+    throw new Error('项目文件缺少节点或连线数据')
   }
 
   return sanitizePayload({
@@ -656,7 +656,7 @@ function readProjectJsonEntry(entries: ZipEntryOutput[]): ZipEntryOutput {
     return jsonEntry
   }
 
-  throw new Error('Project package does not contain a project JSON file')
+  throw new Error('项目包中缺少项目描述文件')
 }
 
 function readManifestAssets(projectFile: Record<string, unknown>): ProjectAssetManifestEntry[] {
@@ -698,7 +698,7 @@ function readProjectExchangeZip(data: Uint8Array): ProjectExchangePayload {
 
     const entry = entryMap.get(assetPath)
     if (!entry) {
-      throw new Error(`Project package is missing asset: ${assetPath}`)
+      throw new Error(`项目包缺少资源文件: ${assetPath}`)
     }
 
     const manifestEntry = manifestAssets.find((item) => item.path === assetPath)
@@ -728,7 +728,7 @@ export function parseProjectExchange(content: string): ProjectExchangePayload {
     && parsed.format !== PROJECT_EXCHANGE_FORMAT
     && parsed.format !== LEGACY_PROJECT_EXCHANGE_FORMAT
   ) {
-    throw new Error('Unsupported project file format')
+    throw new Error('不支持的项目文件格式')
   }
 
   return normalizeProjectExchangePayload(parsed)

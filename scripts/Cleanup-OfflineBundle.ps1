@@ -60,6 +60,11 @@ if ($PurgeData) {
         Assert-ChildPath -RootPath $bundlePath -TargetPath $targetDir
         Clear-DirectoryContents -DirectoryPath $targetDir
     }
+    $engineConfigFile = Join-Path $dataRoot "engine_config.json"
+    Assert-ChildPath -RootPath $bundlePath -TargetPath $engineConfigFile
+    if (Test-Path $engineConfigFile) {
+        Remove-Item -LiteralPath $engineConfigFile -Force
+    }
     Write-Host "[Cleanup] Data directories cleaned." -ForegroundColor Yellow
 }
 else {

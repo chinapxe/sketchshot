@@ -34,9 +34,9 @@ function getNodeTypeLabel(nodeType: AppNode['type']): string {
     case 'shot':
       return '镜头'
     case 'imageGen':
-      return '图片节点'
+      return '图片生成'
     case 'videoGen':
-      return '视频节点'
+      return '视频生成'
     default:
       return nodeType
   }
@@ -77,7 +77,7 @@ const ExecutionCenter = memo(({ open, nodes, edges, onClose, onOpenVersionCompar
 
       <div className="execution-center-list">
         {entries.length === 0 ? (
-          <Empty description="当前还没有可执行节点" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <Empty description="当前画布里还没有可执行的生成节点" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         ) : (
           entries.map((entry) => {
             const statusMeta = getStatusMeta(entry.status)
@@ -135,7 +135,7 @@ const ExecutionCenter = memo(({ open, nodes, edges, onClose, onOpenVersionCompar
                       })
                     }}
                   >
-                    预览结果
+                    {entry.assetUrl && entry.assetType ? '预览结果' : '暂无结果'}
                   </Button>
                 </div>
               </div>

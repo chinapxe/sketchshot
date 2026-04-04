@@ -33,6 +33,7 @@ import {
   buildShotGenerationSignature,
   buildVideoGenerationSignature,
 } from '../utils/generationSignature'
+import { MAX_CHARACTER_IDENTITY_STRENGTH } from '../utils/characterConsistency'
 import { computeAutoLayoutNodes } from '../utils/canvasLayout'
 import { getShotContext } from '../utils/storyboard'
 
@@ -58,8 +59,8 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         referenceImages: [],
         isUploadingReferences: false,
         referenceUploadError: undefined,
-        identityLock: false,
-        identityStrength: 0.7,
+        identityLock: true,
+        identityStrength: MAX_CHARACTER_IDENTITY_STRENGTH,
         status: 'idle' as NodeStatus,
         progress: 0,
         creditCost: 30,
@@ -147,8 +148,8 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         videoAdapter: 'volcengine',
         durationSeconds: 4,
         motionStrength: 0.6,
-        identityLock: false,
-        identityStrength: 0.7,
+        identityLock: true,
+        identityStrength: MAX_CHARACTER_IDENTITY_STRENGTH,
         referenceImages: [],
         contextSignature: '',
         status: 'idle' as NodeStatus,
@@ -207,8 +208,8 @@ const normalizeImageGenData = (data: Partial<ImageGenNodeData>): ImageGenNodeDat
     referenceImages,
     isUploadingReferences: data.isUploadingReferences === true,
     referenceUploadError: typeof data.referenceUploadError === 'string' ? data.referenceUploadError : undefined,
-    identityLock: false,
-    identityStrength: 0.7,
+    identityLock: true,
+    identityStrength: MAX_CHARACTER_IDENTITY_STRENGTH,
     status: 'idle' as NodeStatus,
     progress: 0,
     creditCost: 30,
@@ -326,8 +327,8 @@ const normalizeShotData = (data: Partial<ShotNodeData>): ShotNodeData => {
     videoAdapter: 'volcengine',
     durationSeconds: 4,
     motionStrength: 0.6,
-    identityLock: false,
-    identityStrength: 0.7,
+    identityLock: true,
+    identityStrength: MAX_CHARACTER_IDENTITY_STRENGTH,
     contextSignature: typeof data.contextSignature === 'string' ? data.contextSignature : '',
     status: 'idle' as NodeStatus,
     progress: 0,
@@ -347,7 +348,8 @@ const syncImageGenDerivedState = (data: Partial<ImageGenNodeData>): ImageGenNode
 
   return {
     ...normalizedData,
-    identityLock: normalizedData.identityLock && normalizedData.referenceImages.length > 0,
+    identityLock: normalizedData.referenceImages.length > 0,
+    identityStrength: MAX_CHARACTER_IDENTITY_STRENGTH,
     needsRefresh: hasRun && !isGenerating && currentSignature !== normalizedData.lastRunSignature,
   }
 }
@@ -372,7 +374,8 @@ const syncShotDerivedState = (data: Partial<ShotNodeData>): ShotNodeData => {
 
   return {
     ...normalizedData,
-    identityLock: normalizedData.identityLock && normalizedData.referenceImages.length > 0,
+    identityLock: normalizedData.outputType === 'image' && normalizedData.referenceImages.length > 0,
+    identityStrength: MAX_CHARACTER_IDENTITY_STRENGTH,
     needsRefresh: hasRun && !isGenerating && currentSignature !== normalizedData.lastRunSignature,
   }
 }
@@ -420,6 +423,7 @@ interface FlowState {
   getUpstreamImages: (nodeId: string) => string[]
   getUpstreamVideos: (nodeId: string) => string[]
   syncDownstream: (sourceNodeId: string) => void
+  updateNodeWidth: (nodeId: string, width: number) => void
   selectAll: () => void
   autoLayout: () => void
   clearCanvas: () => void
@@ -690,6 +694,22 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         updateNodeData(edge.target, { videos: getUpstreamVideos(edge.target) })
       }
     }
+  },
+
+  updateNodeWidth: (nodeId: string, width: number) => {
+    set({
+      nodes: get().nodes.map((node) =>
+        node.id === nodeId
+          ? ({
+              ...node,
+              data: {
+                ...node.data,
+                nodeWidth: width,
+              },
+            } as AppNode)
+          : node
+      ),
+    })
   },
 
   selectAll: () => {

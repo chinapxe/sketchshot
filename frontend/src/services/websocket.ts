@@ -35,7 +35,7 @@ export function connectProgress(
   }
 
   websocket.onerror = () => {
-    onError?.(new Error('WebSocket connection failed'))
+    onError?.(new Error('WebSocket 连接失败'))
   }
 
   return () => {

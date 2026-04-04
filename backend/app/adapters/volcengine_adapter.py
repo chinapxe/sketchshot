@@ -19,6 +19,29 @@ from ..services.volcengine_client import VolcengineClient
 logger = logging.getLogger(__name__)
 
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm", ".m4v", ".gif"}
+IMAGE_SIZE_MAP: dict[str, dict[str, str]] = {
+    "1K": {
+        "1:1": "1024x1024",
+        "16:9": "1280x720",
+        "9:16": "720x1280",
+        "4:3": "1152x864",
+        "3:4": "864x1152",
+    },
+    "2K": {
+        "1:1": "2048x2048",
+        "16:9": "2048x1152",
+        "9:16": "1152x2048",
+        "4:3": "2048x1536",
+        "3:4": "1536x2048",
+    },
+    "4K": {
+        "1:1": "4096x4096",
+        "16:9": "4096x2304",
+        "9:16": "2304x4096",
+        "4:3": "4096x3072",
+        "3:4": "3072x4096",
+    },
+}
 
 
 class VolcengineAdapter(BaseAdapter):
@@ -79,11 +102,12 @@ class VolcengineAdapter(BaseAdapter):
 
         yield ProgressUpdate(progress=5, status="processing", message="Preparing Volcengine image request")
         image_inputs = [self._resolve_asset_input(item) for item in (params.reference_images or [])]
+        image_size = self._resolve_image_size(params.aspect_ratio, params.resolution)
 
         payload: dict[str, Any] = {
             "model": self._image_edit_model if image_inputs else self._image_model,
             "prompt": prompt,
-            "size": params.resolution,
+            "size": image_size,
             "output_format": self._output_format,
             "response_format": "url",
             "watermark": self._watermark,
@@ -112,6 +136,10 @@ class VolcengineAdapter(BaseAdapter):
             message="Volcengine image generation completed",
             output_image=local_url,
         )
+
+    def _resolve_image_size(self, aspect_ratio: str, resolution: str) -> str:
+        resolution_map = IMAGE_SIZE_MAP.get(resolution, IMAGE_SIZE_MAP["2K"])
+        return resolution_map.get(aspect_ratio, resolution_map["1:1"])
 
     async def _generate_video(self, params: GenerateParams) -> AsyncIterator[ProgressUpdate]:
         prompt = params.prompt.strip()

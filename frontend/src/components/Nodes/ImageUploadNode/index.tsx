@@ -10,12 +10,15 @@ import { uploadImageAsset } from '../../../services/api'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import type { ImageUploadNode as ImageUploadNodeType } from '../../../types'
+import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
+import NodeWidthResizer from '../NodeWidthResizer'
 import './style.css'
 
-const ImageUploadNode = memo(({ id, data }: NodeProps<ImageUploadNodeType>) => {
+const ImageUploadNode = memo(({ id, data, selected = false }: NodeProps<ImageUploadNodeType>) => {
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.imageUpload.width)
 
   const handleUpload = useCallback(() => {
     fileInputRef.current?.click()
@@ -80,50 +83,58 @@ const ImageUploadNode = memo(({ id, data }: NodeProps<ImageUploadNodeType>) => {
   const uploadError = typeof data.uploadError === 'string' ? data.uploadError : ''
 
   return (
-    <div className={`image-upload-node${isDisabled ? ' node-disabled' : ''}`}>
-      <div className="node-header">
-        <PictureOutlined className="node-icon" />
-        <span className="node-title">{data.label}</span>
-        {isDisabled && <span className="node-disabled-badge">已禁用</span>}
-      </div>
-
-      <div className="node-body nodrag nopan nowheel" onClick={handlePreview}>
-        {data.imageUrl ? (
-          <div className="image-preview-wrapper">
-            <img src={data.imageUrl} alt={data.fileName || '参考图'} className="image-preview" />
-            <div className="preview-hint">{isUploading ? '上传中...' : '点击预览'}</div>
-            <div
-              className="re-upload-overlay"
-              onClick={handleReUpload}
-              role="button"
-              tabIndex={0}
-            >
-              <UploadOutlined /> {isUploading ? '上传中...' : '重新上传'}
-            </div>
-          </div>
-        ) : (
-          <div className="upload-placeholder">
-            <UploadOutlined className="upload-icon" />
-            <span>{isUploading ? '上传中...' : '点击上传图片'}</span>
-          </div>
-        )}
-
-        {uploadError && (
-          <div className="error-message">{uploadError}</div>
-        )}
-      </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        style={{ display: 'none' }}
+    <>
+      <NodeWidthResizer
+        nodeId={id}
+        selected={selected}
+        currentWidth={nodeWidth}
+        minWidth={DEFAULT_NODE_SIZES.imageUpload.width}
       />
+      <div className={`image-upload-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+        <div className="node-header">
+          <PictureOutlined className="node-icon" />
+          <span className="node-title">{data.label}</span>
+          {isDisabled && <span className="node-disabled-badge">已禁用</span>}
+        </div>
 
-      <Handle type="source" position={Position.Right} className="node-handle" />
-      <Handle type="target" position={Position.Left} className="node-handle" />
-    </div>
+        <div className="node-body nodrag nopan nowheel" onClick={handlePreview}>
+          {data.imageUrl ? (
+            <div className="image-preview-wrapper">
+              <img src={data.imageUrl} alt={data.fileName || '参考图'} className="image-preview" />
+              <div className="preview-hint">{isUploading ? '上传中...' : '点击预览'}</div>
+              <div
+                className="re-upload-overlay"
+                onClick={handleReUpload}
+                role="button"
+                tabIndex={0}
+              >
+                <UploadOutlined /> {isUploading ? '上传中...' : '重新上传'}
+              </div>
+            </div>
+          ) : (
+            <div className="upload-placeholder">
+              <UploadOutlined className="upload-icon" />
+              <span>{isUploading ? '上传中...' : '点击上传图片'}</span>
+            </div>
+          )}
+
+          {uploadError && (
+            <div className="error-message">{uploadError}</div>
+          )}
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+
+        <Handle type="source" position={Position.Right} className="node-handle" />
+        <Handle type="target" position={Position.Left} className="node-handle" />
+      </div>
+    </>
   )
 })
 

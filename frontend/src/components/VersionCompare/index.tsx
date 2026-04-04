@@ -19,9 +19,9 @@ function getNodeTypeLabel(nodeType: AppNode['type']): string {
     case 'shot':
       return '镜头'
     case 'imageGen':
-      return '图片节点'
+      return '图片生成'
     case 'videoGen':
-      return '视频节点'
+      return '视频生成'
     default:
       return nodeType
   }
@@ -57,7 +57,7 @@ const VersionCompare = memo(({ open, nodes, edges, initialNodeId, onClose }: Ver
       destroyOnHidden
     >
       {entries.length === 0 ? (
-        <Empty description="当前还没有可比较的多版本结果" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Empty description="当前还没有多版本结果可对比" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
         <div className="version-compare-layout">
           <div className="version-compare-sidebar">
@@ -92,7 +92,7 @@ const VersionCompare = memo(({ open, nodes, edges, initialNodeId, onClose }: Ver
 
           <div className="version-compare-main">
             {!selectedEntry ? (
-              <Empty description="请选择一个节点进行版本对比" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              <Empty description="请选择一个节点，查看不同生成版本的差异" image={Empty.PRESENTED_IMAGE_SIMPLE} />
             ) : (
               <>
                 <div className="version-compare-main-header">
@@ -136,7 +136,7 @@ const VersionCompare = memo(({ open, nodes, edges, initialNodeId, onClose }: Ver
                             })
                           }
                         >
-                          预览
+                          查看预览
                         </Button>
                       </div>
                     </div>

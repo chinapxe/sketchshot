@@ -2,6 +2,7 @@ import { message } from 'antd'
 import { createGenerateTask } from './api'
 import { connectProgress } from './websocket'
 import { useFlowStore } from '../stores/useFlowStore'
+import { MAX_CHARACTER_IDENTITY_STRENGTH, appendCharacterConsistencyPrompt, hasCharacterReferenceImages } from '../utils/characterConsistency'
 import { buildGenerationSignature } from '../utils/generationSignature'
 import type { ImageGenNodeData, NodeStatus } from '../types'
 
@@ -46,6 +47,8 @@ export async function executeImageGenNode(
   }
 
   const data = latestNode.data as ImageGenNodeData
+  const hasCharacterConsistency = hasCharacterReferenceImages(data.referenceImages)
+  const finalPrompt = appendCharacterConsistencyPrompt(data.prompt, data.referenceImages)
   const signature = buildGenerationSignature(data)
   const cachedOutputImage = data.resultCache?.[signature]
 
@@ -160,13 +163,13 @@ export async function executeImageGenNode(
 
     void createGenerateTask({
       node_id: nodeId,
-      prompt: data.prompt,
+      prompt: finalPrompt,
       aspect_ratio: data.aspectRatio,
       resolution: data.resolution,
       reference_images: data.referenceImages || [],
-      adapter: data.adapter || 'auto',
-      identity_lock: data.identityLock || false,
-      identity_strength: data.identityStrength ?? 0.7,
+      adapter: data.adapter || 'volcengine',
+      identity_lock: hasCharacterConsistency,
+      identity_strength: MAX_CHARACTER_IDENTITY_STRENGTH,
     })
       .then(() => {
         useFlowStore.getState().updateNodeData(nodeId, {

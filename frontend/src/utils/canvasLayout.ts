@@ -1,31 +1,18 @@
 import type { AppEdge, AppNode, AppNodeType } from '../types'
+import { DEFAULT_NODE_SIZES, getCustomNodeWidth, type NodeSize } from './nodeSizing'
 
 const LAYOUT_START_X = 80
 const LAYOUT_START_Y = 80
 const LAYOUT_COLUMN_GAP = 120
+const LAYOUT_LEVEL_SUBCOLUMN_GAP = 72
 const LAYOUT_ROW_GAP = 96
 const LAYOUT_COMPONENT_GAP_X = 180
 const LAYOUT_COMPONENT_GAP_Y = 180
+const LAYOUT_MAX_LEVEL_COLUMN_HEIGHT = 1400
+const LAYOUT_MAX_LEVEL_SUBCOLUMNS = 3
 const LAYOUT_MAX_ROW_WIDTH = 2200
 
-type NodeSize = {
-  width: number
-  height: number
-}
-
 const storyboardTypes = new Set<AppNodeType>(['scene', 'character', 'style', 'shot'])
-
-const DEFAULT_NODE_SIZES: Record<AppNodeType, NodeSize> = {
-  imageUpload: { width: 240, height: 180 },
-  imageGen: { width: 300, height: 460 },
-  imageDisplay: { width: 280, height: 240 },
-  videoGen: { width: 300, height: 420 },
-  videoDisplay: { width: 280, height: 260 },
-  scene: { width: 320, height: 340 },
-  character: { width: 320, height: 620 },
-  style: { width: 320, height: 360 },
-  shot: { width: 320, height: 1040 },
-}
 
 function sortNodesByPosition(left: AppNode, right: AppNode) {
   if (left.position.y !== right.position.y) {
@@ -38,15 +25,19 @@ function sortNodesByPosition(left: AppNode, right: AppNode) {
 function getNodeFallbackSize(node: AppNode): NodeSize {
   const baseSize = DEFAULT_NODE_SIZES[node.type]
   const isCollapsed = (node.data as { collapsed?: boolean }).collapsed === true
+  const customWidth = getCustomNodeWidth(node.data as Record<string, unknown>) ?? baseSize.width
 
   if (isCollapsed && storyboardTypes.has(node.type)) {
     return {
-      width: baseSize.width,
+      width: customWidth,
       height: 152,
     }
   }
 
-  return baseSize
+  return {
+    ...baseSize,
+    width: customWidth,
+  }
 }
 
 function getNodeSize(node: AppNode): NodeSize {
@@ -64,6 +55,57 @@ function getNodeSize(node: AppNode): NodeSize {
     width: measuredNode.measured?.width ?? measuredNode.width ?? fallbackSize.width,
     height: measuredNode.measured?.height ?? measuredNode.height ?? fallbackSize.height,
   }
+}
+
+function getStackHeight(nodes: AppNode[]): number {
+  return nodes.reduce((total, node, nodeIndex) => {
+    const { height } = getNodeSize(node)
+    return total + height + (nodeIndex < nodes.length - 1 ? LAYOUT_ROW_GAP : 0)
+  }, 0)
+}
+
+function splitLevelBucket(nodes: AppNode[]): AppNode[][] {
+  if (nodes.length <= 1) {
+    return [nodes]
+  }
+
+  const totalHeight = getStackHeight(nodes)
+  const columnCount = Math.min(
+    LAYOUT_MAX_LEVEL_SUBCOLUMNS,
+    Math.max(1, Math.ceil(totalHeight / LAYOUT_MAX_LEVEL_COLUMN_HEIGHT))
+  )
+
+  if (columnCount === 1) {
+    return [nodes]
+  }
+
+  const columns: AppNode[][] = [[]]
+  const targetColumnHeight = Math.ceil(totalHeight / columnCount)
+  let currentColumnIndex = 0
+  let currentColumnHeight = 0
+
+  nodes.forEach((node, nodeIndex) => {
+    const nodeHeight = getNodeSize(node).height
+    const nextHeight = currentColumnHeight + nodeHeight + (columns[currentColumnIndex].length > 0 ? LAYOUT_ROW_GAP : 0)
+    const remainingNodes = nodes.length - nodeIndex
+    const remainingColumns = columnCount - currentColumnIndex
+    const shouldWrap =
+      currentColumnIndex < columnCount - 1 &&
+      columns[currentColumnIndex].length > 0 &&
+      nextHeight > targetColumnHeight &&
+      remainingNodes >= remainingColumns
+
+    if (shouldWrap) {
+      currentColumnIndex += 1
+      columns.push([])
+      currentColumnHeight = 0
+    }
+
+    columns[currentColumnIndex].push(node)
+    currentColumnHeight += nodeHeight + (columns[currentColumnIndex].length > 1 ? LAYOUT_ROW_GAP : 0)
+  })
+
+  return columns.filter((column) => column.length > 0)
 }
 
 function getConnectedComponents(nodes: AppNode[], edges: AppEdge[]): AppNode[][] {
@@ -181,34 +223,49 @@ function layoutComponent(
   levelBuckets.forEach((bucket) => bucket.sort(sortNodesByPosition))
 
   const orderedLevels = [...levelBuckets.keys()].sort((left, right) => left - right)
-  const columnWidths = orderedLevels.map((level) =>
-    Math.max(...(levelBuckets.get(level) ?? []).map((node) => getNodeSize(node).width))
-  )
+  const levelColumns = orderedLevels.map((level) => splitLevelBucket(levelBuckets.get(level) ?? []))
+  const levelMetrics = levelColumns.map((columns) => {
+    const columnWidths = columns.map((column) =>
+      Math.max(...column.map((node) => getNodeSize(node).width))
+    )
+    const width = columnWidths.reduce((total, columnWidth, columnIndex) => {
+      return total + columnWidth + (columnIndex < columnWidths.length - 1 ? LAYOUT_LEVEL_SUBCOLUMN_GAP : 0)
+    }, 0)
+    const height = Math.max(...columns.map((column) => getStackHeight(column)))
+
+    return {
+      columns,
+      columnWidths,
+      width,
+      height,
+    }
+  })
 
   const positions = new Map<string, { x: number; y: number }>()
   let xCursor = origin.x
   let componentHeight = 0
 
-  orderedLevels.forEach((level, columnIndex) => {
-    const bucket = levelBuckets.get(level) ?? []
-    let yCursor = origin.y
+  levelMetrics.forEach((levelMetric, levelIndex) => {
+    let levelXCursor = xCursor
 
-    bucket.forEach((node) => {
-      positions.set(node.id, { x: xCursor, y: yCursor })
-      yCursor += getNodeSize(node).height + LAYOUT_ROW_GAP
+    levelMetric.columns.forEach((column, columnIndex) => {
+      let yCursor = origin.y
+
+      column.forEach((node) => {
+        positions.set(node.id, { x: levelXCursor, y: yCursor })
+        yCursor += getNodeSize(node).height + LAYOUT_ROW_GAP
+      })
+
+      levelXCursor += levelMetric.columnWidths[columnIndex] +
+        (columnIndex < levelMetric.columnWidths.length - 1 ? LAYOUT_LEVEL_SUBCOLUMN_GAP : 0)
     })
 
-    const columnHeight = bucket.reduce((total, node, nodeIndex) => {
-      const { height } = getNodeSize(node)
-      return total + height + (nodeIndex < bucket.length - 1 ? LAYOUT_ROW_GAP : 0)
-    }, 0)
-
-    componentHeight = Math.max(componentHeight, columnHeight)
-    xCursor += columnWidths[columnIndex] + LAYOUT_COLUMN_GAP
+    componentHeight = Math.max(componentHeight, levelMetric.height)
+    xCursor += levelMetric.width + (levelIndex < levelMetrics.length - 1 ? LAYOUT_COLUMN_GAP : 0)
   })
 
-  const componentWidth = columnWidths.reduce((total, width, index) => {
-    return total + width + (index < columnWidths.length - 1 ? LAYOUT_COLUMN_GAP : 0)
+  const componentWidth = levelMetrics.reduce((total, levelMetric, index) => {
+    return total + levelMetric.width + (index < levelMetrics.length - 1 ? LAYOUT_COLUMN_GAP : 0)
   }, 0)
 
   return {

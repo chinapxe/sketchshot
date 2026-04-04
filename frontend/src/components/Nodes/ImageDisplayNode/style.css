@@ -24,15 +24,19 @@
   border: 0;
   padding: 0;
   border-radius: 8px;
-  background: transparent;
+  background: #111;
   cursor: pointer;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .display-grid .display-image {
   width: 100%;
   border-radius: 8px;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   display: block;
 }
 

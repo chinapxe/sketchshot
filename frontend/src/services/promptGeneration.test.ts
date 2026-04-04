@@ -39,7 +39,7 @@ describe('promptGeneration helpers', () => {
       extra_requirements: [
         'Target resolution: 2K',
         'Reference images available: 2',
-        'Preserve character identity with strength 0.8',
+        'Maintain exact character identity from the reference images with maximum consistency.',
       ],
       language: 'zh',
     })
@@ -183,7 +183,7 @@ describe('promptGeneration helpers', () => {
         'Characters attached: 1',
         'Styles attached: 1',
         'Reference images available: 1',
-        'Preserve character identity with strength 0.75',
+        'Maintain exact character identity from the reference images with maximum consistency.',
       ],
       language: 'zh',
     })

@@ -108,6 +108,29 @@ class PromptGenerateResponse(BaseModel):
     model: str
 
 
+class VolcengineConfigResponse(BaseModel):
+    """Editable Volcengine configuration returned to the frontend."""
+
+    ark_base_url: str
+    ark_api_key: str
+    prompt_model: str
+    image_model: str
+    image_edit_model: str
+    video_model: str
+    configured: bool
+
+
+class VolcengineConfigUpdateRequest(BaseModel):
+    """Volcengine configuration submitted from the frontend."""
+
+    ark_base_url: str = Field(..., min_length=1)
+    ark_api_key: str = Field(default="")
+    prompt_model: str = Field(..., min_length=1)
+    image_model: str = Field(..., min_length=1)
+    image_edit_model: str = Field(..., min_length=1)
+    video_model: str = Field(..., min_length=1)
+
+
 class GenerateResponse(BaseModel):
     """Generic task creation response."""
 

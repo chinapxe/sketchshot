@@ -21,7 +21,7 @@ export async function executeWorkflow(): Promise<WorkflowExecutionResult> {
   const executableNodes = orderedNodes.filter(isExecutableNode)
 
   if (executableNodes.length === 0) {
-    throw new Error('The current workflow has no executable generation nodes')
+    throw new Error('当前工作流中没有可执行的生成节点')
   }
 
   const executedNodeIds: string[] = []

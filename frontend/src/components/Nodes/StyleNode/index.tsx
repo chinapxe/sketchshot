@@ -5,16 +5,19 @@ import { Button, Input } from 'antd'
 
 import { useFlowStore } from '../../../stores/useFlowStore'
 import type { StyleNode as StyleNodeType } from '../../../types'
+import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
+import NodeWidthResizer from '../NodeWidthResizer'
 import '../storyboard.css'
 
 const { TextArea } = Input
 
-const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
+const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>) => {
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
   const toggleNodeCollapsed = useFlowStore((state) => state.toggleNodeCollapsed)
   const updateNodeInternals = useUpdateNodeInternals()
   const isDisabled = (data as Record<string, unknown>).disabled === true
   const isCollapsed = data.collapsed === true
+  const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.style.width)
 
   useEffect(() => {
     window.requestAnimationFrame(() => updateNodeInternals(id))
@@ -35,8 +38,15 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
   const summaryKeywords = data.keywords.trim() || '未填写风格关键词'
 
   return (
-    <div className={`storyboard-node${isDisabled ? ' node-disabled' : ''}`}>
-      <div className="storyboard-node-header">
+    <>
+      <NodeWidthResizer
+        nodeId={id}
+        selected={selected}
+        currentWidth={nodeWidth}
+        minWidth={DEFAULT_NODE_SIZES.style.width}
+      />
+      <div className={`storyboard-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+        <div className="storyboard-node-header">
         <span className="storyboard-node-icon">
           <BgColorsOutlined />
         </span>
@@ -138,8 +148,9 @@ const StyleNode = memo(({ id, data }: NodeProps<StyleNodeType>) => {
         </div>
       )}
 
-      <Handle type="source" position={Position.Right} className="storyboard-handle" />
-    </div>
+        <Handle type="source" position={Position.Right} className="storyboard-handle" />
+      </div>
+    </>
   )
 })
 

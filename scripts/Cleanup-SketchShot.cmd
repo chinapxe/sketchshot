@@ -1,8 +1,9 @@
 @echo off
 setlocal
-set SCRIPT_DIR=%~dp0
+set "SCRIPT_DIR=%~dp0"
+set "BUNDLE_DIR=%SCRIPT_DIR%."
 
-powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIR%Cleanup-OfflineBundle.ps1" -BundleDir "%SCRIPT_DIR%"
+powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIR%Cleanup-OfflineBundle.ps1" -BundleDir "%BUNDLE_DIR%"
 set EXIT_CODE=%ERRORLEVEL%
 
 echo.

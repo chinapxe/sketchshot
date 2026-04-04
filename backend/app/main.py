@@ -9,10 +9,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .adapters import ComfyUIAdapter, MockAdapter, VolcengineAdapter, adapter_registry
-from .api import assets, generate, prompts, workflows, ws
+from .adapters import ComfyUIAdapter, MockAdapter, adapter_registry
+from .api import assets, engine_settings, generate, prompts, workflows, ws
 from .config import settings
-from .services.volcengine_client import VolcengineClient
+from .services.engine_config_service import engine_config_service
 
 logging.basicConfig(
     level=logging.DEBUG if settings.DEBUG else logging.INFO,
@@ -39,28 +39,8 @@ async def lifespan(app: FastAPI):
         )
     )
 
-    if settings.VOLCENGINE_ENABLED and settings.ARK_API_KEY.strip():
-        adapter_registry.register(
-            VolcengineAdapter(
-                client=VolcengineClient(
-                    base_url=settings.ARK_BASE_URL,
-                    api_key=settings.ARK_API_KEY,
-                    timeout=settings.VOLCENGINE_REQUEST_TIMEOUT,
-                ),
-                upload_dir=settings.UPLOAD_DIR,
-                output_dir=settings.OUTPUT_DIR,
-                image_model=settings.VOLCENGINE_IMAGE_MODEL,
-                image_edit_model=settings.VOLCENGINE_IMAGE_EDIT_MODEL,
-                video_model=settings.VOLCENGINE_VIDEO_MODEL,
-                poll_interval=settings.VOLCENGINE_POLL_INTERVAL,
-                video_timeout=settings.VOLCENGINE_VIDEO_TIMEOUT,
-                public_base_url=settings.PUBLIC_BASE_URL,
-                output_format=settings.VOLCENGINE_IMAGE_OUTPUT_FORMAT,
-                watermark=settings.VOLCENGINE_WATERMARK,
-            )
-        )
-    elif settings.VOLCENGINE_ENABLED:
-        logger.warning("[Startup] Volcengine enabled but ARK_API_KEY is empty; adapter not registered")
+    if engine_config_service.refresh_volcengine_adapter():
+        logger.info("[Startup] Volcengine adapter ready")
 
     if settings.COMFYUI_ENABLED:
         comfyui_adapter = ComfyUIAdapter(
@@ -110,6 +90,7 @@ app.include_router(workflows.router)
 app.include_router(assets.router)
 app.include_router(prompts.router)
 app.include_router(generate.router)
+app.include_router(engine_settings.router)
 app.include_router(ws.router)
 
 
@@ -123,5 +104,6 @@ async def health_check():
         "adapters": adapter_registry.list_adapters(),
         "default_adapter": settings.DEFAULT_ADAPTER,
         "comfyui_enabled": settings.COMFYUI_ENABLED,
-        "volcengine_enabled": settings.VOLCENGINE_ENABLED,
+        "volcengine_enabled": adapter_registry.get("volcengine") is not None,
+        "volcengine_configured": engine_config_service.is_volcengine_configured(),
     }

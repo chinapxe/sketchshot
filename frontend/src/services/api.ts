@@ -13,7 +13,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const contentType = response.headers.get('content-type') ?? ''
-    let errorMessage = `Request failed: ${response.status}`
+    let errorMessage = `请求失败: ${response.status}`
 
     if (contentType.includes('application/json')) {
       try {
@@ -158,6 +158,25 @@ export interface UploadedAssetResponse {
   url: string
 }
 
+export interface VolcengineConfigResponse {
+  ark_base_url: string
+  ark_api_key: string
+  prompt_model: string
+  image_model: string
+  image_edit_model: string
+  video_model: string
+  configured: boolean
+}
+
+export interface VolcengineConfigUpdateRequest {
+  ark_base_url: string
+  ark_api_key: string
+  prompt_model: string
+  image_model: string
+  image_edit_model: string
+  video_model: string
+}
+
 export async function uploadImageAsset(file: File): Promise<UploadedAssetResponse> {
   const formData = new FormData()
   formData.append('file', file)
@@ -170,7 +189,7 @@ export async function uploadImageAsset(file: File): Promise<UploadedAssetRespons
   if (!response.ok) {
     const errorBody = await response.text()
     console.error(`[api] upload failed: ${response.status} /api/assets/upload`, errorBody)
-    throw new Error(`Upload failed: ${response.status}`)
+    throw new Error(`上传失败: ${response.status}`)
   }
 
   return response.json()
@@ -182,4 +201,14 @@ export function getTaskStatus(taskId: string): Promise<TaskStatusResponse> {
 
 export function healthCheck(): Promise<{ status: string; app: string; adapters: string[] }> {
   return request('/api/health')
+}
+
+export function getVolcengineConfig(): Promise<VolcengineConfigResponse> {
+  return request('/api/settings/engines/volcengine')
+}
+
+export function updateVolcengineConfig(
+  data: VolcengineConfigUpdateRequest
+): Promise<VolcengineConfigResponse> {
+  return request('/api/settings/engines/volcengine', { method: 'PUT', body: JSON.stringify(data) })
 }

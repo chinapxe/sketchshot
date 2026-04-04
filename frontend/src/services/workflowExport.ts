@@ -170,7 +170,7 @@ function createExportAssets(nodes: AppNode[]): ExportAsset[] {
 async function fetchAssetBlob(url: string): Promise<Blob> {
   const response = await fetch(url)
   if (!response.ok) {
-    throw new Error(`Asset download failed: ${response.status}`)
+    throw new Error(`资源下载失败: ${response.status}`)
   }
 
   return response.blob()
@@ -194,7 +194,7 @@ export async function exportWorkflowAssetsAsZip(
 ): Promise<{ assetCount: number; fileName: string }> {
   const assets = createExportAssets(nodes)
   if (assets.length === 0) {
-    throw new Error('The current workflow does not have any exportable media yet')
+    throw new Error('当前工作流还没有可导出的图片或视频结果')
   }
 
   const fileEntries = await Promise.all(

@@ -9,14 +9,16 @@ import {
   SyncOutlined,
   UpOutlined,
 } from '@ant-design/icons'
-import { Button, Input, InputNumber, Progress, Select, Slider, Switch, message } from 'antd'
+import { Button, Input, InputNumber, Progress, Select, Slider, message } from 'antd'
 
 import { generateShotPrompt } from '../../../services/promptGeneration'
 import { disconnectShotGeneration, executeShotNode } from '../../../services/storyboardGeneration'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
+import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import { getShotContext } from '../../../utils/storyboard'
 import type { ShotNode as ShotNodeType } from '../../../types'
+import NodeWidthResizer from '../NodeWidthResizer'
 import '../storyboard.css'
 
 const { TextArea } = Input
@@ -56,18 +58,7 @@ const outputTypeOptions = [
   { value: 'video', label: '视频' },
 ]
 
-const imageAdapterOptions = [
-  { value: 'volcengine', label: '火山引擎' },
-  { value: 'comfyui', label: 'ComfyUI' },
-  { value: 'mock', label: '模拟模式' },
-]
-
-const videoAdapterOptions = [
-  { value: 'volcengine', label: '火山引擎' },
-  { value: 'mock', label: '模拟模式' },
-]
-
-const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
+const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const [isPromptGenerating, setIsPromptGenerating] = useState(false)
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
@@ -78,6 +69,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
   const activeExecutionNodeId = useFlowStore((state) => state.activeExecutionNodeId)
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
   const updateNodeInternals = useUpdateNodeInternals()
+  const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.shot.width)
 
   const shotContext = useMemo(() => getShotContext(id, nodes, edges), [edges, id, nodes])
   const referenceAssetOptions = useMemo(
@@ -93,7 +85,6 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
   const isProcessing = data.status === 'processing' || data.status === 'queued'
   const isBlockedByWorkflowExecution = isWorkflowExecuting && activeExecutionNodeId !== id
   const needsRefresh = data.needsRefresh === true
-  const canUseIdentityLock = shotContext.referenceImages.length > 0
   const shotSizeLabel = shotSizeOptions.find((item) => item.value === data.shotSize)?.label ?? data.shotSize
   const cameraAngleLabel =
     cameraAngleOptions.find((item) => item.value === data.cameraAngle)?.label ?? data.cameraAngle
@@ -174,9 +165,9 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
       const latestContext = getShotContext(id, latestNodes, latestEdges)
       const generatedPrompt = await generateShotPrompt(latestNode.data, latestContext)
       updateNodeData(id, { prompt: generatedPrompt })
-      message.success('镜头提示词已优化')
+      message.success('镜头提示已润色')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '镜头提示词优化失败'
+      const errorMessage = error instanceof Error ? error.message : '镜头提示润色失败'
       message.error(errorMessage)
     } finally {
       setIsPromptGenerating(false)
@@ -206,11 +197,19 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
   const summaryDescription = data.description.trim() || '未填写镜头描述'
 
   return (
-    <div
-      ref={nodeRef}
-      className={`storyboard-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
-    >
-      <Handle type="target" position={Position.Left} className="storyboard-handle" />
+    <>
+      <NodeWidthResizer
+        nodeId={id}
+        selected={selected}
+        currentWidth={nodeWidth}
+        minWidth={DEFAULT_NODE_SIZES.shot.width}
+      />
+      <div
+        ref={nodeRef}
+        className={`storyboard-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
+        style={{ width: nodeWidth }}
+      >
+        <Handle type="target" position={Position.Left} className="storyboard-handle" />
 
       <div className="storyboard-node-header">
         <span className="storyboard-node-icon">
@@ -218,13 +217,13 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
         </span>
         <div className="storyboard-node-title-wrap">
           <div className="storyboard-node-title">{data.label}</div>
-          <div className="storyboard-node-subtitle">以镜头语言组织生成，而不是直接堆参数</div>
+          <div className="storyboard-node-subtitle">把场次、角色和风格整理成可直接生成的镜头语言</div>
         </div>
         <div className="storyboard-node-actions">
           {needsRefresh && !isProcessing && (
             <span className="storyboard-badge refresh">
               <SyncOutlined />
-              待刷新
+              需更新
             </span>
           )}
           {isDisabled && <span className="storyboard-badge disabled">已禁用</span>}
@@ -256,14 +255,14 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
           <div className="storyboard-summary-tags">
             <span className="storyboard-summary-tag">{data.motion.trim() || '待写动作'}</span>
             <span className="storyboard-summary-tag">{data.emotion.trim() || '待写情绪'}</span>
-            <span className="storyboard-summary-tag">参考 {shotContext.referenceAssets.length}</span>
-            <span className="storyboard-summary-tag">承接 {shotContext.previousShots.length}</span>
+            <span className="storyboard-summary-tag">参考素材 {shotContext.referenceAssets.length}</span>
+            <span className="storyboard-summary-tag">承接上游 {shotContext.previousShots.length}</span>
             {data.outputType === 'video' && (
               <span className="storyboard-summary-tag">九宫格 {filledContinuityCount}/9</span>
             )}
             {data.videoFirstFrame && <span className="storyboard-summary-tag">有首帧</span>}
             {data.videoLastFrame && <span className="storyboard-summary-tag">有尾帧</span>}
-            {data.prompt.trim() && <span className="storyboard-summary-tag">已补提示</span>}
+            {data.prompt.trim() && <span className="storyboard-summary-tag">已补导演提示</span>}
             {hasOutput && <span className="storyboard-summary-tag success">已有结果</span>}
           </div>
 
@@ -285,7 +284,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
           {hasOutput && (
             <div className="storyboard-summary-actions">
               <Button size="small" onClick={handlePreviewOutput} className="nodrag">
-                查看结果
+                预览结果
               </Button>
             </div>
           )}
@@ -315,7 +314,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
 
           <div className="storyboard-field">
             <div className="field-label-row">
-              <label className="storyboard-field-label">补充提示</label>
+              <label className="storyboard-field-label">导演补充</label>
               <Button
                 type="text"
                 size="small"
@@ -325,13 +324,13 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                 disabled={isPromptGenerating || isProcessing || isDisabled || isBlockedByWorkflowExecution}
                 className="prompt-helper-btn shot-prompt-helper-btn nodrag"
               >
-                AI 优化
+                AI 润色
               </Button>
             </div>
             <TextArea
               value={data.prompt}
               onChange={(event) => updateField('prompt', event.target.value)}
-              placeholder="补充道具、镜头运动、场景细节、氛围词等"
+              placeholder="补充道具、镜头调度、环境细节、氛围词等"
               autoSize={{ minRows: 2, maxRows: 4 }}
               className="storyboard-textarea"
             />
@@ -412,44 +411,8 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                     className="storyboard-select nodrag nopan"
                   />
                 </div>
-                <div className="storyboard-field">
-                  <label className="storyboard-field-label">图像适配器</label>
-                  <Select
-                    value={data.imageAdapter}
-                    onChange={(value) => updateField('imageAdapter', value)}
-                    options={imageAdapterOptions}
-                    className="storyboard-select nodrag nopan"
-                  />
-                </div>
               </div>
 
-              <div className="storyboard-field">
-                <label className="storyboard-field-label">角色一致性</label>
-                <Switch
-                  checked={data.identityLock}
-                  disabled={!canUseIdentityLock}
-                  onChange={(checked) => updateField('identityLock', checked)}
-                  className="nodrag"
-                />
-                {!canUseIdentityLock && (
-                  <div className="storyboard-note">连接角色设定参考图、上传图或上游图像结果后可启用一致性锁定。</div>
-                )}
-              </div>
-
-              {canUseIdentityLock && data.identityLock && (
-                <div className="storyboard-field">
-                  <label className="storyboard-field-label">一致性强度</label>
-                  <Slider
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={data.identityStrength}
-                    onChange={(value) => updateField('identityStrength', Number(value))}
-                    tooltip={{ formatter: (value) => `${Math.round((value ?? 0) * 100)}%` }}
-                    className="nodrag"
-                  />
-                </div>
-              )}
             </>
           ) : (
             <>
@@ -462,15 +425,6 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                     value={data.durationSeconds}
                     onChange={(value) => updateField('durationSeconds', Number(value ?? 4))}
                     className="storyboard-number nodrag"
-                  />
-                </div>
-                <div className="storyboard-field">
-                  <label className="storyboard-field-label">视频适配器</label>
-                  <Select
-                    value={data.videoAdapter}
-                    onChange={(value) => updateField('videoAdapter', value)}
-                    options={videoAdapterOptions}
-                    className="storyboard-select nodrag nopan"
                   />
                 </div>
               </div>
@@ -514,7 +468,7 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
               </div>
 
               <div className="storyboard-note">
-                只设置一个约束图时，会按单图视频方式起步或收束；同时设置首帧和尾帧时，系统会按首尾帧约束提交。
+                只设置一张约束图时，会按单图视频方式起步或收束；同时设置首帧和尾帧时，会按首尾约束生成更完整的镜头运动。
                 {shotContext.previousShots.length > 0
                   ? ` 当前已承接上游镜头 ${shotContext.previousShots.map((shot) => shot.title).join(' / ')}。`
                   : ''}
@@ -600,12 +554,12 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                 ))}
               </div>
             ) : (
-              <div className="storyboard-chip is-empty">可连接角色、上传图、上游镜头结果作为参考资产</div>
+              <div className="storyboard-chip is-empty">可连接角色设定、图片上传或上游镜头结果，系统会自动汇总到这里</div>
             )}
           </div>
 
           <div className="storyboard-note">
-            <ProfileOutlined /> 最终提示词会自动融合场次、角色、风格和镜头字段后再提交到现有生成接口。
+            <ProfileOutlined /> 提交生成前，系统会自动把场次、角色、风格和镜头信息合成为最终提示词。
           </div>
 
           {needsRefresh && !isProcessing && (
@@ -636,9 +590,9 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
                 <video src={data.outputVideo} className="storyboard-output-media" muted playsInline />
               ) : null}
               <div className="storyboard-output-meta">
-                <span>{data.outputType === 'image' ? '镜头图像已生成' : '镜头视频已生成'}</span>
+                <span>{data.outputType === 'image' ? '镜头图像已就绪' : '镜头视频已就绪'}</span>
                 <Button size="small" onClick={handlePreviewOutput} className="nodrag">
-                  查看
+                  预览结果
                 </Button>
               </div>
             </div>
@@ -656,16 +610,17 @@ const ShotNode = memo(({ id, data }: NodeProps<ShotNodeType>) => {
             {data.status === 'queued'
               ? '排队中...'
               : isProcessing || (isWorkflowExecuting && activeExecutionNodeId === id)
-                ? (data.outputType === 'image' ? '镜头出图中...' : '镜头出视频中...')
+                ? (data.outputType === 'image' ? '镜头出图中...' : '镜头视频生成中...')
                 : isBlockedByWorkflowExecution
-                  ? '工作流执行中...'
-                  : `${needsRefresh ? '重新生成' : '生成镜头'} · ${data.creditCost}`}
+                  ? '工作流执行中，请稍候'
+                  : needsRefresh ? '重新生成镜头' : '开始生成镜头'}
           </Button>
         </div>
       )}
 
-      <Handle type="source" position={Position.Right} className="storyboard-handle" />
-    </div>
+        <Handle type="source" position={Position.Right} className="storyboard-handle" />
+      </div>
+    </>
   )
 })
 
