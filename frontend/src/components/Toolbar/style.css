@@ -334,6 +334,27 @@
   flex-wrap: wrap;
 }
 
+.toolbar-template-summary-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toolbar-template-summary-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar-template-summary-label {
+  min-width: 32px;
+  padding-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a7b63;
+}
+
 .toolbar-template-badge {
   display: inline-flex;
   align-items: center;
@@ -353,6 +374,12 @@
   border-color: #ffd591;
 }
 
+.toolbar-template-badge.use-case {
+  color: #1d39c4;
+  background: #f0f5ff;
+  border-color: #adc6ff;
+}
+
 .toolbar-template-points {
   display: flex;
   flex-wrap: wrap;
@@ -369,6 +396,12 @@
   color: #135200;
   background: #f6ffed;
   border: 1px solid #b7eb8f;
+}
+
+.toolbar-template-point.highlight {
+  color: #6f6047;
+  background: #fffaf2;
+  border-color: #ece3d2;
 }
 
 .toolbar-template-hint {

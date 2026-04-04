@@ -8,6 +8,12 @@ import {
 } from '@ant-design/icons'
 import { Button, Progress, Select, Slider, message } from 'antd'
 
+import {
+  VIDEO_MOTION_PROMPT_CHIPS,
+  VIDEO_QUICK_TEMPLATES,
+  appendPromptFragment,
+  appendPromptLine,
+} from '../../../config/generationQuickPresets'
 import { generateVideoPrompt } from '../../../services/promptGeneration'
 import { disconnectVideoGeneration, executeVideoGenNode } from '../../../services/videoGeneration'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
@@ -99,6 +105,36 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
       setIsPromptGenerating(false)
     }
   }, [id, updateNodeData])
+
+  const handleApplyQuickTemplate = useCallback(
+    (templateId: string) => {
+      const template = VIDEO_QUICK_TEMPLATES.find((item) => item.id === templateId)
+      if (!template) return
+
+      const latestNode = useFlowStore.getState().nodes.find((node) => node.id === id)
+      const latestData = latestNode?.type === 'videoGen' ? latestNode.data : data
+
+      updateNodeData(id, {
+        prompt: appendPromptLine(latestData.prompt, template.prompt),
+        aspectRatio: template.aspectRatio ?? latestData.aspectRatio,
+        durationSeconds: template.durationSeconds ?? latestData.durationSeconds,
+        motionStrength: template.motionStrength ?? latestData.motionStrength,
+      })
+    },
+    [data, id, updateNodeData]
+  )
+
+  const handleApplyMotionChip = useCallback(
+    (fragment: string) => {
+      const latestNode = useFlowStore.getState().nodes.find((node) => node.id === id)
+      const latestData = latestNode?.type === 'videoGen' ? latestNode.data : data
+
+      updateNodeData(id, {
+        prompt: appendPromptFragment(latestData.prompt, fragment),
+      })
+    },
+    [data, id, updateNodeData]
+  )
 
   const handlePromptChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -212,6 +248,39 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
             placeholder="描述镜头怎么动、主体怎么动，以及节奏和氛围..."
             rows={3}
           />
+        </div>
+
+        <div className="form-field">
+          <label className="field-label">快捷模板</label>
+          <div className="quick-template-grid">
+            {VIDEO_QUICK_TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className="quick-template-card"
+                onClick={() => handleApplyQuickTemplate(template.id)}
+                title={`${template.label}：${template.hint}`}
+                disabled={isProcessing || isDisabled || isBlockedByWorkflowExecution}
+              >
+                <span className="quick-template-title">{template.label}</span>
+                <span className="quick-template-hint">{template.hint}</span>
+              </button>
+            ))}
+          </div>
+          <div className="quick-chip-row">
+            {VIDEO_MOTION_PROMPT_CHIPS.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                className="quick-chip-button"
+                onClick={() => handleApplyMotionChip(chip.prompt)}
+                disabled={isProcessing || isDisabled || isBlockedByWorkflowExecution}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+          <div className="quick-template-tip">点击模板会补入运动描述，并同步建议比例 / 时长 / 运动强度。</div>
         </div>
 
         <div className="form-row">

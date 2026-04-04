@@ -13,6 +13,12 @@ import {
 } from '@ant-design/icons'
 import { Button, Progress, Select, message } from 'antd'
 
+import {
+  IMAGE_QUICK_PROMPT_CHIPS,
+  IMAGE_QUICK_TEMPLATES,
+  appendPromptFragment,
+  appendPromptLine,
+} from '../../../config/generationQuickPresets'
 import { uploadImageAsset, type UploadedAssetResponse } from '../../../services/api'
 import { disconnectNodeGeneration, executeImageGenNode } from '../../../services/nodeGeneration'
 import { generateImagePrompt } from '../../../services/promptGeneration'
@@ -112,6 +118,35 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
       setIsPromptGenerating(false)
     }
   }, [id, updateNodeData])
+
+  const handleApplyQuickTemplate = useCallback(
+    (templateId: string) => {
+      const template = IMAGE_QUICK_TEMPLATES.find((item) => item.id === templateId)
+      if (!template) return
+
+      const latestNode = useFlowStore.getState().nodes.find((node) => node.id === id)
+      const latestData = latestNode?.type === 'imageGen' ? (latestNode.data as ImageGenNodeData) : data
+
+      updateNodeData(id, {
+        prompt: appendPromptLine(latestData.prompt, template.prompt),
+        aspectRatio: template.aspectRatio ?? latestData.aspectRatio,
+        resolution: template.resolution ?? latestData.resolution,
+      })
+    },
+    [data, id, updateNodeData]
+  )
+
+  const handleApplyQuickChip = useCallback(
+    (fragment: string) => {
+      const latestNode = useFlowStore.getState().nodes.find((node) => node.id === id)
+      const latestData = latestNode?.type === 'imageGen' ? (latestNode.data as ImageGenNodeData) : data
+
+      updateNodeData(id, {
+        prompt: appendPromptFragment(latestData.prompt, fragment),
+      })
+    },
+    [data, id, updateNodeData]
+  )
 
   const handlePreviewReference = useCallback(
     (imageUrl: string, index: number) => {
@@ -265,6 +300,39 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
             placeholder="描述想看到的主体、场景、动作和画面气质..."
             rows={4}
           />
+        </div>
+
+        <div className="form-field">
+          <label className="field-label">快捷模板</label>
+          <div className="quick-template-grid">
+            {IMAGE_QUICK_TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className="quick-template-card"
+                onClick={() => handleApplyQuickTemplate(template.id)}
+                title={`${template.label}：${template.hint}`}
+                disabled={isUploadingReferences || isProcessing || isDisabled || isBlockedByWorkflowExecution}
+              >
+                <span className="quick-template-title">{template.label}</span>
+                <span className="quick-template-hint">{template.hint}</span>
+              </button>
+            ))}
+          </div>
+          <div className="quick-chip-row">
+            {IMAGE_QUICK_PROMPT_CHIPS.map((chip) => (
+              <button
+                key={chip.id}
+                type="button"
+                className="quick-chip-button"
+                onClick={() => handleApplyQuickChip(chip.prompt)}
+                disabled={isUploadingReferences || isProcessing || isDisabled || isBlockedByWorkflowExecution}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+          <div className="quick-template-tip">点击模板会补入基础画面方向，并同步建议比例 / 分辨率。</div>
         </div>
 
         <div className="form-row">

@@ -135,6 +135,8 @@ describe('promptGeneration helpers', () => {
           name: '沈迟',
           role: '调查记者',
           appearance: '短发、消瘦、眼神警惕',
+          temperamentTags: ['疲惫', '压抑'],
+          stateTags: ['湿发'],
           wardrobe: '深色风衣',
           props: '录音笔',
           notes: '情绪收着演',
@@ -143,6 +145,11 @@ describe('promptGeneration helpers', () => {
       styles: [
         {
           id: 'style-1',
+          styleTags: [],
+          paletteTags: [],
+          lightingTags: [],
+          framingTags: [],
+          qualityTags: [],
           name: '冷峻都市悬疑',
           keywords: '雨夜霓虹、低饱和、电影感',
           palette: '冷青灰',
@@ -169,7 +176,7 @@ describe('promptGeneration helpers', () => {
       task_type: 'image',
       user_input: [
         '场次上下文：雨夜天台对峙；主角终于逼近真相；关系破裂',
-        '角色设定：沈迟，调查记者，短发、消瘦、眼神警惕，深色风衣，录音笔，情绪收着演',
+        '角色设定：沈迟，调查记者，短发、消瘦、眼神警惕，气质：疲惫、压抑，状态：湿发，深色风衣，录音笔，情绪收着演',
         '风格设定：冷峻都市悬疑，雨夜霓虹、低饱和、电影感，冷青灰，侧逆光，压迫式留白',
         '镜头要求：主角回头；主角在雨夜天台回头，眼神复杂；景别：medium；机位：eye-level；动作：缓慢回头；情绪：压抑又决绝',
         '补充提示：强调风衣被雨打湿的质感',

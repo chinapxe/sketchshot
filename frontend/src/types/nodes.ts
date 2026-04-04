@@ -15,7 +15,15 @@ export type NodeStatus = (typeof NodeStatus)[keyof typeof NodeStatus]
 export type ImageGenAdapter = 'auto' | 'mock' | 'comfyui' | 'volcengine'
 export type VideoGenAdapter = 'mock' | 'volcengine'
 export type ShotOutputType = 'image' | 'video'
-export type ShotSize = 'extreme-close-up' | 'close-up' | 'medium' | 'wide' | 'establishing'
+export type ShotSize =
+  | 'extreme-close-up'
+  | 'close-up'
+  | 'medium-close-up'
+  | 'medium'
+  | 'medium-wide'
+  | 'wide'
+  | 'extreme-wide'
+  | 'establishing'
 export type CameraAngle = 'eye-level' | 'low-angle' | 'high-angle' | 'over-shoulder' | 'top-down'
 
 export interface CharacterThreeViewImages {
@@ -106,6 +114,8 @@ export interface CharacterNodeData {
   name: string
   role: string
   appearance: string
+  temperamentTags?: string[]
+  stateTags?: string[]
   wardrobe: string
   props: string
   notes: string
@@ -122,6 +132,11 @@ export interface StyleNodeData {
   palette: string
   lighting: string
   framing: string
+  styleTags?: string[]
+  paletteTags?: string[]
+  lightingTags?: string[]
+  framingTags?: string[]
+  qualityTags?: string[]
   notes: string
   [key: string]: unknown
 }
@@ -137,6 +152,11 @@ export interface ShotNodeData {
   videoLastFrame?: string
   shotSize: ShotSize
   cameraAngle: CameraAngle
+  cameraMovement?: string
+  composition?: string
+  lightingStyle?: string
+  moodTags?: string[]
+  qualityTags?: string[]
   motion: string
   emotion: string
   aspectRatio: '1:1' | '16:9' | '9:16' | '4:3' | '3:4'

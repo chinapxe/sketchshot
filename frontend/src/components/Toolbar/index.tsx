@@ -182,6 +182,45 @@ function buildTemplateGuideSections(template: WorkflowTemplateDefinition): Templ
   return sections.filter((section) => section.nodes.length > 0)
 }
 
+function TemplateSummaryMeta({ template }: { template: WorkflowTemplateDefinition }) {
+  const hasUseCases = (template.useCases?.length ?? 0) > 0
+  const hasPresetHighlights = (template.presetHighlights?.length ?? 0) > 0
+
+  if (!hasUseCases && !hasPresetHighlights) {
+    return null
+  }
+
+  return (
+    <div className="toolbar-template-summary-group">
+      {hasUseCases && (
+        <div className="toolbar-template-summary-row">
+          <div className="toolbar-template-summary-label">适合</div>
+          <div className="toolbar-template-tags">
+            {template.useCases?.map((useCase) => (
+              <span key={useCase} className="toolbar-template-badge use-case">
+                {useCase}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasPresetHighlights && (
+        <div className="toolbar-template-summary-row">
+          <div className="toolbar-template-summary-label">预设</div>
+          <div className="toolbar-template-points">
+            {template.presetHighlights?.map((highlight) => (
+              <span key={highlight} className="toolbar-template-point highlight">
+                {highlight}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const Toolbar = memo(() => {
   const { fitView, zoomIn, zoomOut } = useReactFlow<AppNode>()
 
@@ -1169,6 +1208,7 @@ const Toolbar = memo(() => {
                       <span>{template.nodes.length} 个节点</span>
                       <span>{template.edges.length} 条连线</span>
                     </div>
+                    <TemplateSummaryMeta template={template} />
                     <div className="toolbar-template-points">
                       {template.learningPoints.map((point) => (
                         <span key={point} className="toolbar-template-point">
@@ -1222,6 +1262,8 @@ const Toolbar = memo(() => {
                 <span>{appliedTemplateSections.length} 个上手阶段</span>
               </div>
             </div>
+
+            <TemplateSummaryMeta template={appliedTemplateGuide} />
 
             <div className="toolbar-template-points">
               {appliedTemplateGuide.learningPoints.map((point) => (

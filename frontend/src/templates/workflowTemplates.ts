@@ -22,6 +22,8 @@ export interface WorkflowTemplateDefinition {
   description: string
   category: 'recommended' | 'storyboard' | 'character' | 'video' | 'compare' | 'basic'
   recommended?: boolean
+  useCases?: string[]
+  presetHighlights?: string[]
   learningPoints: string[]
   firstActionHint: string
   nodes: AppNode[]
@@ -140,6 +142,8 @@ function createCharacterNode(
     name: options.name,
     role: options.role ?? '',
     appearance: options.appearance ?? '',
+    temperamentTags: options.temperamentTags ?? [],
+    stateTags: options.stateTags ?? [],
     wardrobe: options.wardrobe ?? '',
     props: options.props ?? '',
     notes: options.notes ?? '',
@@ -159,6 +163,11 @@ function createStyleNode(
     palette: options.palette ?? '',
     lighting: options.lighting ?? '',
     framing: options.framing ?? '',
+    styleTags: options.styleTags ?? [],
+    paletteTags: options.paletteTags ?? [],
+    lightingTags: options.lightingTags ?? [],
+    framingTags: options.framingTags ?? [],
+    qualityTags: options.qualityTags ?? [],
     notes: options.notes ?? '',
   })
 }
@@ -179,6 +188,11 @@ function createShotNode(
     videoLastFrame: options.videoLastFrame,
     shotSize: options.shotSize ?? 'medium',
     cameraAngle: options.cameraAngle ?? 'eye-level',
+    cameraMovement: options.cameraMovement ?? '',
+    composition: options.composition ?? '',
+    lightingStyle: options.lightingStyle ?? '',
+    moodTags: options.moodTags ?? [],
+    qualityTags: options.qualityTags ?? [],
     motion: options.motion ?? '',
     emotion: options.emotion ?? '',
     aspectRatio: options.aspectRatio ?? '16:9',
@@ -228,6 +242,8 @@ function createBasicStoryboardTemplate(): WorkflowTemplateDefinition {
     name: '基础出图链路',
     description: '从上传参考图到图片生成的最小闭环，适合先熟悉画布、连线和生成按钮。',
     category: 'basic',
+    useCases: ['快速熟悉画布', '单张角色定妆', '最小出图闭环'],
+    presetHighlights: ['单参考图起步', '3:4 角色定妆向', '无故事板负担'],
     learningPoints: ['上传图节点', '图片生成节点', '输出预览'],
     firstActionHint: '先上传一张参考图，再点击图片生成节点的生成按钮。',
     nodes: [uploadNode, generateNode, displayNode],
@@ -247,10 +263,17 @@ function createStoryboardDirectorTemplate(): WorkflowTemplateDefinition {
     name: '沈迟',
     role: '落魄调查记者',
     appearance: '消瘦、短发、眼神警惕，长期奔波后的疲惫感明显。',
+    temperamentTags: ['疲惫', '压抑'],
+    stateTags: ['湿发'],
     wardrobe: '深色风衣、旧皮靴',
     props: '录音笔',
   })
   const styleNode = createStyleNode({ x: 420, y: 40 }, {
+    styleTags: ['电影写实', '动作悬疑'],
+    paletteTags: ['冷青灰', '低饱和', '雨夜霓虹'],
+    lightingTags: ['夜景霓虹光', '轮廓边缘光'],
+    framingTags: ['压迫式留白', '前景遮挡'],
+    qualityTags: ['电影感', '胶片颗粒'],
     label: '风格',
     name: '冷峻都市悬疑',
     keywords: '雨夜霓虹、低饱和、电影感、强对比',
@@ -259,6 +282,11 @@ function createStoryboardDirectorTemplate(): WorkflowTemplateDefinition {
     framing: '压迫式留白、人物偏边缘',
   })
   const shotNode = createShotNode({ x: 420, y: 280 }, {
+    cameraMovement: '缓慢推近',
+    composition: '前景遮挡',
+    lightingStyle: '侧逆光',
+    moodTags: ['压抑', '决绝'],
+    qualityTags: ['电影感', '细节丰富'],
     label: '镜头',
     title: '主角回头定格',
     description: '主角在雨中半侧身回头，眼神复杂，城市霓虹在身后虚化。',
@@ -278,6 +306,8 @@ function createStoryboardDirectorTemplate(): WorkflowTemplateDefinition {
     description: '用场次、角色、风格、镜头四类新节点搭出第一个故事板镜头，快速理解新节点主链路。',
     category: 'recommended',
     recommended: true,
+    useCases: ['单镜头故事板', '角色定妆后出镜头', '雨夜都市悬疑'],
+    presetHighlights: ['角色参考先沉淀', '冷峻都市悬疑风格', '中景回头定格'],
     learningPoints: ['场次节点', '角色节点', '风格节点', '镜头节点'],
     firstActionHint: '先把角色参考上传到角色节点，再直接生成镜头，感受四类节点的继承关系。',
     nodes: [sceneNode, characterNode, styleNode, shotNode, displayNode, uploadNode],
@@ -311,6 +341,8 @@ function createDualStyleTemplate(): WorkflowTemplateDefinition {
     name: '双风格对比',
     description: '让同一角色在两套风格设定下分别出图，快速理解风格节点如何分支使用。',
     category: 'compare',
+    useCases: ['双方案对比', '同题材换风格', '找视觉方向'],
+    presetHighlights: ['同角色双分支', '时尚 / 赛博对比', '3:4 角色海报向'],
     learningPoints: ['风格分支', '同题材对比', '多结果预览'],
     firstActionHint: '先上传一张角色参考图，再分别执行两个风格分支查看差异。',
     nodes: [uploadNode, editorialNode, cyberpunkNode, editorialDisplay, cyberpunkDisplay],
@@ -349,6 +381,8 @@ function createThreeShotTemplate(): WorkflowTemplateDefinition {
     name: '三景别分镜',
     description: '从一个角色参考出发，分别生成近景、中景、远景，适合快速熟悉分镜拆解方式。',
     category: 'storyboard',
+    useCases: ['景别练习', '单角色三分镜', '分镜节奏入门'],
+    presetHighlights: ['近中远三景别', '同参考多镜头', '横版叙事对比'],
     learningPoints: ['分镜拆解', '景别变化', '多镜头组织'],
     firstActionHint: '上传同一角色参考后，按近景、中景、远景顺序分别生成，观察镜头差异。',
     nodes: [uploadNode, closeupNode, mediumNode, wideNode, closeupDisplay, mediumDisplay, wideDisplay],
@@ -379,6 +413,8 @@ function createImageToMotionTemplate(): WorkflowTemplateDefinition {
     name: '图生视频最小链路',
     description: '从一张关键帧生成视频片段，适合先熟悉视频生成入口和输出预览。',
     category: 'video',
+    useCases: ['图生视频入门', '单帧动起来', '最小视频闭环'],
+    presetHighlights: ['关键帧起步', '16:9 4秒片段', '轻运动镜头'],
     learningPoints: ['图生视频', '视频节点', '结果预览'],
     firstActionHint: '先上传关键帧，再执行视频节点，熟悉最基础的视频链路。',
     nodes: [uploadNode, videoNode, displayNode],
@@ -399,11 +435,18 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
     name: '林雾',
     role: '被追踪的情报员',
     appearance: '短发、冷白皮、眼神警觉，奔跑后呼吸急促。',
+    temperamentTags: ['冷静', '锋利'],
+    stateTags: ['奔跑后', '狼狈'],
     wardrobe: '深灰连帽外套、黑色长裤',
     props: '加密芯片盒',
     notes: '先上传角色参考，再依次生成镜头，观察角色状态如何延续。',
   })
   const styleNode = createStyleNode({ x: 420, y: 60 }, {
+    styleTags: ['电影写实', '动作悬疑'],
+    paletteTags: ['冷青灰', '雨夜霓虹'],
+    lightingTags: ['夜景霓虹光', '轮廓边缘光'],
+    framingTags: ['前景遮挡', '斜线构图'],
+    qualityTags: ['电影感', '胶片颗粒'],
     label: '风格',
     name: '冷雨都市动作感',
     keywords: '雨夜反光地面、霓虹溢色、手持摄影感、压迫空间',
@@ -414,6 +457,11 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
   })
   const uploadNode = createUploadNode({ x: 60, y: 760 }, '角色参考上传')
   const shot1 = createShotNode({ x: 420, y: 260 }, {
+    cameraMovement: '手持跟随',
+    composition: '纵深透视',
+    lightingStyle: '雨夜反光',
+    moodTags: ['紧张'],
+    qualityTags: ['电影感'],
     label: '镜头',
     title: '镜头 01 · 巷口停步',
     description: '主角从雨里冲进巷口，突然停下半步，肩膀还带着惯性。',
@@ -426,6 +474,11 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
     outputType: 'image',
   })
   const shot2 = createShotNode({ x: 780, y: 260 }, {
+    cameraMovement: '缓慢推近',
+    composition: '大面积留白',
+    lightingStyle: '轮廓边缘光',
+    moodTags: ['紧张', '冷峻'],
+    qualityTags: ['细节丰富'],
     label: '镜头',
     title: '镜头 02 · 回头特写',
     description: '主角缓慢回头，雨水顺着脸侧落下，眼神在昏暗中聚焦。',
@@ -438,6 +491,11 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
     outputType: 'image',
   })
   const shot3 = createShotNode({ x: 1140, y: 260 }, {
+    cameraMovement: '平移跟拍',
+    composition: '斜线构图',
+    lightingStyle: '侧逆光',
+    moodTags: ['决绝'],
+    qualityTags: ['电影感', '空气透视'],
     label: '镜头',
     title: '镜头 03 · 冲刺转场',
     description: '主角确认目标后重新启动，身体前压，快速冲向画面外侧。',
@@ -470,6 +528,8 @@ function createStoryboardSequenceTemplate(): WorkflowTemplateDefinition {
     description: '展示场次、角色、风格如何共同服务多个镜头，并通过镜头连线表达片段顺序。',
     category: 'recommended',
     recommended: true,
+    useCases: ['一场戏三镜头', '连续叙事', '镜头承接演示'],
+    presetHighlights: ['场次 / 角色 / 风格共享', '前两镜图片 + 第三镜视频', '动作承接明确'],
     learningPoints: ['多镜头片段', '镜头串联承接', '连续视频镜头'],
     firstActionHint: '建议先生成镜头 01，再生成镜头 02，最后再执行视频镜头 03。',
     nodes: [sceneNode, characterNode, styleNode, uploadNode, shot1, shot2, shot3, displayNode],
@@ -500,6 +560,8 @@ function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
     name: '苏离',
     role: '故事主角 / 民国女画师',
     appearance: '瘦高身形、眉眼清冷、发髻利落，神态内敛但专注。',
+    temperamentTags: ['冷静', '温柔'],
+    stateTags: ['整洁'],
     wardrobe: '素色旗袍、长风衣',
     props: '画夹、旧钢笔',
     notes: '把三张上传图连接到角色节点后，可在人物三视图 Lite 中指定正面 / 侧面 / 背面。',
@@ -512,6 +574,11 @@ function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
     notes: '这是一个偏“角色定妆”的入门模板。',
   })
   const styleNode = createStyleNode({ x: 760, y: 360 }, {
+    styleTags: ['复古胶片', '电影写实'],
+    paletteTags: ['米白暗红', '暖金棕'],
+    lightingTags: ['柔和棚拍光', '轮廓边缘光'],
+    framingTags: ['居中压迫', '浅景深主体'],
+    qualityTags: ['电影感', '高级肤质'],
     label: '风格',
     name: '复古电影定妆',
     keywords: '柔光棚拍、细节质感、旧胶片色调、人物海报感',
@@ -521,6 +588,11 @@ function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
     notes: '适合先熟悉角色节点如何向镜头提供统一设定。',
   })
   const shotNode = createShotNode({ x: 1100, y: 240 }, {
+    cameraMovement: '静止镜头',
+    composition: '居中构图',
+    lightingStyle: '自然柔光',
+    moodTags: ['温暖', '冷峻'],
+    qualityTags: ['高级质感', '超写实'],
     label: '镜头',
     title: '角色定妆镜头',
     description: '角色站定看向镜头外侧，保留完整服装轮廓和气质。',
@@ -540,6 +612,8 @@ function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
     description: '展示三张参考上传如何沉淀进角色设定，再统一供镜头复用，适合先学会角色节点。',
     category: 'character',
     recommended: true,
+    useCases: ['角色设定先行', '三视图沉淀', '角色稳定性确认'],
+    presetHighlights: ['三张参考图沉淀角色', '定妆镜头验证', '3:4 人物设定向'],
     learningPoints: ['角色三视图', '角色设定复用', '角色到镜头继承'],
     firstActionHint: '先把三张参考图接到角色节点，再在三视图 Lite 里指定正面、侧面、背面。',
     nodes: [uploadFront, uploadSide, uploadBack, characterNode, sceneNode, styleNode, shotNode, displayNode],
@@ -570,11 +644,18 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
     name: '沈迟',
     role: '调查记者',
     appearance: '短发、消瘦、眼神带警觉感。',
+    temperamentTags: ['冷静', '压抑'],
+    stateTags: ['奔跑后'],
     wardrobe: '深色风衣',
     props: '录音笔',
     notes: '也可以把角色参考图连到这里，再一并连接到视频镜头。',
   })
   const styleNode = createStyleNode({ x: 760, y: 80 }, {
+    styleTags: ['黑色电影', '动作悬疑'],
+    paletteTags: ['冷青灰', '低饱和'],
+    lightingTags: ['顶光压迫', '局部硬光'],
+    framingTags: ['广角纵深', '对称构图'],
+    qualityTags: ['电影感', '质感克制'],
     label: '风格',
     name: '冷峻悬疑长镜头',
     keywords: '走廊透视、低饱和、静压感、微弱闪烁光源',
@@ -584,6 +665,11 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
     notes: '让视频镜头更强调连续动作和空间推进。',
   })
   const shotNode = createShotNode({ x: 1100, y: 240 }, {
+    cameraMovement: '缓慢推近',
+    composition: '纵深透视',
+    lightingStyle: '顶光压迫',
+    moodTags: ['紧张', '神秘'],
+    qualityTags: ['电影感', '空气透视'],
     label: '镜头',
     title: '停步回头视频镜头',
     description: '角色在奔跑中停住，呼吸急促，随后缓慢回头看向后方。',
@@ -616,6 +702,8 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
     description: '展示首帧/尾帧上传、场次/角色/风格设定和视频镜头如何组合使用。',
     category: 'video',
     recommended: true,
+    useCases: ['首尾帧视频', '连续动作练习', '长镜头感'],
+    presetHighlights: ['首帧 + 尾帧双约束', '九宫格动作拆解', '5秒视频镜头'],
     learningPoints: ['首帧/尾帧约束', '九宫格连续动作', '视频镜头主链路'],
     firstActionHint: '先上传首帧和尾帧参考，再在视频镜头里分别选择约束图后执行生成。',
     nodes: [firstFrameUpload, lastFrameUpload, sceneNode, characterNode, styleNode, shotNode, displayNode],

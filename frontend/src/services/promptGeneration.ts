@@ -1,5 +1,6 @@
 import { generatePrompt, type PromptGenerateRequest } from './api'
 import type { ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
+import { CAMERA_ANGLE_OPTIONS, SHOT_SIZE_OPTIONS, getOptionLabel } from '../config/storyboardPresets'
 import { buildCharacterConsistencyRequirement } from '../utils/characterConsistency'
 import type { ShotContext } from '../utils/storyboard'
 import { buildShotPrompt } from '../utils/storyboard'
@@ -68,8 +69,13 @@ export function buildShotPromptRequest(data: ShotNodeData, context: ShotContext)
     style: styleSummary || 'storyboard cinematic shot',
     aspect_ratio: data.aspectRatio,
     extra_requirements: compactRequirements([
-      `Shot size: ${data.shotSize}`,
-      `Camera angle: ${data.cameraAngle}`,
+      `Shot size: ${data.shotSize === 'establishing' ? '大全景' : getOptionLabel(SHOT_SIZE_OPTIONS, data.shotSize)}`,
+      `Camera angle: ${getOptionLabel(CAMERA_ANGLE_OPTIONS, data.cameraAngle)}`,
+      data.cameraMovement?.trim() ? `Camera movement: ${data.cameraMovement.trim()}` : null,
+      data.composition?.trim() ? `Composition: ${data.composition.trim()}` : null,
+      data.lightingStyle?.trim() ? `Lighting style: ${data.lightingStyle.trim()}` : null,
+      data.moodTags && data.moodTags.length > 0 ? `Mood tags: ${data.moodTags.join(', ')}` : null,
+      data.qualityTags && data.qualityTags.length > 0 ? `Quality tags: ${data.qualityTags.join(', ')}` : null,
       data.outputType === 'image' ? `Target resolution: ${data.resolution}` : null,
       data.outputType === 'video' ? `Target duration: ${data.durationSeconds}s` : null,
       data.outputType === 'video' ? `Motion strength: ${Math.round(data.motionStrength * 100)}%` : null,

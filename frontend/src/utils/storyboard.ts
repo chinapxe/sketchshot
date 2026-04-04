@@ -1,3 +1,4 @@
+import { CAMERA_ANGLE_OPTIONS, SHOT_SIZE_OPTIONS, getOptionLabel } from '../config/storyboardPresets'
 import type {
   AppEdge,
   AppNode,
@@ -13,7 +14,7 @@ function compactText(value: string | undefined): string {
 }
 
 function dedupeStrings(values: string[]): string[] {
-  return Array.from(new Set(values.filter((value) => value.length > 0)))
+  return Array.from(new Set(values.map((value) => value.trim()).filter((value) => value.length > 0)))
 }
 
 function isNodeDisabled(node: AppNode): boolean {
@@ -35,6 +36,27 @@ function buildIncomingNodeMap(edges: AppEdge[]): Map<string, string[]> {
   })
 
   return incoming
+}
+
+function joinNonEmpty(parts: string[], separator = '，'): string {
+  return parts.filter((part) => part.length > 0).join(separator)
+}
+
+function formatDetail(label: string, values: string[]): string {
+  const normalizedValues = dedupeStrings(values)
+  return normalizedValues.length > 0 ? `${label}：${normalizedValues.join('、')}` : ''
+}
+
+function getShotSizeLabel(value: string | undefined): string {
+  if (value === 'establishing') {
+    return '大全景'
+  }
+
+  return getOptionLabel(SHOT_SIZE_OPTIONS, value)
+}
+
+function getCameraAngleLabel(value: string | undefined): string {
+  return getOptionLabel(CAMERA_ANGLE_OPTIONS, value)
 }
 
 export interface ShotReferenceAsset {
@@ -166,6 +188,8 @@ export interface ShotContextCharacter {
   name: string
   role: string
   appearance: string
+  temperamentTags: string[]
+  stateTags: string[]
   wardrobe: string
   props: string
   notes: string
@@ -178,6 +202,11 @@ export interface ShotContextStyle {
   palette: string
   lighting: string
   framing: string
+  styleTags: string[]
+  paletteTags: string[]
+  lightingTags: string[]
+  framingTags: string[]
+  qualityTags: string[]
   notes: string
 }
 
@@ -230,6 +259,8 @@ export function getShotContext(nodeId: string, nodes: AppNode[], edges: AppEdge[
         name: compactText(data.name) || compactText(data.label),
         role: compactText(data.role),
         appearance: compactText(data.appearance),
+        temperamentTags: dedupeStrings(data.temperamentTags ?? []),
+        stateTags: dedupeStrings(data.stateTags ?? []),
         wardrobe: compactText(data.wardrobe),
         props: compactText(data.props),
         notes: compactText(data.notes),
@@ -247,6 +278,11 @@ export function getShotContext(nodeId: string, nodes: AppNode[], edges: AppEdge[
         palette: compactText(data.palette),
         lighting: compactText(data.lighting),
         framing: compactText(data.framing),
+        styleTags: dedupeStrings(data.styleTags ?? []),
+        paletteTags: dedupeStrings(data.paletteTags ?? []),
+        lightingTags: dedupeStrings(data.lightingTags ?? []),
+        framingTags: dedupeStrings(data.framingTags ?? []),
+        qualityTags: dedupeStrings(data.qualityTags ?? []),
         notes: compactText(data.notes),
       }
     })
@@ -283,23 +319,39 @@ export function getShotContext(nodeId: string, nodes: AppNode[], edges: AppEdge[
   }
 }
 
-function joinNonEmpty(parts: string[], separator = '，'): string {
-  return parts.filter((part) => part.length > 0).join(separator)
-}
-
 function summarizeScene(scene: ShotContextScene): string {
   return joinNonEmpty([scene.title, scene.synopsis, scene.beat], '；')
 }
 
 function summarizeCharacter(character: ShotContextCharacter): string {
   return joinNonEmpty(
-    [character.name, character.role, character.appearance, character.wardrobe, character.props, character.notes],
+    [
+      character.name,
+      character.role,
+      character.appearance,
+      formatDetail('气质', character.temperamentTags),
+      formatDetail('状态', character.stateTags),
+      character.wardrobe,
+      character.props,
+      character.notes,
+    ],
     '，'
   )
 }
 
 function summarizeStyle(style: ShotContextStyle): string {
-  return joinNonEmpty([style.name, style.keywords, style.palette, style.lighting, style.framing, style.notes], '，')
+  return joinNonEmpty(
+    [
+      style.name,
+      formatDetail('风格', [...style.styleTags, style.keywords]),
+      formatDetail('色彩', [...style.paletteTags, style.palette]),
+      formatDetail('光线', [...style.lightingTags, style.lighting]),
+      formatDetail('构图', [...style.framingTags, style.framing]),
+      formatDetail('质感', style.qualityTags),
+      style.notes ? `备注：${style.notes}` : '',
+    ],
+    '；'
+  )
 }
 
 function summarizePreviousShot(shot: ShotContextPreviousShot): string {
@@ -349,8 +401,13 @@ export function buildShotPrompt(data: ShotNodeData, context: ShotContext): strin
     [
       compactText(data.title),
       compactText(data.description),
-      data.shotSize ? `景别：${data.shotSize}` : '',
-      data.cameraAngle ? `机位：${data.cameraAngle}` : '',
+      data.shotSize ? `景别：${getShotSizeLabel(data.shotSize)}` : '',
+      data.cameraAngle ? `机位：${getCameraAngleLabel(data.cameraAngle)}` : '',
+      compactText(data.cameraMovement) ? `运镜：${compactText(data.cameraMovement)}` : '',
+      compactText(data.composition) ? `构图：${compactText(data.composition)}` : '',
+      compactText(data.lightingStyle) ? `光线：${compactText(data.lightingStyle)}` : '',
+      data.moodTags && data.moodTags.length > 0 ? `氛围：${dedupeStrings(data.moodTags).join('、')}` : '',
+      data.qualityTags && data.qualityTags.length > 0 ? `质感：${dedupeStrings(data.qualityTags).join('、')}` : '',
       compactText(data.motion) ? `动作：${compactText(data.motion)}` : '',
       compactText(data.emotion) ? `情绪：${compactText(data.emotion)}` : '',
     ],

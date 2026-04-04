@@ -33,6 +33,7 @@ import {
   buildShotGenerationSignature,
   buildVideoGenerationSignature,
 } from '../utils/generationSignature'
+import { CAMERA_ANGLE_OPTIONS, SHOT_SIZE_OPTIONS } from '../config/storyboardPresets'
 import { MAX_CHARACTER_IDENTITY_STRENGTH } from '../utils/characterConsistency'
 import { computeAutoLayoutNodes } from '../utils/canvasLayout'
 import { getShotContext } from '../utils/storyboard'
@@ -110,6 +111,8 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         name: '',
         role: '',
         appearance: '',
+        temperamentTags: [],
+        stateTags: [],
         wardrobe: '',
         props: '',
         notes: '',
@@ -125,6 +128,11 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         palette: '',
         lighting: '',
         framing: '',
+        styleTags: [],
+        paletteTags: [],
+        lightingTags: [],
+        framingTags: [],
+        qualityTags: [],
         notes: '',
       } satisfies StyleNodeData
     case 'shot':
@@ -139,6 +147,11 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         videoLastFrame: undefined,
         shotSize: 'medium',
         cameraAngle: 'eye-level',
+        cameraMovement: '',
+        composition: '',
+        lightingStyle: '',
+        moodTags: [],
+        qualityTags: [],
         motion: '',
         emotion: '',
         aspectRatio: '16:9',
@@ -177,6 +190,31 @@ const dedupeStringList = (values: unknown): string[] => {
 }
 
 const mergeStringLists = (...lists: unknown[]): string[] => dedupeStringList(lists.flat())
+
+const shotSizeValues = new Set<string>(SHOT_SIZE_OPTIONS.map((option) => option.value))
+const cameraAngleValues = new Set<string>(CAMERA_ANGLE_OPTIONS.map((option) => option.value))
+
+const normalizeTextValue = (value: unknown): string => (typeof value === 'string' ? value : '')
+
+const normalizeShotSize = (value: unknown): ShotNodeData['shotSize'] => {
+  if (value === 'establishing') {
+    return 'extreme-wide'
+  }
+
+  if (typeof value === 'string' && shotSizeValues.has(value)) {
+    return value as ShotNodeData['shotSize']
+  }
+
+  return 'medium'
+}
+
+const normalizeCameraAngle = (value: unknown): ShotNodeData['cameraAngle'] => {
+  if (typeof value === 'string' && cameraAngleValues.has(value)) {
+    return value as ShotNodeData['cameraAngle']
+  }
+
+  return 'eye-level'
+}
 
 const normalizeImageGenData = (data: Partial<ImageGenNodeData>): ImageGenNodeData => {
   const legacyReferenceImages = dedupeStringList(data.referenceImages)
@@ -269,6 +307,8 @@ const normalizeCharacterThreeViewImages = (
 
 const normalizeCharacterData = (data: Partial<CharacterNodeData>): CharacterNodeData => {
   const referenceImages = dedupeStringList(data.referenceImages)
+  const temperamentTags = dedupeStringList(data.temperamentTags)
+  const stateTags = dedupeStringList(data.stateTags)
 
   return {
     label: '角色',
@@ -280,13 +320,139 @@ const normalizeCharacterData = (data: Partial<CharacterNodeData>): CharacterNode
     props: '',
     notes: '',
     ...data,
+    temperamentTags,
+    stateTags,
     referenceImages,
     threeViewImages: normalizeCharacterThreeViewImages(referenceImages, data.threeViewImages),
   }
 }
 
+/* const normalizeStyleData = (data: Partial<StyleNodeData>): StyleNodeData => ({
+  label: 'é£Žæ ¼',
+  collapsed: data.collapsed === true,
+  name: '',
+  keywords: '',
+  palette: '',
+  lighting: '',
+  framing: '',
+  notes: '',
+  ...data,
+  label: typeof data.label === 'string' ? data.label : '风格',
+  styleTags: dedupeStringList(data.styleTags),
+  paletteTags: dedupeStringList(data.paletteTags),
+  lightingTags: dedupeStringList(data.lightingTags),
+  framingTags: dedupeStringList(data.framingTags),
+  qualityTags: dedupeStringList(data.qualityTags),
+}) */
+
+const normalizeStyleData = (data: Partial<StyleNodeData>): StyleNodeData => {
+  const styleTags = dedupeStringList(data.styleTags)
+  const paletteTags = dedupeStringList(data.paletteTags)
+  const lightingTags = dedupeStringList(data.lightingTags)
+  const framingTags = dedupeStringList(data.framingTags)
+  const qualityTags = dedupeStringList(data.qualityTags)
+
+  return {
+    label: typeof data.label === 'string' ? data.label : '风格',
+    collapsed: data.collapsed === true,
+    name: '',
+    keywords: '',
+    palette: '',
+    lighting: '',
+    framing: '',
+    notes: '',
+    ...data,
+    styleTags,
+    paletteTags,
+    lightingTags,
+    framingTags,
+    qualityTags,
+  }
+}
+
+/* const normalizeShotData = (data: Partial<ShotNodeData>): ShotNodeData => {
+  const referenceImages = dedupeStringList(data.referenceImages)
+  const continuityFrames = Array.from({ length: 9 }, (_, index) => {
+    const value = Array.isArray(data.continuityFrames) ? data.continuityFrames[index] : undefined
+    return typeof value === 'string' ? value : ''
+  })
+  const videoFirstFrame =
+    typeof data.videoFirstFrame === 'string' && referenceImages.includes(data.videoFirstFrame)
+      ? data.videoFirstFrame
+      : undefined
+  const videoLastFrame =
+    typeof data.videoLastFrame === 'string' && referenceImages.includes(data.videoLastFrame)
+      ? data.videoLastFrame
+      : undefined
+  const restData = { ...data }
+  delete restData.referenceImages
+  delete restData.continuityFrames
+  delete restData.videoFirstFrame
+  delete restData.videoLastFrame
+  delete restData.shotSize
+  delete restData.cameraAngle
+  delete restData.cameraMovement
+  delete restData.composition
+  delete restData.lightingStyle
+  delete restData.moodTags
+  delete restData.qualityTags
+
+  const outputType = data.outputType ?? 'image'
+
+  return {
+    label: '镜头',
+    collapsed: data.collapsed === true,
+    title: '',
+    description: '',
+    prompt: '',
+    continuityFrames,
+    videoFirstFrame,
+    videoLastFrame,
+    shotSize: normalizeShotSize(data.shotSize),
+    cameraAngle: normalizeCameraAngle(data.cameraAngle),
+    cameraMovement: normalizeTextValue(data.cameraMovement),
+    composition: normalizeTextValue(data.composition),
+    lightingStyle: normalizeTextValue(data.lightingStyle),
+    moodTags: dedupeStringList(data.moodTags),
+    qualityTags: dedupeStringList(data.qualityTags),
+    motion: '',
+    emotion: '',
+    aspectRatio: '16:9',
+    resolution: '2K',
+    outputType,
+    imageAdapter: 'volcengine',
+    videoAdapter: 'volcengine',
+    durationSeconds: 4,
+    motionStrength: 0.6,
+    identityLock: true,
+    identityStrength: MAX_CHARACTER_IDENTITY_STRENGTH,
+    contextSignature: typeof data.contextSignature === 'string' ? data.contextSignature : '',
+    status: 'idle' as NodeStatus,
+    progress: 0,
+    creditCost: outputType === 'video' ? 90 : 30,
+    resultCache: {},
+    needsRefresh: false,
+    ...restData,
+    referenceImages,
+    shotSize: normalizeShotSize(restData.shotSize),
+    cameraAngle: normalizeCameraAngle(restData.cameraAngle),
+    cameraMovement: normalizeTextValue(restData.cameraMovement),
+    composition: normalizeTextValue(restData.composition),
+    lightingStyle: normalizeTextValue(restData.lightingStyle),
+    moodTags: dedupeStringList(restData.moodTags),
+    qualityTags: dedupeStringList(restData.qualityTags),
+  }
+} */
+
 const normalizeShotData = (data: Partial<ShotNodeData>): ShotNodeData => {
   const referenceImages = dedupeStringList(data.referenceImages)
+  const shotSize = normalizeShotSize(data.shotSize)
+  const cameraAngle = normalizeCameraAngle(data.cameraAngle)
+  const cameraMovement = normalizeTextValue(data.cameraMovement)
+  const composition = normalizeTextValue(data.composition)
+  const lightingStyle = normalizeTextValue(data.lightingStyle)
+  const moodTags = dedupeStringList(data.moodTags)
+  const qualityTags = dedupeStringList(data.qualityTags)
   const continuityFrames = Array.from({ length: 9 }, (_, index) => {
     const value = Array.isArray(data.continuityFrames) ? data.continuityFrames[index] : undefined
     return typeof value === 'string' ? value : ''
@@ -316,8 +482,13 @@ const normalizeShotData = (data: Partial<ShotNodeData>): ShotNodeData => {
     continuityFrames,
     videoFirstFrame,
     videoLastFrame,
-    shotSize: 'medium',
-    cameraAngle: 'eye-level',
+    shotSize,
+    cameraAngle,
+    cameraMovement,
+    composition,
+    lightingStyle,
+    moodTags,
+    qualityTags,
     motion: '',
     emotion: '',
     aspectRatio: '16:9',
@@ -531,6 +702,13 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           return {
             ...node,
             data: normalizeCharacterData(mergedData as Partial<CharacterNodeData>),
+          } as AppNode
+        }
+
+        if (node.type === 'style') {
+          return {
+            ...node,
+            data: normalizeStyleData(mergedData as Partial<StyleNodeData>),
           } as AppNode
         }
 
@@ -774,6 +952,14 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           ...node,
           selected: false,
           data: normalizeCharacterData(node.data as Partial<CharacterNodeData>),
+        } as AppNode
+      }
+
+      if (node.type === 'style') {
+        return {
+          ...node,
+          selected: false,
+          data: normalizeStyleData(node.data as Partial<StyleNodeData>),
         } as AppNode
       }
 

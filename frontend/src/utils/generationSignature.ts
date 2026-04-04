@@ -20,6 +20,11 @@ type ShotSignatureSource = Pick<
   | 'videoLastFrame'
   | 'shotSize'
   | 'cameraAngle'
+  | 'cameraMovement'
+  | 'composition'
+  | 'lightingStyle'
+  | 'moodTags'
+  | 'qualityTags'
   | 'motion'
   | 'emotion'
   | 'aspectRatio'
@@ -35,6 +40,10 @@ type ShotSignatureSource = Pick<
 
 function normalizeAssetList(values: string[] | undefined): string[] {
   return Array.from(new Set((values ?? []).filter((value) => value.length > 0)))
+}
+
+function normalizeTagList(values: string[] | undefined): string[] {
+  return Array.from(new Set((values ?? []).map((value) => value.trim()).filter((value) => value.length > 0)))
 }
 
 /**
@@ -87,6 +96,11 @@ export function buildShotGenerationSignature(data: ShotSignatureSource): string 
     videoLastFrame,
     shotSize: data.shotSize,
     cameraAngle: data.cameraAngle,
+    cameraMovement: data.cameraMovement?.trim() ?? '',
+    composition: data.composition?.trim() ?? '',
+    lightingStyle: data.lightingStyle?.trim() ?? '',
+    moodTags: normalizeTagList(data.moodTags),
+    qualityTags: normalizeTagList(data.qualityTags),
     motion: data.motion.trim(),
     emotion: data.emotion.trim(),
     aspectRatio: data.aspectRatio,
