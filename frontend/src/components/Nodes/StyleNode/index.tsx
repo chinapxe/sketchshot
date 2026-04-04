@@ -9,7 +9,6 @@ import {
   STYLE_PALETTE_OPTIONS,
   STYLE_QUALITY_OPTIONS,
   STYLE_TAG_OPTIONS,
-  getOptionLabels,
 } from '../../../config/storyboardPresets'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import type { StyleNode as StyleNodeType } from '../../../types'
@@ -20,6 +19,12 @@ import '../storyboard.css'
 const { TextArea } = Input
 
 type StylePresetTabKey = 'styleTags' | 'paletteTags' | 'lightingTags' | 'framingTags' | 'qualityTags'
+type StylePresetSummaryItem = {
+  id: string
+  text: string
+  key: StylePresetTabKey
+  value: string
+}
 
 const stylePresetTabs: Array<{
   key: StylePresetTabKey
@@ -33,13 +38,38 @@ const stylePresetTabs: Array<{
   { key: 'qualityTags', label: '质感', options: STYLE_QUALITY_OPTIONS },
 ]
 
-function buildStylePresetSummary(data: StyleNodeType['data']): string[] {
+function buildStylePresetSummary(data: StyleNodeType['data']): StylePresetSummaryItem[] {
   return [
-    ...getOptionLabels(STYLE_TAG_OPTIONS, data.styleTags).map((label) => `风格 · ${label}`),
-    ...getOptionLabels(STYLE_PALETTE_OPTIONS, data.paletteTags).map((label) => `色彩 · ${label}`),
-    ...getOptionLabels(STYLE_LIGHTING_OPTIONS, data.lightingTags).map((label) => `光线 · ${label}`),
-    ...getOptionLabels(STYLE_FRAMING_OPTIONS, data.framingTags).map((label) => `构图 · ${label}`),
-    ...getOptionLabels(STYLE_QUALITY_OPTIONS, data.qualityTags).map((label) => `质感 · ${label}`),
+    ...((data.styleTags ?? []).map((value) => ({
+      id: `styleTags:${value}`,
+      text: `风格 · ${value}`,
+      key: 'styleTags' as const,
+      value,
+    }))),
+    ...((data.paletteTags ?? []).map((value) => ({
+      id: `paletteTags:${value}`,
+      text: `色彩 · ${value}`,
+      key: 'paletteTags' as const,
+      value,
+    }))),
+    ...((data.lightingTags ?? []).map((value) => ({
+      id: `lightingTags:${value}`,
+      text: `光线 · ${value}`,
+      key: 'lightingTags' as const,
+      value,
+    }))),
+    ...((data.framingTags ?? []).map((value) => ({
+      id: `framingTags:${value}`,
+      text: `构图 · ${value}`,
+      key: 'framingTags' as const,
+      value,
+    }))),
+    ...((data.qualityTags ?? []).map((value) => ({
+      id: `qualityTags:${value}`,
+      text: `质感 · ${value}`,
+      key: 'qualityTags' as const,
+      value,
+    }))),
   ]
 }
 
@@ -85,6 +115,16 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
     [data, id, updateNodeData]
   )
 
+  const handleRemovePresetSummaryItem = useCallback(
+    (item: StylePresetSummaryItem) => {
+      const currentValues = ((data[item.key] as string[] | undefined) ?? []).filter((value) => value.trim().length > 0)
+      updateNodeData(id, {
+        [item.key]: currentValues.filter((value) => value !== item.value),
+      })
+    },
+    [data, id, updateNodeData]
+  )
+
   const handleToggleCollapsed = useCallback(() => {
     toggleNodeCollapsed(id)
   }, [id, toggleNodeCollapsed])
@@ -95,9 +135,7 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
 
   const summaryName = data.name.trim() || '未填写风格名称'
   const summaryKeywords =
-    data.keywords.trim()
-    || presetSummary.slice(0, 3).join(' / ')
-    || '未填写风格关键词'
+    data.keywords.trim() || presetSummary.slice(0, 3).map((item) => item.text).join(' / ') || '未填写风格关键词'
 
   return (
     <>
@@ -141,8 +179,8 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
               {presetSummary.length > 0 ? (
                 <>
                   {presetSummary.slice(0, 4).map((item) => (
-                    <span key={item} className="storyboard-summary-tag">
-                      {item}
+                    <span key={item.id} className="storyboard-summary-tag">
+                      {item.text}
                     </span>
                   ))}
                   {presetSummary.length > 4 && (
@@ -154,7 +192,9 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
               )}
               <span className="storyboard-summary-tag">{data.palette.trim() || '待补色彩'}</span>
               <span className="storyboard-summary-tag">{data.lighting.trim() || '待补光线'}</span>
-              <span className="storyboard-summary-tag">{data.framing.trim() ? '已写镜头语言' : '待写镜头语言'}</span>
+              <span className="storyboard-summary-tag">
+                {data.framing.trim() ? '已写镜头语言' : '待写镜头语言'}
+              </span>
             </div>
           </div>
         ) : (
@@ -184,9 +224,18 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
               <div className="storyboard-preset-summary">
                 {presetSummary.length > 0 ? (
                   presetSummary.map((item) => (
-                    <span key={item} className="storyboard-chip">
-                      {item}
-                    </span>
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="storyboard-chip storyboard-chip-button is-removable nodrag"
+                      onClick={() => handleRemovePresetSummaryItem(item)}
+                      title={`移除${item.text}`}
+                    >
+                      <span>{item.text}</span>
+                      <span className="storyboard-chip-remove" aria-hidden="true">
+                        ×
+                      </span>
+                    </button>
                   ))
                 ) : (
                   <span className="storyboard-chip is-empty">未选择预设，可直接手写下方文本</span>

@@ -6,7 +6,6 @@ import { Button, Input, Select } from 'antd'
 import {
   CHARACTER_STATE_OPTIONS,
   CHARACTER_TEMPERAMENT_OPTIONS,
-  getOptionLabels,
 } from '../../../config/storyboardPresets'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
@@ -18,6 +17,12 @@ import '../storyboard.css'
 const { TextArea } = Input
 
 type CharacterPresetTabKey = 'temperamentTags' | 'stateTags'
+type CharacterPresetSummaryItem = {
+  id: string
+  text: string
+  key: CharacterPresetTabKey
+  value: string
+}
 
 const characterPresetTabs: Array<{
   key: CharacterPresetTabKey
@@ -28,10 +33,20 @@ const characterPresetTabs: Array<{
   { key: 'stateTags', label: '状态', options: CHARACTER_STATE_OPTIONS },
 ]
 
-function buildCharacterPresetSummary(data: CharacterNodeType['data']): string[] {
+function buildCharacterPresetSummary(data: CharacterNodeType['data']): CharacterPresetSummaryItem[] {
   return [
-    ...getOptionLabels(CHARACTER_TEMPERAMENT_OPTIONS, data.temperamentTags).map((label) => `气质 · ${label}`),
-    ...getOptionLabels(CHARACTER_STATE_OPTIONS, data.stateTags).map((label) => `状态 · ${label}`),
+    ...((data.temperamentTags ?? []).map((value) => ({
+      id: `temperamentTags:${value}`,
+      text: `气质 · ${value}`,
+      key: 'temperamentTags' as const,
+      value,
+    }))),
+    ...((data.stateTags ?? []).map((value) => ({
+      id: `stateTags:${value}`,
+      text: `状态 · ${value}`,
+      key: 'stateTags' as const,
+      value,
+    }))),
   ]
 }
 
@@ -77,6 +92,16 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
         : [...currentValues, value]
 
       updateNodeData(id, { [field]: nextValues })
+    },
+    [data, id, updateNodeData]
+  )
+
+  const handleRemovePresetSummaryItem = useCallback(
+    (item: CharacterPresetSummaryItem) => {
+      const currentValues = ((data[item.key] as string[] | undefined) ?? []).filter((value) => value.trim().length > 0)
+      updateNodeData(id, {
+        [item.key]: currentValues.filter((value) => value !== item.value),
+      })
     },
     [data, id, updateNodeData]
   )
@@ -158,8 +183,8 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
               {presetSummary.length > 0 ? (
                 <>
                   {presetSummary.slice(0, 2).map((item) => (
-                    <span key={item} className="storyboard-summary-tag">
-                      {item}
+                    <span key={item.id} className="storyboard-summary-tag">
+                      {item.text}
                     </span>
                   ))}
                   {presetSummary.length > 2 && (
@@ -225,9 +250,18 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
               <div className="storyboard-preset-summary">
                 {presetSummary.length > 0 ? (
                   presetSummary.map((item) => (
-                    <span key={item} className="storyboard-chip">
-                      {item}
-                    </span>
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="storyboard-chip storyboard-chip-button is-removable nodrag"
+                      onClick={() => handleRemovePresetSummaryItem(item)}
+                      title={`移除${item.text}`}
+                    >
+                      <span>{item.text}</span>
+                      <span className="storyboard-chip-remove" aria-hidden="true">
+                        ×
+                      </span>
+                    </button>
                   ))
                 ) : (
                   <span className="storyboard-chip is-empty">未选择标签，可直接手写下方备注</span>
@@ -325,9 +359,7 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
                   ))}
                 </div>
               ) : (
-                <div className="storyboard-chip is-empty">
-                  连接上传图或上游图像结果后，会自动沉淀到角色设定中
-                </div>
+                <div className="storyboard-chip is-empty">连接上传图或上游图像结果后，会自动沉淀到角色设定中</div>
               )}
             </div>
 
@@ -376,9 +408,7 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
                   })}
                 </div>
               ) : (
-                <div className="storyboard-chip is-empty">
-                  先沉淀参考图后，系统会自动填充正面、侧面、背面槽位
-                </div>
+                <div className="storyboard-chip is-empty">先沉淀参考图后，系统会自动填充正面、侧面、背面槽位</div>
               )}
             </div>
           </div>

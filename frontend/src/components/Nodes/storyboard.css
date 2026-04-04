@@ -171,6 +171,31 @@
   border: 1px solid #eadcc0;
 }
 
+.storyboard-chip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.storyboard-chip-button.is-removable:hover {
+  border-color: #b79b6d;
+  color: #5c441e;
+  background: #fff7eb;
+}
+
+.storyboard-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(139, 94, 26, 0.12);
+  font-size: 11px;
+  line-height: 1;
+}
+
 .storyboard-chip.is-empty {
   color: #a59579;
   background: #fbfbfb;

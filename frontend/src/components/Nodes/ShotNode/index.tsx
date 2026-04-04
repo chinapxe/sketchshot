@@ -20,7 +20,6 @@ import {
   SHOT_QUALITY_OPTIONS,
   SHOT_SIZE_OPTIONS,
   getOptionLabel,
-  getOptionLabels,
 } from '../../../config/storyboardPresets'
 import { generateShotPrompt } from '../../../services/promptGeneration'
 import { disconnectShotGeneration, executeShotNode } from '../../../services/storyboardGeneration'
@@ -44,6 +43,14 @@ type ShotPresetTabKey =
   | 'qualityTags'
 
 type ShotPresetSelectionMode = 'single' | 'toggle' | 'multi'
+type ShotPresetSummaryItem = {
+  id: string
+  text: string
+  key: ShotPresetTabKey
+  value?: string
+  removable: boolean
+  resetValue?: string
+}
 
 const aspectRatioOptions = [
   { value: '1:1', label: '1:1' },
@@ -91,16 +98,81 @@ function resolveCameraAngleLabel(value: ShotNodeType['data']['cameraAngle']): st
   return getOptionLabel(CAMERA_ANGLE_OPTIONS, value) || '平视'
 }
 
-function buildShotPresetSummary(data: ShotNodeType['data']): string[] {
+function buildShotPresetSummary(data: ShotNodeType['data']): ShotPresetSummaryItem[] {
+  const moodValues = Array.from(new Set((data.moodTags ?? []).filter((value) => value.trim().length > 0)))
+  const qualityValues = Array.from(new Set((data.qualityTags ?? []).filter((value) => value.trim().length > 0)))
+
   return [
-    `景别 · ${resolveShotSizeLabel(data.shotSize)}`,
-    `机位 · ${resolveCameraAngleLabel(data.cameraAngle)}`,
-    data.cameraMovement ? `运镜 · ${getOptionLabel(SHOT_CAMERA_MOVEMENT_OPTIONS, data.cameraMovement)}` : '',
-    data.composition ? `构图 · ${getOptionLabel(SHOT_COMPOSITION_OPTIONS, data.composition)}` : '',
-    data.lightingStyle ? `光线 · ${getOptionLabel(SHOT_LIGHTING_OPTIONS, data.lightingStyle)}` : '',
-    ...getOptionLabels(SHOT_MOOD_OPTIONS, data.moodTags).map((label) => `氛围 · ${label}`),
-    ...getOptionLabels(SHOT_QUALITY_OPTIONS, data.qualityTags).map((label) => `质感 · ${label}`),
-  ].filter((item) => item.length > 0)
+    {
+      id: `shotSize:${resolveShotSizeValue(data.shotSize)}`,
+      text: `景别 · ${resolveShotSizeLabel(data.shotSize)}`,
+      key: 'shotSize',
+      value: resolveShotSizeValue(data.shotSize),
+      removable: data.shotSize !== 'medium',
+      resetValue: 'medium',
+    },
+    {
+      id: `cameraAngle:${data.cameraAngle}`,
+      text: `机位 · ${resolveCameraAngleLabel(data.cameraAngle)}`,
+      key: 'cameraAngle',
+      value: data.cameraAngle,
+      removable: data.cameraAngle !== 'eye-level',
+      resetValue: 'eye-level',
+    },
+    ...(data.cameraMovement
+      ? [
+          {
+            id: `cameraMovement:${data.cameraMovement}`,
+            text: `运镜 · ${getOptionLabel(SHOT_CAMERA_MOVEMENT_OPTIONS, data.cameraMovement)}`,
+            key: 'cameraMovement',
+            value: data.cameraMovement,
+            removable: true,
+          } satisfies ShotPresetSummaryItem,
+        ]
+      : []),
+    ...(data.composition
+      ? [
+          {
+            id: `composition:${data.composition}`,
+            text: `构图 · ${getOptionLabel(SHOT_COMPOSITION_OPTIONS, data.composition)}`,
+            key: 'composition',
+            value: data.composition,
+            removable: true,
+          } satisfies ShotPresetSummaryItem,
+        ]
+      : []),
+    ...(data.lightingStyle
+      ? [
+          {
+            id: `lightingStyle:${data.lightingStyle}`,
+            text: `光线 · ${getOptionLabel(SHOT_LIGHTING_OPTIONS, data.lightingStyle)}`,
+            key: 'lightingStyle',
+            value: data.lightingStyle,
+            removable: true,
+          } satisfies ShotPresetSummaryItem,
+        ]
+      : []),
+    ...moodValues.map(
+      (value) =>
+        ({
+          id: `moodTags:${value}`,
+          text: `氛围 · ${getOptionLabel(SHOT_MOOD_OPTIONS, value)}`,
+          key: 'moodTags',
+          value,
+          removable: true,
+        }) satisfies ShotPresetSummaryItem
+    ),
+    ...qualityValues.map(
+      (value) =>
+        ({
+          id: `qualityTags:${value}`,
+          text: `质感 · ${getOptionLabel(SHOT_QUALITY_OPTIONS, value)}`,
+          key: 'qualityTags',
+          value,
+          removable: true,
+        }) satisfies ShotPresetSummaryItem
+    ),
+  ]
 }
 
 function getActivePresetValues(data: ShotNodeType['data'], key: ShotPresetTabKey): string[] {
@@ -245,6 +317,34 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
     [activeTabConfig.key, setSinglePresetField, toggleMultiPresetField]
   )
 
+  const handleRemovePresetSummaryItem = useCallback(
+    (item: ShotPresetSummaryItem) => {
+      switch (item.key) {
+        case 'shotSize':
+        case 'cameraAngle':
+          if (item.resetValue) {
+            updateNodeData(id, { [item.key]: item.resetValue })
+          }
+          return
+        case 'cameraMovement':
+        case 'composition':
+        case 'lightingStyle':
+          updateNodeData(id, { [item.key]: '' })
+          return
+        case 'moodTags':
+        case 'qualityTags': {
+          const currentValues = ((data[item.key] as string[] | undefined) ?? []).filter(
+            (value) => value.trim().length > 0
+          )
+          updateNodeData(id, {
+            [item.key]: currentValues.filter((value) => value !== item.value),
+          })
+        }
+      }
+    },
+    [data, id, updateNodeData]
+  )
+
   const handleToggleCollapsed = useCallback(() => toggleNodeCollapsed(id), [id, toggleNodeCollapsed])
   const handleTogglePresetPanel = useCallback(() => setIsPresetPanelOpen((current) => !current), [])
 
@@ -302,8 +402,8 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
       </div>
       <div className="storyboard-summary-tags">
         {presetSummary.slice(0, 4).map((item) => (
-          <span key={item} className="storyboard-summary-tag">
-            {item}
+          <span key={item.id} className="storyboard-summary-tag">
+            {item.text}
           </span>
         ))}
         {presetSummary.length > 4 && <span className="storyboard-summary-tag">+{presetSummary.length - 4}</span>}
@@ -606,11 +706,26 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
           </Button>
         </div>
         <div className="storyboard-preset-summary">
-          {presetSummary.map((item) => (
-            <span key={item} className="storyboard-chip">
-              {item}
-            </span>
-          ))}
+          {presetSummary.map((item) =>
+            item.removable ? (
+              <button
+                key={item.id}
+                type="button"
+                className="storyboard-chip storyboard-chip-button is-removable nodrag"
+                onClick={() => handleRemovePresetSummaryItem(item)}
+                title={`移除${item.text}`}
+              >
+                <span>{item.text}</span>
+                <span className="storyboard-chip-remove" aria-hidden="true">
+                  ×
+                </span>
+              </button>
+            ) : (
+              <span key={item.id} className="storyboard-chip">
+                {item.text}
+              </span>
+            )
+          )}
         </div>
         {presetPanelContent}
       </div>
