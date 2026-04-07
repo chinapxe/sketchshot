@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react'
+import { Handle, Position, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react'
 import {
+  AimOutlined,
   CameraOutlined,
   DownOutlined,
   HighlightOutlined,
@@ -26,12 +27,12 @@ import { disconnectShotGeneration, executeShotNode } from '../../../services/sto
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
-import { getShotContext } from '../../../utils/storyboard'
-import type { ShotNode as ShotNodeType } from '../../../types'
+import { getShotContext, resolveShotContinuityFrames } from '../../../utils/storyboard'
+import type { AppNode, ShotNode as ShotNodeType } from '../../../types'
 import NodeWidthResizer from '../NodeWidthResizer'
+import NodeTextareaEditor from '../shared/NodeTextareaEditor'
+import NodeTitleEditor from '../shared/NodeTitleEditor'
 import '../storyboard.css'
-
-const { TextArea } = Input
 
 type ShotPresetTabKey =
   | 'shotSize'
@@ -201,8 +202,10 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
   const [isPromptGenerating, setIsPromptGenerating] = useState(false)
   const [isPresetPanelOpen, setIsPresetPanelOpen] = useState(false)
   const [activePresetTab, setActivePresetTab] = useState<ShotPresetTabKey>('shotSize')
+  const { fitView } = useReactFlow<AppNode>()
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
   const toggleNodeCollapsed = useFlowStore((state) => state.toggleNodeCollapsed)
+  const selectNode = useFlowStore((state) => state.selectNode)
   const nodes = useFlowStore((state) => state.nodes)
   const edges = useFlowStore((state) => state.edges)
   const isWorkflowExecuting = useFlowStore((state) => state.isWorkflowExecuting)
@@ -236,7 +239,8 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
   const needsRefresh = data.needsRefresh === true
   const shotSizeLabel = resolveShotSizeLabel(data.shotSize)
   const cameraAngleLabel = resolveCameraAngleLabel(data.cameraAngle)
-  const filledContinuityCount = (data.continuityFrames ?? []).filter((value) => value.trim().length > 0).length
+  const resolvedContinuityFrames = useMemo(() => resolveShotContinuityFrames(data, shotContext), [data, shotContext])
+  const filledContinuityCount = resolvedContinuityFrames.filter((value) => value.trim().length > 0).length
   const outputTypeLabel = data.outputType === 'video' ? '视频' : '图像'
   const hasOutput = data.outputType === 'video' ? Boolean(data.outputVideo) : Boolean(data.outputImage)
 
@@ -267,15 +271,6 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
   const updateField = useCallback(
     (field: string, value: string | number | boolean | undefined) => updateNodeData(id, { [field]: value }),
     [id, updateNodeData]
-  )
-
-  const updateContinuityFrame = useCallback(
-    (index: number, value: string) => {
-      const nextFrames = [...(data.continuityFrames ?? Array.from({ length: 9 }, () => ''))]
-      nextFrames[index] = value
-      updateNodeData(id, { continuityFrames: nextFrames })
-    },
-    [data.continuityFrames, id, updateNodeData]
   )
 
   const setSinglePresetField = useCallback(
@@ -347,6 +342,24 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
 
   const handleToggleCollapsed = useCallback(() => toggleNodeCollapsed(id), [id, toggleNodeCollapsed])
   const handleTogglePresetPanel = useCallback(() => setIsPresetPanelOpen((current) => !current), [])
+  const handleLocateContinuityNode = useCallback(() => {
+    const continuityId = shotContext.continuity?.id
+    if (!continuityId) return
+
+    const continuityNode = nodes.find((node) => node.id === continuityId)
+    if (!continuityNode) {
+      message.warning('未找到已连接的九宫格动作节点')
+      return
+    }
+
+    selectNode(continuityId)
+    void fitView({
+      nodes: [continuityNode],
+      padding: 0.28,
+      duration: 280,
+      maxZoom: 1.15,
+    })
+  }, [fitView, nodes, selectNode, shotContext.continuity])
 
   const handleGenerate = useCallback(async () => {
     try {
@@ -411,7 +424,11 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
         <span className="storyboard-summary-tag">{data.emotion.trim() || '待写情绪'}</span>
         <span className="storyboard-summary-tag">参考素材 {shotContext.referenceAssets.length}</span>
         <span className="storyboard-summary-tag">承接上游 {shotContext.previousShots.length}</span>
-        {data.outputType === 'video' && <span className="storyboard-summary-tag">九宫格 {filledContinuityCount}/9</span>}
+        {data.outputType === 'video' && (
+          <span className="storyboard-summary-tag">
+            {shotContext.continuity ? '九宫格节点' : '九宫格'} {filledContinuityCount}/9
+          </span>
+        )}
         {data.videoFirstFrame && <span className="storyboard-summary-tag">有首帧</span>}
         {data.videoLastFrame && <span className="storyboard-summary-tag">有尾帧</span>}
         {data.prompt.trim() && <span className="storyboard-summary-tag">已补导演提示</span>}
@@ -547,21 +564,46 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
       <div className="storyboard-field">
         <label className="storyboard-field-label">九宫格连续动作</label>
         <div className="storyboard-note">
-          用 9 格拆解同一个镜头里的连续动作推进，重点描述起势、过程、停顿、转折和收势。
+          建议把九宫格拆到独立的“九宫格动作”节点里维护。镜头节点这里只显示摘要，并继续兼容旧项目里保存在镜头上的九宫格数据。
         </div>
-        <div className="storyboard-nine-grid">
-          {(data.continuityFrames ?? Array.from({ length: 9 }, () => '')).map((frame, index) => (
-            <div key={index} className="storyboard-nine-grid-card">
-              <div className="storyboard-nine-grid-index">{index + 1}</div>
-              <TextArea
-                value={frame}
-                onChange={(event) => updateContinuityFrame(index, event.target.value)}
-                placeholder={`第 ${index + 1} 格动作`}
-                autoSize={{ minRows: 2, maxRows: 4 }}
-                className="storyboard-textarea"
-              />
-            </div>
-          ))}
+        <div className="storyboard-preset-summary">
+          {filledContinuityCount > 0 ? (
+            resolvedContinuityFrames
+              .map((frame, index) => ({
+                index,
+                text: frame.trim(),
+              }))
+              .filter((item) => item.text.length > 0)
+              .slice(0, 4)
+              .map((item) => (
+                <span key={item.index} className="storyboard-chip">
+                  {item.index + 1}. {item.text}
+                </span>
+              ))
+          ) : (
+            <span className="storyboard-chip is-empty">未连接九宫格动作节点，也没有旧九宫格数据</span>
+          )}
+          {filledContinuityCount > 4 && <span className="storyboard-chip">+{filledContinuityCount - 4}</span>}
+        </div>
+        <div className={`storyboard-inline-meta${shotContext.continuity ? ' storyboard-inline-meta-row' : ''}`}>
+          <span className="storyboard-inline-meta-text">
+            {shotContext.continuity
+              ? `当前读取：${shotContext.continuity.label}${shotContext.continuityCount > 1 ? `（已连接 ${shotContext.continuityCount} 个，按首个读取）` : ''}`
+              : filledContinuityCount > 0
+                ? '当前读取：镜头节点里保留的旧九宫格数据'
+                : '当前读取：无'}
+          </span>
+          {shotContext.continuity && (
+            <Button
+              type="link"
+              size="small"
+              icon={<AimOutlined />}
+              onClick={handleLocateContinuityNode}
+              className="storyboard-inline-action nodrag"
+            >
+              定位节点
+            </Button>
+          )}
         </div>
       </div>
     </>
@@ -660,9 +702,9 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
 
       <div className="storyboard-field">
         <label className="storyboard-field-label">镜头描述</label>
-        <TextArea
+        <NodeTextareaEditor
           value={data.description}
-          onChange={(event) => updateField('description', event.target.value)}
+          onCommit={(value) => updateField('description', value)}
           placeholder="描述这个镜头真正要表现的画面与行为"
           autoSize={{ minRows: 3, maxRows: 6 }}
           className="storyboard-textarea"
@@ -684,9 +726,9 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
             AI 润色
           </Button>
         </div>
-        <TextArea
+        <NodeTextareaEditor
           value={data.prompt}
-          onChange={(event) => updateField('prompt', event.target.value)}
+          onCommit={(value) => updateField('prompt', value)}
           placeholder="补充道具、镜头调度、环境细节、氛围词等"
           autoSize={{ minRows: 2, maxRows: 4 }}
           className="storyboard-textarea"
@@ -832,14 +874,19 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
         className={`storyboard-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
         style={{ width: nodeWidth }}
       >
-        <Handle type="target" position={Position.Left} className="storyboard-handle" />
+        <Handle type="target" position={Position.Left} className="storyboard-handle handle-kind-hybrid" />
 
         <div className="storyboard-node-header">
           <span className="storyboard-node-icon">
             <CameraOutlined />
           </span>
           <div className="storyboard-node-title-wrap">
-            <div className="storyboard-node-title">{data.label}</div>
+            <NodeTitleEditor
+              value={data.label}
+              onChange={(value) => updateNodeData(id, { label: value })}
+              className="storyboard-node-title"
+              placeholder="输入节点名称"
+            />
             <div className="storyboard-node-subtitle">把场次、角色和风格整理成可直接生成的镜头语言</div>
           </div>
           <div className="storyboard-node-actions">
@@ -864,7 +911,11 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
 
         {isCollapsed ? collapsedContent : expandedContent}
 
-        <Handle type="source" position={Position.Right} className="storyboard-handle" />
+        <Handle
+          type="source"
+          position={Position.Right}
+          className={`storyboard-handle ${data.outputType === 'video' ? 'handle-kind-video' : 'handle-kind-image'}`}
+        />
       </div>
     </>
   )

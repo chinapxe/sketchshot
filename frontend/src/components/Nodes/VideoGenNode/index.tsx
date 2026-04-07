@@ -22,6 +22,8 @@ import type { VideoGenNode as VideoGenNodeType } from '../../../types'
 import { getPreviewAssetType } from '../../../utils/media'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
+import NodeTextareaEditor from '../shared/NodeTextareaEditor'
+import NodeTitleEditor from '../shared/NodeTitleEditor'
 import './style.css'
 
 const aspectRatioOptions = [
@@ -136,13 +138,6 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
     [data, id, updateNodeData]
   )
 
-  const handlePromptChange = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      updateNodeData(id, { prompt: event.target.value })
-    },
-    [id, updateNodeData]
-  )
-
   const handlePreviewSource = useCallback(
     (imageUrl: string, index: number) => {
       openPreview({
@@ -168,6 +163,7 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
   const isDisabled = (data as Record<string, unknown>).disabled === true
   const needsRefresh = data.needsRefresh === true
   const hasSourceImages = (data.sourceImages ?? []).length > 0
+  const hasPrompt = data.prompt.trim().length > 0
   const isBlockedByWorkflowExecution = isWorkflowExecuting && activeExecutionNodeId !== id
   const outputAssetType = data.outputVideo ? getPreviewAssetType(data.outputVideo) : 'video'
 
@@ -190,11 +186,16 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
         className={`video-gen-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
         style={{ width: nodeWidth }}
       >
-        <Handle type="target" position={Position.Left} className="node-handle" />
+        <Handle type="target" position={Position.Left} className="node-handle handle-kind-image" />
 
       <div className="node-header">
         <VideoCameraOutlined className="node-icon" />
-        <span className="node-title">{data.label}</span>
+        <NodeTitleEditor
+          value={data.label}
+          onChange={(value) => updateNodeData(id, { label: value })}
+          className="node-title"
+          placeholder="输入节点名称"
+        />
         {needsRefresh && !isProcessing && (
           <span className="node-refresh-badge">
             <SyncOutlined /> 需更新
@@ -241,13 +242,15 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
               AI 润色
             </Button>
           </div>
-          <textarea
+          <NodeTextareaEditor
+            variant="native"
             className="prompt-textarea nodrag"
             value={data.prompt}
-            onChange={handlePromptChange}
+            onCommit={(value) => updateNodeData(id, { prompt: value })}
             placeholder="描述镜头怎么动、主体怎么动，以及节奏和氛围..."
             rows={3}
           />
+          <div className="quick-template-tip">上游图像只会作为起始画面，不会自动继承视频提示词。</div>
         </div>
 
         <div className="form-field">
@@ -379,11 +382,13 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
                 ? '工作流执行中，请稍候'
                 : !hasSourceImages
                   ? '请先接入图像输入'
-                  : needsRefresh ? '重新生成视频' : '开始生成视频'}
+                  : !hasPrompt
+                    ? '请先填写视频提示词'
+                    : needsRefresh ? '重新生成视频' : '开始生成视频'}
         </Button>
       </div>
 
-        <Handle type="source" position={Position.Right} className="node-handle" />
+        <Handle type="source" position={Position.Right} className="node-handle handle-kind-video" />
       </div>
     </>
   )

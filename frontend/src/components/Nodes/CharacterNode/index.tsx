@@ -11,10 +11,15 @@ import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import type { CharacterNode as CharacterNodeType } from '../../../types'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
+import {
+  CHARACTER_THREE_VIEW_TARGET_HANDLE_IDS,
+  THREE_VIEW_SLOT_KEYS,
+  THREE_VIEW_SLOT_LABELS,
+} from '../../../utils/threeView'
 import NodeWidthResizer from '../NodeWidthResizer'
+import NodeTextareaEditor from '../shared/NodeTextareaEditor'
+import NodeTitleEditor from '../shared/NodeTitleEditor'
 import '../storyboard.css'
-
-const { TextArea } = Input
 
 type CharacterPresetTabKey = 'temperamentTags' | 'stateTags'
 type CharacterPresetSummaryItem = {
@@ -22,6 +27,18 @@ type CharacterPresetSummaryItem = {
   text: string
   key: CharacterPresetTabKey
   value: string
+}
+
+const CHARACTER_THREE_VIEW_SLOTS = [
+  { key: 'front', label: '正面' },
+  { key: 'side', label: '侧面' },
+  { key: 'back', label: '背面' },
+] as const
+
+const CHARACTER_TARGET_HANDLE_POSITIONS: Record<(typeof CHARACTER_THREE_VIEW_SLOTS)[number]['key'], string> = {
+  front: '78%',
+  side: '86%',
+  back: '94%',
 }
 
 const characterPresetTabs: Array<{
@@ -60,8 +77,12 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
   const isDisabled = (data as Record<string, unknown>).disabled === true
   const isCollapsed = data.collapsed === true
   const referenceImages = data.referenceImages ?? []
+  const threeViewSheetImage = typeof data.threeViewSheetImage === 'string' ? data.threeViewSheetImage : undefined
   const threeViewImages = data.threeViewImages ?? {}
   const threeViewAssignedCount = Object.values(threeViewImages).filter(Boolean).length
+  const generatedThreeViewImages = data.generatedThreeViewImages ?? {}
+  const generatedThreeViewCount = Object.values(generatedThreeViewImages).filter(Boolean).length
+  const hasThreeViewAssets = referenceImages.length > 0 || generatedThreeViewCount > 0 || threeViewAssignedCount > 0
   const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.character.width)
   const presetSummary = useMemo(() => buildCharacterPresetSummary(data), [data])
   const activeTabConfig = useMemo(
@@ -72,10 +93,51 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
     () => ((data[activeTabConfig.key] as string[] | undefined) ?? []),
     [activeTabConfig.key, data]
   )
+  const referenceOptions = useMemo(
+    () =>
+      referenceImages.map((imageUrl, index) => ({
+        value: imageUrl,
+        label: `参考图 ${index + 1}`,
+      })),
+    [referenceImages]
+  )
+  const hasGeneratedThreeViewUpdates = useMemo(
+    () =>
+      THREE_VIEW_SLOT_KEYS.some((slot) => {
+        const generatedImageUrl = generatedThreeViewImages[slot]
+        return (
+          typeof generatedImageUrl === 'string' &&
+          generatedImageUrl.length > 0 &&
+          generatedImageUrl !== threeViewImages[slot]
+        )
+      }),
+    [generatedThreeViewImages, threeViewImages]
+  )
+  const adoptedGeneratedThreeViewCount = useMemo(
+    () =>
+      THREE_VIEW_SLOT_KEYS.filter((slot) => {
+        const generatedImageUrl = generatedThreeViewImages[slot]
+        return (
+          typeof generatedImageUrl === 'string' &&
+          generatedImageUrl.length > 0 &&
+          generatedImageUrl === threeViewImages[slot]
+        )
+      }).length,
+    [generatedThreeViewImages, threeViewImages]
+  )
 
   useEffect(() => {
     window.requestAnimationFrame(() => updateNodeInternals(id))
-  }, [id, isCollapsed, isPresetPanelOpen, updateNodeInternals])
+  }, [
+    generatedThreeViewCount,
+    id,
+    isCollapsed,
+    isPresetPanelOpen,
+    referenceImages.length,
+    threeViewAssignedCount,
+    threeViewSheetImage,
+    updateNodeInternals,
+  ])
 
   const updateField = useCallback(
     (field: string, value: string) => {
@@ -118,6 +180,15 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
     [id, threeViewImages, updateNodeData]
   )
 
+  const handleAdoptGeneratedThreeView = useCallback(() => {
+    updateNodeData(id, {
+      threeViewImages: {
+        ...threeViewImages,
+        ...generatedThreeViewImages,
+      },
+    })
+  }, [generatedThreeViewImages, id, threeViewImages, updateNodeData])
+
   const handleToggleCollapsed = useCallback(() => {
     toggleNodeCollapsed(id)
   }, [id, toggleNodeCollapsed])
@@ -126,14 +197,50 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
     setIsPresetPanelOpen((current) => !current)
   }, [])
 
-  const referenceOptions = referenceImages.map((imageUrl, index) => ({
-    value: imageUrl,
-    label: `参考图 ${index + 1}`,
-  }))
+  const getThreeViewSourceLabel = useCallback(
+    (slot: 'front' | 'side' | 'back') => {
+      const imageUrl = threeViewImages[slot]
+      if (!imageUrl) {
+        return null
+      }
+
+      if (generatedThreeViewImages[slot] === imageUrl) {
+        return '生成结果'
+      }
+
+      if (referenceImages.includes(imageUrl)) {
+        return '参考图'
+      }
+
+      return '手动指定'
+    },
+    [generatedThreeViewImages, referenceImages, threeViewImages]
+  )
 
   const summaryName = data.name.trim() || '未填写角色名'
   const summaryRole = data.role.trim() || '未填写角色定位'
   const summaryAppearance = data.appearance.trim() || '未填写外观描述'
+  const threeViewAssetOptions = useMemo(() => {
+    const optionMap = new Map<string, { value: string; label: string }>()
+
+    referenceOptions.forEach((option) => {
+      optionMap.set(option.value, option)
+    })
+
+    THREE_VIEW_SLOT_KEYS.forEach((slot) => {
+      const imageUrl = generatedThreeViewImages[slot]
+      if (!imageUrl) {
+        return
+      }
+
+      optionMap.set(imageUrl, {
+        value: imageUrl,
+        label: `生成结果 · ${THREE_VIEW_SLOT_LABELS[slot]}`,
+      })
+    })
+
+    return Array.from(optionMap.values())
+  }, [generatedThreeViewImages, referenceOptions])
 
   return (
     <>
@@ -144,14 +251,38 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
         minWidth={DEFAULT_NODE_SIZES.character.width}
       />
       <div className={`storyboard-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
-        <Handle type="target" position={Position.Left} className="storyboard-handle" />
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="storyboard-handle handle-kind-image"
+          title="参考输入"
+          aria-label={`${data.label}-参考输入`}
+          style={{ top: '30%' }}
+        />
+        {CHARACTER_THREE_VIEW_SLOTS.map((slot) => (
+          <Handle
+            key={slot.key}
+            id={CHARACTER_THREE_VIEW_TARGET_HANDLE_IDS[slot.key]}
+            type="target"
+            position={Position.Left}
+            className="storyboard-handle handle-kind-image"
+            title={`${slot.label}输入`}
+            aria-label={`${data.label}-${slot.label}输入`}
+            style={{ top: CHARACTER_TARGET_HANDLE_POSITIONS[slot.key] }}
+          />
+        ))}
 
         <div className="storyboard-node-header">
           <span className="storyboard-node-icon">
             <TeamOutlined />
           </span>
           <div className="storyboard-node-title-wrap">
-            <div className="storyboard-node-title">{data.label}</div>
+            <NodeTitleEditor
+              value={data.label}
+              onChange={(value) => updateNodeData(id, { label: value })}
+              className="storyboard-node-title"
+              placeholder="输入节点名称"
+            />
             <div className="storyboard-node-subtitle">统一角色设定与参考形象</div>
           </div>
           <div className="storyboard-node-actions">
@@ -195,6 +326,8 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
                 <span className="storyboard-summary-tag">未选角色标签</span>
               )}
               <span className="storyboard-summary-tag">参考图 {referenceImages.length}</span>
+              <span className="storyboard-summary-tag">{threeViewSheetImage ? '已有三视图总览' : '暂无三视图总览'}</span>
+              <span className="storyboard-summary-tag">生成三视图 {generatedThreeViewCount}/3</span>
               <span className="storyboard-summary-tag">三视图 {threeViewAssignedCount}/3</span>
               <span className="storyboard-summary-tag">
                 {data.wardrobe.trim() || data.props.trim() ? '已补服装/道具' : '待补服装/道具'}
@@ -226,9 +359,9 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
 
             <div className="storyboard-field">
               <label className="storyboard-field-label">外观描述</label>
-              <TextArea
+              <NodeTextareaEditor
                 value={data.appearance}
-                onChange={(event) => updateField('appearance', event.target.value)}
+                onCommit={(value) => updateField('appearance', value)}
                 placeholder="描述年龄感、五官、体态、发型等稳定特征"
                 autoSize={{ minRows: 3, maxRows: 6 }}
                 className="storyboard-textarea nodrag"
@@ -328,9 +461,9 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
 
             <div className="storyboard-field">
               <label className="storyboard-field-label">补充备注</label>
-              <TextArea
+              <NodeTextareaEditor
                 value={data.notes}
-                onChange={(event) => updateField('notes', event.target.value)}
+                onCommit={(value) => updateField('notes', value)}
                 placeholder="记录习惯动作、表演提示、禁忌项或其他稳定要求"
                 autoSize={{ minRows: 2, maxRows: 4 }}
                 className="storyboard-textarea nodrag"
@@ -364,19 +497,97 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
             </div>
 
             <div className="storyboard-field">
-              <label className="storyboard-field-label">人物三视图</label>
-              {referenceImages.length > 0 ? (
+              <label className="storyboard-field-label">三视图总览图</label>
+              {threeViewSheetImage ? (
+                <button
+                  type="button"
+                  className="storyboard-preview-card"
+                  onClick={() =>
+                    openPreview({
+                      type: 'image',
+                      src: threeViewSheetImage,
+                      title: `${data.name || data.label} - 三视图总览`,
+                    })
+                  }
+                >
+                  <img src={threeViewSheetImage} alt="三视图总览图" className="storyboard-preview-image" />
+                  <span className="storyboard-preview-caption">来自上游三视图生成节点，点击查看大图</span>
+                </button>
+              ) : (
+                <div className="storyboard-chip is-empty">连接“三视图生成”节点后，会在这里显示总览拼板图</div>
+              )}
+            </div>
+
+            <div className="storyboard-field">
+              <div className="field-label-row">
+                <label className="storyboard-field-label">生成的三视图</label>
+                {generatedThreeViewCount > 0 ? (
+                  <div className="storyboard-inline-actions">
+                    <span className="storyboard-chip">已采用 {adoptedGeneratedThreeViewCount}/{generatedThreeViewCount}</span>
+                    <Button
+                      type="text"
+                      size="small"
+                      onClick={handleAdoptGeneratedThreeView}
+                      disabled={!hasGeneratedThreeViewUpdates}
+                      className="storyboard-inline-action nodrag"
+                    >
+                      采用生成结果
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+              {generatedThreeViewCount > 0 ? (
                 <div className="storyboard-three-view-grid">
-                  {([
-                    { key: 'front', label: '正面' },
-                    { key: 'side', label: '侧面' },
-                    { key: 'back', label: '背面' },
-                  ] as const).map((slot) => {
+                  {CHARACTER_THREE_VIEW_SLOTS.map((slot) => {
+                    const slotKey = slot.key
+                    const imageUrl = generatedThreeViewImages[slotKey]
+
+                    return (
+                      <div key={slotKey} className="storyboard-three-view-card">
+                        <div className="storyboard-three-view-label">{THREE_VIEW_SLOT_LABELS[slotKey]}</div>
+                        {imageUrl ? (
+                          <button
+                            type="button"
+                            className="storyboard-thumb-button nodrag"
+                            onClick={() =>
+                              openPreview({
+                                type: 'image',
+                                src: imageUrl,
+                                title: `${data.name || data.label} - 生成${slot.label}`,
+                              })
+                            }
+                          >
+                            <img src={imageUrl} alt={`生成${slot.label}`} className="storyboard-thumb" />
+                          </button>
+                        ) : (
+                          <div className="storyboard-chip is-empty">未生成</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="storyboard-chip is-empty">当上游三视图节点切换到“三张独立图”模式后，会在这里同步显示</div>
+              )}
+            </div>
+
+            <div className="storyboard-field">
+              <div className="field-label-row">
+                <label className="storyboard-field-label">人物三视图</label>
+                <span className="storyboard-chip">下游节点以这里为准</span>
+              </div>
+              {hasThreeViewAssets ? (
+                <div className="storyboard-three-view-grid">
+                  {CHARACTER_THREE_VIEW_SLOTS.map((slot) => {
                     const imageUrl = threeViewImages[slot.key]
+                    const sourceLabel = getThreeViewSourceLabel(slot.key)
 
                     return (
                       <div key={slot.key} className="storyboard-three-view-card">
-                        <div className="storyboard-three-view-label">{slot.label}</div>
+                        <div className="field-label-row">
+                          <div className="storyboard-three-view-label">{slot.label}</div>
+                          {sourceLabel ? <span className="storyboard-chip">{sourceLabel}</span> : null}
+                        </div>
                         {imageUrl ? (
                           <button
                             type="button"
@@ -398,7 +609,7 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
                           allowClear
                           size="small"
                           value={imageUrl}
-                          options={referenceOptions}
+                          options={threeViewAssetOptions}
                           onChange={(value) => updateThreeView(slot.key, value)}
                           placeholder={`选择${slot.label}参考`}
                           className="storyboard-select nodrag nopan"
@@ -414,7 +625,7 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
           </div>
         )}
 
-        <Handle type="source" position={Position.Right} className="storyboard-handle" />
+        <Handle type="source" position={Position.Right} className="storyboard-handle handle-kind-context" />
       </div>
     </>
   )

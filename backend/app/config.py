@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     ]
 
     WORKFLOW_STORAGE_DIR: str = str(Path(__file__).parent.parent / "data" / "workflows")
+    TEMPLATE_STORAGE_DIR: str = str(Path(__file__).parent.parent / "data" / "templates")
     UPLOAD_DIR: str = str(Path(__file__).parent.parent / "data" / "uploads")
     OUTPUT_DIR: str = str(Path(__file__).parent.parent / "data" / "outputs")
 

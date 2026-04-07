@@ -109,7 +109,7 @@ class VolcengineAdapterTests(unittest.IsolatedAsyncioTestCase):
         image_request = self.client.requests[0]
         self.assertEqual(image_request["path"], "/images/generations")
         self.assertEqual(image_request["payload"]["model"], "seedream-edit")
-        self.assertEqual(image_request["payload"]["size"], "1536x2048")
+        self.assertEqual(image_request["payload"]["size"], "1664x2224")
         encoded_input = image_request["payload"]["image"]
         self.assertTrue(encoded_input.startswith("data:image/png;base64,"))
 
@@ -135,7 +135,7 @@ class VolcengineAdapterTests(unittest.IsolatedAsyncioTestCase):
         image_request = self.client.requests[0]
         self.assertEqual(image_request["path"], "/images/generations")
         self.assertEqual(image_request["payload"]["model"], "seedream")
-        self.assertEqual(image_request["payload"]["size"], "1152x2048")
+        self.assertEqual(image_request["payload"]["size"], "1440x2560")
 
     async def test_video_generation_polls_until_success_and_stores_local_file(self):
         updates = []

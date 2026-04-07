@@ -64,6 +64,35 @@ class WorkflowListItem(BaseModel):
     updated_at: str
 
 
+class UserTemplateSaveRequest(BaseModel):
+    """Save user template request payload."""
+
+    name: str = Field(default="Untitled Template", max_length=100)
+    nodes: list[WorkflowNode] = Field(default_factory=list)
+    edges: list[WorkflowEdge] = Field(default_factory=list)
+
+
+class UserTemplateResponse(BaseModel):
+    """User template response payload."""
+
+    id: str
+    name: str
+    nodes: list[WorkflowNode]
+    edges: list[WorkflowEdge]
+    created_at: str
+    updated_at: str
+
+
+class UserTemplateListItem(BaseModel):
+    """User template list item."""
+
+    id: str
+    name: str
+    node_count: int
+    created_at: str
+    updated_at: str
+
+
 class GenerateRequest(BaseModel):
     """Image generation request payload."""
 
@@ -97,6 +126,7 @@ class PromptGenerateRequest(BaseModel):
     style: str = Field(default="", description="Desired style or tone")
     aspect_ratio: str = Field(default="", description="Optional aspect ratio hint")
     extra_requirements: list[str] = Field(default_factory=list, description="Additional constraints")
+    reference_images: list[str] = Field(default_factory=list, description="Optional reference image URLs")
     language: Literal["zh", "en"] = Field(default="zh", description="Output language")
 
 
@@ -105,6 +135,21 @@ class PromptGenerateResponse(BaseModel):
 
     prompt: str
     task_type: Literal["image", "video", "general"]
+    model: str
+
+
+class ContinuityFramesGenerateRequest(BaseModel):
+    """Nine-grid continuity frame generation request payload."""
+
+    user_input: str = Field(..., min_length=1, description="Combined continuity brief and upstream context")
+    reference_images: list[str] = Field(default_factory=list, description="Optional reference image URLs")
+    language: Literal["zh", "en"] = Field(default="zh", description="Desired response language")
+
+
+class ContinuityFramesGenerateResponse(BaseModel):
+    """Nine-grid continuity frame generation response payload."""
+
+    frames: list[str] = Field(default_factory=list, min_length=9, max_length=9)
     model: str
 
 
@@ -167,3 +212,17 @@ class UploadedAssetResponse(BaseModel):
     content_type: str
     size: int
     url: str
+
+
+class SplitThreeViewSheetRequest(BaseModel):
+    """Split a three-view sheet into front / side / back outputs."""
+
+    asset_url: str = Field(..., min_length=1)
+
+
+class SplitThreeViewSheetResponse(BaseModel):
+    """Split three-view sheet response payload."""
+
+    front: str
+    side: str
+    back: str

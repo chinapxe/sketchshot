@@ -316,6 +316,13 @@
   padding-right: 4px;
 }
 
+.toolbar-template-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+
 .toolbar-template-item {
   align-items: flex-start;
 }

@@ -1,0 +1,108 @@
+.quick-connect-menu {
+  position: fixed;
+  z-index: 1100;
+  width: 280px;
+  max-width: calc(100vw - 24px);
+  overflow: hidden;
+  border: 1px solid #d9e3f0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(8px);
+  animation: quickConnectFadeIn 0.16s ease;
+}
+
+@keyframes quickConnectFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.quick-connect-menu-header {
+  padding: 14px 16px 12px;
+  background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%);
+  border-bottom: 1px solid #e5edf7;
+}
+
+.quick-connect-menu-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.quick-connect-menu-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.quick-connect-menu-list {
+  padding: 8px;
+}
+
+.quick-connect-menu-item {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s ease, transform 0.18s ease;
+}
+
+.quick-connect-menu-item:hover {
+  background: #f8fafc;
+  transform: translateX(2px);
+}
+
+.quick-connect-menu-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--handle-fill, #eff6ff);
+  border: 2px solid var(--handle-stroke, #1677ff);
+  box-shadow: var(--handle-shadow, 0 0 0 3px rgba(22, 119, 255, 0.1));
+}
+
+.quick-connect-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: #f3f6fb;
+  color: #334155;
+  font-size: 15px;
+}
+
+.quick-connect-menu-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-connect-menu-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.quick-connect-menu-description {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #64748b;
+}

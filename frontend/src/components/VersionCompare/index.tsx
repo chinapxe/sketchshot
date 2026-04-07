@@ -20,6 +20,10 @@ function getNodeTypeLabel(nodeType: AppNode['type']): string {
       return '镜头'
     case 'imageGen':
       return '图片生成'
+    case 'threeViewGen':
+      return '三视图生成'
+    case 'continuity':
+      return '九宫格动作'
     case 'videoGen':
       return '视频生成'
     default:

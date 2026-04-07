@@ -3,11 +3,19 @@ import type {
   AppEdge,
   AppNode,
   CharacterNodeData,
+  ContinuityNodeData,
   SceneNodeData,
   ShotOutputType,
   ShotNodeData,
   StyleNodeData,
+  ThreeViewGenNodeData,
 } from '../types'
+import {
+  THREE_VIEW_SLOT_KEYS,
+  THREE_VIEW_SLOT_LABELS,
+  getThreeViewOutputEntries,
+  getThreeViewSlotFromHandleId,
+} from './threeView'
 
 function compactText(value: string | undefined): string {
   return (value ?? '').trim()
@@ -26,16 +34,36 @@ function sortNodesByPosition(a: AppNode, b: AppNode): number {
   return a.position.x - b.position.x
 }
 
-function buildIncomingNodeMap(edges: AppEdge[]): Map<string, string[]> {
-  const incoming = new Map<string, string[]>()
+function buildIncomingEdgeMap(edges: AppEdge[]): Map<string, AppEdge[]> {
+  const incoming = new Map<string, AppEdge[]>()
 
   edges.forEach((edge) => {
     const bucket = incoming.get(edge.target) ?? []
-    bucket.push(edge.source)
+    bucket.push(edge)
     incoming.set(edge.target, bucket)
   })
 
   return incoming
+}
+
+function getIncomingNodes(
+  nodeId: string,
+  nodeMap: Map<string, AppNode>,
+  incomingEdgeMap: Map<string, AppEdge[]>
+): AppNode[] {
+  const seen = new Set<string>()
+
+  return (incomingEdgeMap.get(nodeId) ?? [])
+    .map((edge) => nodeMap.get(edge.source))
+    .filter((node): node is AppNode => {
+      if (!node || isNodeDisabled(node) || seen.has(node.id)) {
+        return false
+      }
+
+      seen.add(node.id)
+      return true
+    })
+    .sort(sortNodesByPosition)
 }
 
 function joinNonEmpty(parts: string[], separator = '，'): string {
@@ -71,7 +99,31 @@ function createReferenceAssetKey(url: string, sourceNodeId: string, relation: st
   return `${url}::${sourceNodeId}::${relation}`
 }
 
-function collectNodeReferenceAssets(node: AppNode): ShotReferenceAsset[] {
+function collectCharacterThreeViewReferenceAssets(
+  nodeId: string,
+  sourceNodeType: AppNode['type'],
+  baseTitle: string,
+  threeViewImages: CharacterNodeData['threeViewImages']
+): ShotReferenceAsset[] {
+  return THREE_VIEW_SLOT_KEYS.map((slot) => {
+    const url = threeViewImages?.[slot]
+    if (!url) {
+      return null
+    }
+
+    const slotLabel = THREE_VIEW_SLOT_LABELS[slot]
+
+    return {
+      url,
+      title: `${baseTitle} ${slotLabel}`,
+      sourceNodeId: nodeId,
+      sourceNodeType,
+      relation: `角色${slotLabel}`,
+    }
+  }).filter((asset): asset is ShotReferenceAsset => asset !== null)
+}
+
+function collectNodeReferenceAssets(node: AppNode, sourceHandle?: string | null): ShotReferenceAsset[] {
   if (node.type === 'imageUpload') {
     const imageUrl = typeof node.data.imageUrl === 'string' ? node.data.imageUrl : ''
     const fileName = typeof node.data.fileName === 'string' ? node.data.fileName : ''
@@ -103,17 +155,75 @@ function collectNodeReferenceAssets(node: AppNode): ShotReferenceAsset[] {
       : []
   }
 
+  if (node.type === 'threeViewGen') {
+    const data = node.data as ThreeViewGenNodeData
+    const slot = getThreeViewSlotFromHandleId(sourceHandle)
+    return getThreeViewOutputEntries(data).filter((entry) => !slot || entry.key === slot).map((entry) => ({
+      url: entry.url,
+      title: `${compactText(data.label) || '三视图生成'} ${entry.label}`,
+      sourceNodeId: node.id,
+      sourceNodeType: node.type,
+      relation: entry.label,
+    }))
+
+    return data.outputImage
+      ? [
+          {
+            url: data.outputImage ?? '',
+            title: compactText(data.label) || '三视图拼板',
+            sourceNodeId: node.id,
+            sourceNodeType: node.type,
+            relation: '三视图拼板',
+          },
+        ]
+      : []
+  }
+
   if (node.type === 'character') {
     const data = node.data as CharacterNodeData
     const baseTitle = compactText(data.name) || compactText(data.label) || '角色'
 
-    return dedupeStrings(data.referenceImages ?? []).map((url, index) => ({
-      url,
-      title: `${baseTitle} 参考 ${index + 1}`,
-      sourceNodeId: node.id,
-      sourceNodeType: node.type,
-      relation: '角色参考',
-    }))
+    const threeViewAssets = collectCharacterThreeViewReferenceAssets(node.id, node.type, baseTitle, data.threeViewImages)
+    const usedThreeViewUrls = new Set(threeViewAssets.map((asset) => asset.url))
+
+    return [
+      ...threeViewAssets,
+      ...dedupeStrings(data.referenceImages ?? [])
+        .filter((url) => !usedThreeViewUrls.has(url))
+        .map((url, index) => ({
+        url,
+        title: `${baseTitle} 参考 ${index + 1}`,
+        sourceNodeId: node.id,
+        sourceNodeType: node.type,
+        relation: '角色参考',
+      })),
+      ...(data.threeViewSheetImage
+        ? [
+            {
+              url: data.threeViewSheetImage,
+              title: `${baseTitle} 三视图总览`,
+              sourceNodeId: node.id,
+              sourceNodeType: node.type,
+              relation: '角色三视图总览',
+            },
+          ]
+        : []),
+    ]
+  }
+
+  if (node.type === 'continuity') {
+    const data = node.data as ContinuityNodeData
+    return data.outputImage
+      ? [
+          {
+            url: data.outputImage,
+            title: compactText(data.label) || '九宫格预览图',
+            sourceNodeId: node.id,
+            sourceNodeType: node.type,
+            relation: '九宫格预览图',
+          },
+        ]
+      : []
   }
 
   if (node.type === 'shot') {
@@ -151,7 +261,7 @@ function dedupeReferenceAssets(assets: ShotReferenceAsset[]): ShotReferenceAsset
 function collectRecursiveReferenceAssets(
   nodeId: string,
   nodeMap: Map<string, AppNode>,
-  incomingMap: Map<string, string[]>,
+  incomingEdgeMap: Map<string, AppEdge[]>,
   visited: Set<string>
 ): ShotReferenceAsset[] {
   if (visited.has(nodeId)) {
@@ -160,17 +270,17 @@ function collectRecursiveReferenceAssets(
 
   visited.add(nodeId)
 
-  const incomingNodeIds = incomingMap.get(nodeId) ?? []
+  const incomingEdges = incomingEdgeMap.get(nodeId) ?? []
   const assets: ShotReferenceAsset[] = []
 
-  incomingNodeIds.forEach((sourceId) => {
-    const sourceNode = nodeMap.get(sourceId)
+  incomingEdges.forEach((edge) => {
+    const sourceNode = nodeMap.get(edge.source)
     if (!sourceNode || isNodeDisabled(sourceNode)) {
       return
     }
 
-    assets.push(...collectNodeReferenceAssets(sourceNode))
-    assets.push(...collectRecursiveReferenceAssets(sourceId, nodeMap, incomingMap, visited))
+    assets.push(...collectNodeReferenceAssets(sourceNode, edge.sourceHandle))
+    assets.push(...collectRecursiveReferenceAssets(edge.source, nodeMap, incomingEdgeMap, visited))
   })
 
   return dedupeReferenceAssets(assets)
@@ -217,26 +327,44 @@ export interface ShotContextPreviousShot {
   outputType: ShotOutputType
 }
 
+export interface ShotContextContinuity {
+  id: string
+  label: string
+  frames: string[]
+}
+
 export interface ShotContext {
   scenes: ShotContextScene[]
   characters: ShotContextCharacter[]
   styles: ShotContextStyle[]
   previousShots: ShotContextPreviousShot[]
+  continuity: ShotContextContinuity | null
+  continuityCount: number
   referenceAssets: ShotReferenceAsset[]
   referenceImages: string[]
   contextSignature: string
 }
 
+export interface ContinuityContext {
+  scenes: ShotContextScene[]
+  characters: ShotContextCharacter[]
+  styles: ShotContextStyle[]
+  referenceAssets: ShotReferenceAsset[]
+  referenceImages: string[]
+  contextSignature: string
+}
+
+function normalizeFrameGrid(value: unknown): string[] {
+  return Array.from({ length: 9 }, (_, index) => {
+    const frame = Array.isArray(value) ? value[index] : undefined
+    return typeof frame === 'string' ? frame : ''
+  })
+}
+
 export function getShotContext(nodeId: string, nodes: AppNode[], edges: AppEdge[]): ShotContext {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]))
-  const incomingMap = buildIncomingNodeMap(edges)
-  const incomingNodes = (incomingMap.get(nodeId) ?? [])
-    .map((sourceId) => nodeMap.get(sourceId))
-    .filter((node): node is AppNode => {
-      if (!node) return false
-      return !isNodeDisabled(node)
-    })
-    .sort(sortNodesByPosition)
+  const incomingEdgeMap = buildIncomingEdgeMap(edges)
+  const incomingNodes = getIncomingNodes(nodeId, nodeMap, incomingEdgeMap)
 
   const scenes = incomingNodes
     .filter((node): node is Extract<AppNode, { type: 'scene' }> => node.type === 'scene')
@@ -299,14 +427,68 @@ export function getShotContext(nodeId: string, nodes: AppNode[], edges: AppEdge[
       }
     })
 
-  const referenceAssets = collectRecursiveReferenceAssets(nodeId, nodeMap, incomingMap, new Set<string>())
-  const referenceImages = referenceAssets.map((asset) => asset.url)
+  const continuityNodes = incomingNodes
+    .filter((node): node is Extract<AppNode, { type: 'continuity' }> => node.type === 'continuity')
+    .map((node) => {
+      const data = node.data as ContinuityNodeData
+      return {
+        id: node.id,
+        label: compactText(data.label) || '九宫格动作',
+        frames: normalizeFrameGrid(data.frames),
+      }
+    })
+
+  const directThreeViewAssets = incomingNodes
+    .filter((node): node is Extract<AppNode, { type: 'threeViewGen' }> => node.type === 'threeViewGen')
+    .flatMap((node) => {
+      const data = node.data as ThreeViewGenNodeData
+      return getThreeViewOutputEntries(data).map((entry) => ({
+        url: entry.url,
+        title: `${compactText(data.label) || '三视图生成'} ${entry.label}`,
+        sourceNodeId: node.id,
+        sourceNodeType: node.type,
+        relation: entry.label,
+      }))
+    })
+
+  const directCharacterGeneratedAssets = incomingNodes
+    .filter((node): node is Extract<AppNode, { type: 'character' }> => node.type === 'character')
+    .flatMap((node) => {
+      const data = node.data as CharacterNodeData
+      const baseTitle = compactText(data.name) || compactText(data.label) || '角色'
+
+      return (['front', 'side', 'back'] as const)
+        .map((slot) => {
+          const url = data.generatedThreeViewImages?.[slot]
+          if (!url) {
+            return null
+          }
+
+          const label = slot === 'front' ? '生成正面' : slot === 'side' ? '生成侧面' : '生成背面'
+          return {
+            url,
+            title: `${baseTitle} ${label}`,
+            sourceNodeId: node.id,
+            sourceNodeType: node.type,
+            relation: label,
+          }
+        })
+        .filter(Boolean) as ShotReferenceAsset[]
+    })
+
+  void directThreeViewAssets
+  void directCharacterGeneratedAssets
+  const referenceAssets = collectRecursiveReferenceAssets(nodeId, nodeMap, incomingEdgeMap, new Set<string>())
+  const referenceImages = dedupeStrings(referenceAssets.map((asset) => asset.url))
+  const continuity = continuityNodes[0] ?? null
 
   return {
     scenes,
     characters,
     styles,
     previousShots,
+    continuity,
+    continuityCount: continuityNodes.length,
     referenceAssets,
     referenceImages,
     contextSignature: JSON.stringify({
@@ -314,9 +496,134 @@ export function getShotContext(nodeId: string, nodes: AppNode[], edges: AppEdge[
       characters,
       styles,
       previousShots,
+      continuity,
+      continuityCount: continuityNodes.length,
       referenceImages,
     }),
   }
+}
+
+export function getContinuityContext(nodeId: string, nodes: AppNode[], edges: AppEdge[]): ContinuityContext {
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]))
+  const incomingEdgeMap = buildIncomingEdgeMap(edges)
+  const incomingNodes = getIncomingNodes(nodeId, nodeMap, incomingEdgeMap)
+
+  const scenes = incomingNodes
+    .filter((node): node is Extract<AppNode, { type: 'scene' }> => node.type === 'scene')
+    .map((node) => {
+      const data = node.data as SceneNodeData
+      return {
+        id: node.id,
+        title: compactText(data.title) || compactText(data.label),
+        synopsis: compactText(data.synopsis),
+        beat: compactText(data.beat),
+      }
+    })
+
+  const characters = incomingNodes
+    .filter((node): node is Extract<AppNode, { type: 'character' }> => node.type === 'character')
+    .map((node) => {
+      const data = node.data as CharacterNodeData
+      return {
+        id: node.id,
+        name: compactText(data.name) || compactText(data.label),
+        role: compactText(data.role),
+        appearance: compactText(data.appearance),
+        temperamentTags: dedupeStrings(data.temperamentTags ?? []),
+        stateTags: dedupeStrings(data.stateTags ?? []),
+        wardrobe: compactText(data.wardrobe),
+        props: compactText(data.props),
+        notes: compactText(data.notes),
+      }
+    })
+
+  const styles = incomingNodes
+    .filter((node): node is Extract<AppNode, { type: 'style' }> => node.type === 'style')
+    .map((node) => {
+      const data = node.data as StyleNodeData
+      return {
+        id: node.id,
+        name: compactText(data.name) || compactText(data.label),
+        keywords: compactText(data.keywords),
+        palette: compactText(data.palette),
+        lighting: compactText(data.lighting),
+        framing: compactText(data.framing),
+        styleTags: dedupeStrings(data.styleTags ?? []),
+        paletteTags: dedupeStrings(data.paletteTags ?? []),
+        lightingTags: dedupeStrings(data.lightingTags ?? []),
+        framingTags: dedupeStrings(data.framingTags ?? []),
+        qualityTags: dedupeStrings(data.qualityTags ?? []),
+        notes: compactText(data.notes),
+      }
+    })
+
+  const directThreeViewAssets = incomingNodes
+    .filter((node): node is Extract<AppNode, { type: 'threeViewGen' }> => node.type === 'threeViewGen')
+    .flatMap((node) => {
+      const data = node.data as ThreeViewGenNodeData
+      return getThreeViewOutputEntries(data).map((entry) => ({
+        url: entry.url,
+        title: `${compactText(data.label) || '三视图生成'} ${entry.label}`,
+        sourceNodeId: node.id,
+        sourceNodeType: node.type,
+        relation: entry.label,
+      }))
+    })
+
+  const directCharacterGeneratedAssets = incomingNodes
+    .filter((node): node is Extract<AppNode, { type: 'character' }> => node.type === 'character')
+    .flatMap((node) => {
+      const data = node.data as CharacterNodeData
+      const baseTitle = compactText(data.name) || compactText(data.label) || '角色'
+
+      return (['front', 'side', 'back'] as const)
+        .map((slot) => {
+          const url = data.generatedThreeViewImages?.[slot]
+          if (!url) {
+            return null
+          }
+
+          const label = slot === 'front' ? '生成正面' : slot === 'side' ? '生成侧面' : '生成背面'
+          return {
+            url,
+            title: `${baseTitle} ${label}`,
+            sourceNodeId: node.id,
+            sourceNodeType: node.type,
+            relation: label,
+          }
+        })
+        .filter(Boolean) as ShotReferenceAsset[]
+    })
+
+  void directThreeViewAssets
+  void directCharacterGeneratedAssets
+  const referenceAssets = collectRecursiveReferenceAssets(nodeId, nodeMap, incomingEdgeMap, new Set<string>())
+  const referenceImages = dedupeStrings(referenceAssets.map((asset) => asset.url))
+
+  return {
+    scenes,
+    characters,
+    styles,
+    referenceAssets,
+    referenceImages,
+    contextSignature: JSON.stringify({
+      scenes,
+      characters,
+      styles,
+      referenceImages,
+    }),
+  }
+}
+
+export function resolveShotContinuityFrames(data: ShotNodeData, context: ShotContext): string[] {
+  const contextFrames = context.continuity?.frames ?? []
+  const hasContextFrames = contextFrames.some((frame) => frame.trim().length > 0)
+
+  if (hasContextFrames) {
+    return contextFrames
+  }
+
+  return normalizeFrameGrid(data.continuityFrames)
 }
 
 function summarizeScene(scene: ShotContextScene): string {
@@ -390,7 +697,7 @@ export function getShotVideoSourceImages(data: ShotNodeData, context: ShotContex
 
 export function buildShotPrompt(data: ShotNodeData, context: ShotContext): string {
   const sections: string[] = []
-  const continuityFrames = (data.continuityFrames ?? [])
+  const continuityFrames = resolveShotContinuityFrames(data, context)
     .map((frame, index) => ({
       index,
       text: compactText(frame),

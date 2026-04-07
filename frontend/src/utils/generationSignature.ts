@@ -1,4 +1,10 @@
-import type { ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
+import type {
+  ContinuityNodeData,
+  ImageGenNodeData,
+  ShotNodeData,
+  ThreeViewGenNodeData,
+  VideoGenNodeData,
+} from '../types'
 
 type ImageSignatureSource = Pick<
   ImageGenNodeData,
@@ -8,6 +14,11 @@ type ImageSignatureSource = Pick<
 type VideoSignatureSource = Pick<
   VideoGenNodeData,
   'prompt' | 'aspectRatio' | 'durationSeconds' | 'motionStrength' | 'adapter' | 'sourceImages'
+>
+
+type ThreeViewSignatureSource = Pick<
+  ThreeViewGenNodeData,
+  'prompt' | 'aspectRatio' | 'resolution' | 'adapter' | 'referenceImages' | 'outputMode'
 >
 
 type ShotSignatureSource = Pick<
@@ -36,6 +47,11 @@ type ShotSignatureSource = Pick<
   | 'motionStrength'
   | 'referenceImages'
   | 'contextSignature'
+>
+
+type ContinuitySignatureSource = Pick<
+  ContinuityNodeData,
+  'prompt' | 'frames' | 'aspectRatio' | 'resolution' | 'adapter' | 'contextSignature'
 >
 
 function normalizeAssetList(values: string[] | undefined): string[] {
@@ -70,6 +86,20 @@ export function buildVideoGenerationSignature(data: VideoSignatureSource): strin
     motionStrength: data.motionStrength,
     adapter: data.adapter,
     sourceImages: normalizeAssetList(data.sourceImages),
+  })
+}
+
+/**
+ * Build a stable signature for three-view sheet generation inputs.
+ */
+export function buildThreeViewGenerationSignature(data: ThreeViewSignatureSource): string {
+  return JSON.stringify({
+    prompt: data.prompt.trim(),
+    aspectRatio: data.aspectRatio,
+    resolution: data.resolution,
+    adapter: data.adapter ?? 'auto',
+    referenceImages: normalizeAssetList(data.referenceImages),
+    outputMode: data.outputMode ?? 'sheet',
   })
 }
 
@@ -110,6 +140,20 @@ export function buildShotGenerationSignature(data: ShotSignatureSource): string 
     durationSeconds: data.durationSeconds,
     motionStrength: data.motionStrength,
     referenceImages: normalizeAssetList(data.referenceImages),
+    contextSignature: data.contextSignature ?? '',
+  })
+}
+
+/**
+ * Build a stable signature for nine-panel continuity preview generation inputs.
+ */
+export function buildContinuityGenerationSignature(data: ContinuitySignatureSource): string {
+  return JSON.stringify({
+    prompt: data.prompt.trim(),
+    frames: (data.frames ?? []).map((frame) => frame.trim()),
+    aspectRatio: data.aspectRatio ?? '1:1',
+    resolution: data.resolution ?? '2K',
+    adapter: data.adapter ?? 'volcengine',
     contextSignature: data.contextSignature ?? '',
   })
 }

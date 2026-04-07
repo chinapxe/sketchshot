@@ -27,6 +27,8 @@ import { useFlowStore } from '../../../stores/useFlowStore'
 import type { ImageGenNode as ImageGenNodeType, ImageGenNodeData } from '../../../types'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
+import NodeTextareaEditor from '../shared/NodeTextareaEditor'
+import NodeTitleEditor from '../shared/NodeTitleEditor'
 import './style.css'
 
 const aspectRatioOptions = [
@@ -79,13 +81,6 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
       blurButtonIfFocused('.prompt-helper-btn')
     }
   }, [blurButtonIfFocused, isPromptGenerating])
-
-  const handlePromptChange = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      updateNodeData(id, { prompt: event.target.value })
-    },
-    [id, updateNodeData]
-  )
 
   const handleGenerate = useCallback(async () => {
     try {
@@ -264,11 +259,16 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
         className={`image-gen-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
         style={{ width: nodeWidth }}
       >
-        <Handle type="target" position={Position.Left} className="node-handle" />
+        <Handle type="target" position={Position.Left} className="node-handle handle-kind-image" />
 
       <div className="node-header">
         <PictureOutlined className="node-icon" />
-        <span className="node-title">{data.label}</span>
+        <NodeTitleEditor
+          value={data.label}
+          onChange={(value) => updateNodeData(id, { label: value })}
+          className="node-title"
+          placeholder="输入节点名称"
+        />
         {needsRefresh && !isProcessing && (
           <span className="node-refresh-badge">
             <SyncOutlined /> 需更新
@@ -293,10 +293,11 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
               AI 润色
             </Button>
           </div>
-          <textarea
+          <NodeTextareaEditor
+            variant="native"
             className="prompt-textarea nodrag"
             value={data.prompt}
-            onChange={handlePromptChange}
+            onCommit={(value) => updateNodeData(id, { prompt: value })}
             placeholder="描述想看到的主体、场景、动作和画面气质..."
             rows={4}
           />
@@ -458,7 +459,7 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
           style={{ display: 'none' }}
         />
 
-        <Handle type="source" position={Position.Right} className="node-handle" />
+        <Handle type="source" position={Position.Right} className="node-handle handle-kind-image" />
       </div>
     </>
   )

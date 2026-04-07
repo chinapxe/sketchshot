@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .adapters import ComfyUIAdapter, MockAdapter, adapter_registry
-from .api import assets, engine_settings, generate, prompts, workflows, ws
+from .api import assets, engine_settings, generate, prompts, templates, workflows, ws
 from .config import settings
 from .services.engine_config_service import engine_config_service
 
@@ -87,6 +87,7 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 app.mount("/outputs", StaticFiles(directory=settings.OUTPUT_DIR), name="outputs")
 
 app.include_router(workflows.router)
+app.include_router(templates.router)
 app.include_router(assets.router)
 app.include_router(prompts.router)
 app.include_router(generate.router)

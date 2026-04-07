@@ -7,9 +7,9 @@ import { useFlowStore } from '../../../stores/useFlowStore'
 import type { SceneNode as SceneNodeType } from '../../../types'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
+import NodeTextareaEditor from '../shared/NodeTextareaEditor'
+import NodeTitleEditor from '../shared/NodeTitleEditor'
 import '../storyboard.css'
-
-const { TextArea } = Input
 
 const SceneNode = memo(({ id, data, selected = false }: NodeProps<SceneNodeType>) => {
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
@@ -52,7 +52,12 @@ const SceneNode = memo(({ id, data, selected = false }: NodeProps<SceneNodeType>
           <BranchesOutlined />
         </span>
         <div className="storyboard-node-title-wrap">
-          <div className="storyboard-node-title">{data.label}</div>
+          <NodeTitleEditor
+            value={data.label}
+            onChange={(value) => updateNodeData(id, { label: value })}
+            className="storyboard-node-title"
+            placeholder="输入节点名称"
+          />
           <div className="storyboard-node-subtitle">组织同一场次下的镜头与叙事目标</div>
         </div>
         <div className="storyboard-node-actions">
@@ -98,9 +103,9 @@ const SceneNode = memo(({ id, data, selected = false }: NodeProps<SceneNodeType>
 
           <div className="storyboard-field">
             <label className="storyboard-field-label">场次概述</label>
-            <TextArea
+            <NodeTextareaEditor
               value={data.synopsis}
-              onChange={(event) => updateField('synopsis', event.target.value)}
+              onCommit={(value) => updateField('synopsis', value)}
               placeholder="描述这一场戏发生了什么，以及它在故事中的作用"
               autoSize={{ minRows: 3, maxRows: 6 }}
               className="storyboard-textarea"
@@ -109,9 +114,9 @@ const SceneNode = memo(({ id, data, selected = false }: NodeProps<SceneNodeType>
 
           <div className="storyboard-field">
             <label className="storyboard-field-label">情节推进点</label>
-            <TextArea
+            <NodeTextareaEditor
               value={data.beat}
-              onChange={(event) => updateField('beat', event.target.value)}
+              onCommit={(value) => updateField('beat', value)}
               placeholder="例如：主角确认真相，关系彻底破裂"
               autoSize={{ minRows: 2, maxRows: 4 }}
               className="storyboard-textarea"
@@ -120,9 +125,9 @@ const SceneNode = memo(({ id, data, selected = false }: NodeProps<SceneNodeType>
 
           <div className="storyboard-field">
             <label className="storyboard-field-label">备注</label>
-            <TextArea
+            <NodeTextareaEditor
               value={data.notes}
-              onChange={(event) => updateField('notes', event.target.value)}
+              onCommit={(value) => updateField('notes', value)}
               placeholder="补充节奏、对白气质或场景调度要求"
               autoSize={{ minRows: 2, maxRows: 4 }}
               className="storyboard-textarea"
@@ -131,7 +136,7 @@ const SceneNode = memo(({ id, data, selected = false }: NodeProps<SceneNodeType>
         </div>
       )}
 
-        <Handle type="source" position={Position.Right} className="storyboard-handle" />
+        <Handle type="source" position={Position.Right} className="storyboard-handle handle-kind-context" />
       </div>
     </>
   )

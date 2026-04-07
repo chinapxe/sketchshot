@@ -1,9 +1,20 @@
-import type { AppNode, ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
+import type {
+  AppEdge,
+  AppNode,
+  ContinuityNodeData,
+  ImageGenNodeData,
+  ShotNodeData,
+  ThreeViewGenNodeData,
+  VideoGenNodeData,
+} from '../types'
 import {
+  buildContinuityGenerationSignature,
   buildGenerationSignature,
   buildShotGenerationSignature,
+  buildThreeViewGenerationSignature,
   buildVideoGenerationSignature,
 } from './generationSignature'
+import { getThreeViewOutputMode, hasCompleteThreeViewImages, normalizeLooseThreeViewImages } from './threeView'
 
 export interface WorkflowCreditSummary {
   executableNodeCount: number
@@ -13,6 +24,21 @@ export interface WorkflowCreditSummary {
 
 function isNodeDisabled(node: AppNode): boolean {
   return (node.data as Record<string, unknown>).disabled === true
+}
+
+function shouldCountContinuityNode(node: AppNode, nodes: AppNode[], edges: AppEdge[]): boolean {
+  if (node.type !== 'continuity') {
+    return false
+  }
+
+  return edges.some((edge) => {
+    if (edge.source !== node.id) {
+      return false
+    }
+
+    const targetNode = nodes.find((item) => item.id === edge.target)
+    return targetNode?.type === 'imageDisplay' || targetNode?.type === 'videoGen'
+  })
 }
 
 function getNodeCostAndCache(node: AppNode): { creditCost: number; hasCache: boolean } | null {
@@ -26,12 +52,36 @@ function getNodeCostAndCache(node: AppNode): { creditCost: number; hasCache: boo
     }
   }
 
+  if (node.type === 'threeViewGen') {
+    const data = node.data as ThreeViewGenNodeData
+    const signature = buildThreeViewGenerationSignature(data)
+    const outputMode = getThreeViewOutputMode(data)
+    const hasCache = outputMode === 'split'
+      ? hasCompleteThreeViewImages(normalizeLooseThreeViewImages(data.splitResultCache?.[signature]))
+      : Boolean(data.resultCache?.[signature])
+
+    return {
+      creditCost: outputMode === 'split' ? 90 : data.creditCost,
+      hasCache,
+    }
+  }
+
   if (node.type === 'videoGen') {
     const data = node.data as VideoGenNodeData
     const signature = buildVideoGenerationSignature(data)
 
     return {
       creditCost: data.creditCost,
+      hasCache: Boolean(data.resultCache?.[signature]),
+    }
+  }
+
+  if (node.type === 'continuity') {
+    const data = node.data as ContinuityNodeData
+    const signature = buildContinuityGenerationSignature(data)
+
+    return {
+      creditCost: data.creditCost ?? 30,
       hasCache: Boolean(data.resultCache?.[signature]),
     }
   }
@@ -49,10 +99,14 @@ function getNodeCostAndCache(node: AppNode): { creditCost: number; hasCache: boo
   return null
 }
 
-export function getWorkflowCreditSummary(nodes: AppNode[]): WorkflowCreditSummary {
+export function getWorkflowCreditSummary(nodes: AppNode[], edges: AppEdge[] = []): WorkflowCreditSummary {
   return nodes.reduce<WorkflowCreditSummary>(
     (summary, node) => {
       if (isNodeDisabled(node)) {
+        return summary
+      }
+
+      if (node.type === 'continuity' && !shouldCountContinuityNode(node, nodes, edges)) {
         return summary
       }
 

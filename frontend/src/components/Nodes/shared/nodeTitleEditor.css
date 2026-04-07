@@ -1,0 +1,45 @@
+.node-title-editor {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.node-title-editor-text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.node-title-editor-trigger {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.45);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.node-title-editor-trigger:hover {
+  background: rgba(22, 119, 255, 0.1);
+  color: #1677ff;
+}
+
+.node-title-editor-input.ant-input {
+  min-width: 0;
+  flex: 1;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  border-radius: 8px;
+}

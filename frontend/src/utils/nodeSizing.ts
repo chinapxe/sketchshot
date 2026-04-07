@@ -10,12 +10,14 @@ export const MAX_CUSTOM_NODE_WIDTH = 960
 export const DEFAULT_NODE_SIZES: Record<AppNodeType, NodeSize> = {
   imageUpload: { width: 240, height: 180 },
   imageGen: { width: 300, height: 460 },
+  threeViewGen: { width: 340, height: 520 },
   imageDisplay: { width: 280, height: 240 },
   videoGen: { width: 300, height: 420 },
   videoDisplay: { width: 280, height: 260 },
   scene: { width: 320, height: 340 },
   character: { width: 320, height: 620 },
   style: { width: 320, height: 360 },
+  continuity: { width: 360, height: 760 },
   shot: { width: 320, height: 1040 },
 }
 

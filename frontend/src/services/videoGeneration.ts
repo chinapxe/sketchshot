@@ -51,6 +51,23 @@ export async function executeVideoGenNode(
     throw new Error('请先连接至少一个图像输入节点，再生成视频')
   }
 
+  const prompt = data.prompt.trim()
+  if (!prompt) {
+    const validationMessage = '请先填写视频提示词，九宫格图只会作为起始画面，不会自动继承视频提示词'
+
+    store.updateNodeData(nodeId, {
+      status: 'error' as NodeStatus,
+      progress: 0,
+      errorMessage: validationMessage,
+    })
+
+    if (showErrorMessage) {
+      message.warning(validationMessage)
+    }
+
+    throw new Error(validationMessage)
+  }
+
   const signature = buildVideoGenerationSignature(data)
   const cachedOutputVideo = data.resultCache?.[signature]
 
@@ -173,7 +190,7 @@ export async function executeVideoGenNode(
 
     void createVideoGenerateTask({
       node_id: nodeId,
-      prompt: data.prompt,
+      prompt,
       aspect_ratio: data.aspectRatio,
       duration_seconds: data.durationSeconds,
       motion_strength: data.motionStrength,

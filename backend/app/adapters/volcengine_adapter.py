@@ -7,6 +7,7 @@ import asyncio
 import base64
 import binascii
 import logging
+import math
 import mimetypes
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -19,6 +20,8 @@ from ..services.volcengine_client import VolcengineClient
 logger = logging.getLogger(__name__)
 
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm", ".m4v", ".gif"}
+MIN_IMAGE_PIXELS = 3_686_400
+IMAGE_SIZE_STEP = 16
 IMAGE_SIZE_MAP: dict[str, dict[str, str]] = {
     "1K": {
         "1:1": "1024x1024",
@@ -139,7 +142,33 @@ class VolcengineAdapter(BaseAdapter):
 
     def _resolve_image_size(self, aspect_ratio: str, resolution: str) -> str:
         resolution_map = IMAGE_SIZE_MAP.get(resolution, IMAGE_SIZE_MAP["2K"])
-        return resolution_map.get(aspect_ratio, resolution_map["1:1"])
+        requested_size = resolution_map.get(aspect_ratio, resolution_map["1:1"])
+        width, height = self._parse_image_size(requested_size)
+
+        if width * height >= MIN_IMAGE_PIXELS:
+            return requested_size
+
+        ratio = width / height
+        normalized_width = max(width, self._round_up_to_step(math.sqrt(MIN_IMAGE_PIXELS * ratio)))
+        normalized_height = max(height, self._round_up_to_step(normalized_width / ratio))
+
+        if normalized_width * normalized_height < MIN_IMAGE_PIXELS:
+            normalized_height = self._round_up_to_step(MIN_IMAGE_PIXELS / normalized_width)
+
+        normalized_size = f"{normalized_width}x{normalized_height}"
+        logger.info(
+            "[VolcengineAdapter] normalized image size from %s to %s to satisfy minimum pixels",
+            requested_size,
+            normalized_size,
+        )
+        return normalized_size
+
+    def _parse_image_size(self, value: str) -> tuple[int, int]:
+        width_text, height_text = value.lower().split("x", 1)
+        return int(width_text), int(height_text)
+
+    def _round_up_to_step(self, value: float) -> int:
+        return int(math.ceil(value / IMAGE_SIZE_STEP) * IMAGE_SIZE_STEP)
 
     async def _generate_video(self, params: GenerateParams) -> AsyncIterator[ProgressUpdate]:
         prompt = params.prompt.strip()

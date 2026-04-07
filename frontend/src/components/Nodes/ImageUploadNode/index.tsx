@@ -12,6 +12,7 @@ import { useFlowStore } from '../../../stores/useFlowStore'
 import type { ImageUploadNode as ImageUploadNodeType } from '../../../types'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
+import NodeTitleEditor from '../shared/NodeTitleEditor'
 import './style.css'
 
 const ImageUploadNode = memo(({ id, data, selected = false }: NodeProps<ImageUploadNodeType>) => {
@@ -93,7 +94,12 @@ const ImageUploadNode = memo(({ id, data, selected = false }: NodeProps<ImageUpl
       <div className={`image-upload-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
         <div className="node-header">
           <PictureOutlined className="node-icon" />
-          <span className="node-title">{data.label}</span>
+          <NodeTitleEditor
+            value={data.label}
+            onChange={(value) => updateNodeData(id, { label: value })}
+            className="node-title"
+            placeholder="输入节点名称"
+          />
           {isDisabled && <span className="node-disabled-badge">已禁用</span>}
         </div>
 
@@ -131,8 +137,8 @@ const ImageUploadNode = memo(({ id, data, selected = false }: NodeProps<ImageUpl
           style={{ display: 'none' }}
         />
 
-        <Handle type="source" position={Position.Right} className="node-handle" />
-        <Handle type="target" position={Position.Left} className="node-handle" />
+        <Handle type="source" position={Position.Right} className="node-handle handle-kind-image" />
+        <Handle type="target" position={Position.Left} className="node-handle handle-kind-image" />
       </div>
     </>
   )

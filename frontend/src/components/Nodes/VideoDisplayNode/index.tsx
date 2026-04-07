@@ -8,6 +8,7 @@ import type { VideoDisplayNode as VideoDisplayNodeType } from '../../../types'
 import { getPreviewAssetType } from '../../../utils/media'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
+import NodeTitleEditor from '../shared/NodeTitleEditor'
 import './style.css'
 
 const VideoDisplayNode = memo(({ id, data, selected = false }: NodeProps<VideoDisplayNodeType>) => {
@@ -61,11 +62,16 @@ const VideoDisplayNode = memo(({ id, data, selected = false }: NodeProps<VideoDi
         minWidth={DEFAULT_NODE_SIZES.videoDisplay.width}
       />
       <div className={`video-display-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
-        <Handle type="target" position={Position.Left} className="node-handle" />
+        <Handle type="target" position={Position.Left} className="node-handle handle-kind-video" />
 
       <div className="node-header">
         <VideoCameraOutlined className="node-icon" />
-        <span className="node-title">{data.label}</span>
+        <NodeTitleEditor
+          value={data.label}
+          onChange={(value) => updateNodeData(id, { label: value })}
+          className="node-title"
+          placeholder="输入节点名称"
+        />
         {isDisabled && <span className="node-disabled-badge">已禁用</span>}
       </div>
 

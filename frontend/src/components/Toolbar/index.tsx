@@ -41,19 +41,28 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
+  InfoCircleOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons'
 import AssetCenter from '../AssetCenter'
+import AboutPage from '../AboutPage'
 import ExecutionCenter from '../ExecutionCenter'
+import HelpPage from '../HelpPage'
 import VersionCompare from '../VersionCompare'
 import { useFlowStore } from '../../stores/useFlowStore'
 import {
+  createUserTemplate,
   createWorkflow,
+  deleteUserTemplate,
   deleteWorkflow,
+  getUserTemplate,
   getWorkflow,
   getVolcengineConfig,
+  listUserTemplates,
   listWorkflows,
   updateVolcengineConfig,
   updateWorkflow,
+  type UserTemplateListItem,
   type VolcengineConfigResponse,
   type WorkflowListItem,
 } from '../../services/api'
@@ -65,6 +74,7 @@ import {
 } from '../../utils/projectExchange'
 import { WorkflowCycleError } from '../../utils/workflowExecution'
 import { getWorkflowCreditSummary } from '../../utils/workflowMetrics'
+import { sanitizeWorkflowForTemplate } from '../../utils/templateUtils'
 import { workflowTemplates, type WorkflowTemplateDefinition } from '../../templates/workflowTemplates'
 import type { AppEdge, AppNode, AppNodeType } from '../../types'
 import './style.css'
@@ -106,6 +116,8 @@ type TemplateGuideSection = {
   nodes: string[]
 }
 
+type TemplateBrowserCategory = WorkflowTemplateDefinition['category'] | 'user'
+
 type VolcengineConfigDraft = {
   ark_base_url: string
   ark_api_key: string
@@ -124,8 +136,13 @@ const emptyVolcengineConfigDraft: VolcengineConfigDraft = {
   video_model: '',
 }
 
-const templateSetupTypes = new Set<AppNodeType>(['imageUpload', 'scene', 'character', 'style'])
-const templateGenerateTypes = new Set<AppNodeType>(['imageGen', 'videoGen', 'shot'])
+const userTemplateCategoryMeta = {
+  title: '我的模板',
+  description: '把自己搭好的工作流沉淀下来，后面新项目可以直接套用。',
+}
+
+const templateSetupTypes = new Set<AppNodeType>(['imageUpload', 'scene', 'character', 'style', 'continuity'])
+const templateGenerateTypes = new Set<AppNodeType>(['imageGen', 'threeViewGen', 'videoGen', 'shot'])
 const templateOutputTypes = new Set<AppNodeType>(['imageDisplay', 'videoDisplay'])
 
 function sortTemplateNodes(nodes: AppNode[]): AppNode[] {
@@ -243,12 +260,14 @@ const Toolbar = memo(() => {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false)
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
-  const [activeTemplateCategory, setActiveTemplateCategory] =
-    useState<WorkflowTemplateDefinition['category']>('recommended')
+  const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false)
+  const [activeTemplateCategory, setActiveTemplateCategory] = useState<TemplateBrowserCategory>('recommended')
   const [appliedTemplateGuide, setAppliedTemplateGuide] = useState<WorkflowTemplateDefinition | null>(null)
   const [isAssetCenterOpen, setIsAssetCenterOpen] = useState(false)
   const [isExecutionCenterOpen, setIsExecutionCenterOpen] = useState(false)
   const [isVersionCompareOpen, setIsVersionCompareOpen] = useState(false)
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [isEngineConfigModalOpen, setIsEngineConfigModalOpen] = useState(false)
   const [isEngineConfigLoading, setIsEngineConfigLoading] = useState(false)
   const [isEngineConfigSaving, setIsEngineConfigSaving] = useState(false)
@@ -256,17 +275,22 @@ const Toolbar = memo(() => {
   const [isVolcengineConfigured, setIsVolcengineConfigured] = useState(false)
   const [compareNodeId, setCompareNodeId] = useState<string | null>(null)
   const [workflowNameDraft, setWorkflowNameDraft] = useState(currentWorkflowName)
+  const [templateNameDraft, setTemplateNameDraft] = useState('')
   const [workflowList, setWorkflowList] = useState<WorkflowListItem[]>([])
+  const [userTemplateList, setUserTemplateList] = useState<UserTemplateListItem[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingList, setIsLoadingList] = useState(false)
+  const [isUserTemplateSaving, setIsUserTemplateSaving] = useState(false)
+  const [isUserTemplateListLoading, setIsUserTemplateListLoading] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isProjectExporting, setIsProjectExporting] = useState(false)
   const [isProjectImporting, setIsProjectImporting] = useState(false)
   const [activeWorkflowId, setActiveWorkflowId] = useState<string | null>(null)
+  const [activeUserTemplateId, setActiveUserTemplateId] = useState<string | null>(null)
   const [isDockCollapsed, setIsDockCollapsed] = useState(false)
 
   const hasCanvasContent = nodes.length > 0 || edges.length > 0
-  const creditSummary = useMemo(() => getWorkflowCreditSummary(nodes), [nodes])
+  const creditSummary = useMemo(() => getWorkflowCreditSummary(nodes, edges), [edges, nodes])
   const executeDescription = useMemo(() => {
     if (creditSummary.executableNodeCount === 0) {
       return '当前工作流中没有可执行的生成节点'
@@ -283,6 +307,14 @@ const Toolbar = memo(() => {
     if (currentWorkflowId) return `当前工作流：${currentWorkflowName}`
     return `未保存工作流：${currentWorkflowName}`
   }, [currentWorkflowId, currentWorkflowName])
+  const buildDefaultTemplateName = useCallback(() => {
+    const name = currentWorkflowName.trim()
+    if (!name || name === '未命名工作流') {
+      return '我的自定义模板'
+    }
+
+    return `${name} 模板`
+  }, [currentWorkflowName])
   const groupedTemplates = useMemo(() => {
     const order: WorkflowTemplateDefinition['category'][] = [
       'recommended',
@@ -301,11 +333,28 @@ const Toolbar = memo(() => {
       }))
       .filter((group) => group.templates.length > 0)
   }, [])
+  const templateCategoryOptions = useMemo(
+    () => [
+      {
+        label: `${userTemplateCategoryMeta.title} (${userTemplateList.length})`,
+        value: 'user' as TemplateBrowserCategory,
+      },
+      ...groupedTemplates.map((group) => ({
+        label: `${group.meta.title} (${group.templates.length})`,
+        value: group.category as TemplateBrowserCategory,
+      })),
+    ],
+    [groupedTemplates, userTemplateList.length]
+  )
+  const isUserTemplateCategoryActive = activeTemplateCategory === 'user'
   const activeTemplateGroup = useMemo(
     () =>
       groupedTemplates.find((group) => group.category === activeTemplateCategory) ?? groupedTemplates[0] ?? null,
     [activeTemplateCategory, groupedTemplates]
   )
+  const activeTemplateHeaderMeta = isUserTemplateCategoryActive
+    ? userTemplateCategoryMeta
+    : activeTemplateGroup?.meta ?? groupedTemplates[0]?.meta ?? userTemplateCategoryMeta
   const appliedTemplateSections = useMemo(
     () => (appliedTemplateGuide ? buildTemplateGuideSections(appliedTemplateGuide) : []),
     [appliedTemplateGuide]
@@ -522,15 +571,41 @@ const Toolbar = memo(() => {
     }
   }, [])
 
+  const refreshUserTemplateList = useCallback(async () => {
+    setIsUserTemplateListLoading(true)
+    try {
+      const templates = await listUserTemplates()
+      setUserTemplateList(templates)
+      return templates
+    } catch (error) {
+      console.error('[工具栏] 获取用户模板列表失败:', error)
+      message.error('获取用户模板失败，请检查后端服务')
+      return []
+    } finally {
+      setIsUserTemplateListLoading(false)
+    }
+  }, [])
+
   const openLoadModal = useCallback(async () => {
     setIsLoadModalOpen(true)
     await refreshWorkflowList()
   }, [refreshWorkflowList])
 
-  const handleOpenTemplateModal = useCallback(() => {
-    setActiveTemplateCategory(groupedTemplates[0]?.category ?? 'recommended')
+  const openSaveTemplateModal = useCallback(() => {
+    if (!hasCanvasContent) {
+      message.warning('画布为空，先搭好工作流后再保存为模板')
+      return
+    }
+
+    setTemplateNameDraft(buildDefaultTemplateName())
+    setIsSaveTemplateModalOpen(true)
+  }, [buildDefaultTemplateName, hasCanvasContent])
+
+  const handleOpenTemplateModal = useCallback(async () => {
     setIsTemplateModalOpen(true)
-  }, [groupedTemplates])
+    const templates = await refreshUserTemplateList()
+    setActiveTemplateCategory(templates.length > 0 ? 'user' : groupedTemplates[0]?.category ?? 'recommended')
+  }, [groupedTemplates, refreshUserTemplateList])
 
   const handleApplyTemplate = useCallback((template: WorkflowTemplateDefinition) => {
     loadWorkflow({
@@ -544,6 +619,74 @@ const Toolbar = memo(() => {
     message.success(`已应用模板：${template.name}`)
     scheduleFitView()
   }, [loadWorkflow, scheduleFitView])
+
+  const handleSaveUserTemplate = useCallback(async () => {
+    if (!hasCanvasContent) {
+      message.warning('画布为空，先搭好工作流后再保存为模板')
+      return
+    }
+
+    const name = templateNameDraft.trim() || buildDefaultTemplateName()
+    const sanitized = sanitizeWorkflowForTemplate(nodes, edges)
+    setIsUserTemplateSaving(true)
+
+    try {
+      const template = await createUserTemplate({
+        name,
+        nodes: sanitized.nodes,
+        edges: sanitized.edges,
+      })
+      setIsSaveTemplateModalOpen(false)
+      setTemplateNameDraft(template.name)
+      await refreshUserTemplateList()
+      setActiveTemplateCategory('user')
+      message.success(`已保存为模板：${template.name}`)
+    } catch (error) {
+      console.error('[工具栏] 保存用户模板失败:', error)
+      message.error('保存用户模板失败，请检查后端服务')
+    } finally {
+      setIsUserTemplateSaving(false)
+    }
+  }, [buildDefaultTemplateName, edges, hasCanvasContent, nodes, refreshUserTemplateList, templateNameDraft])
+
+  const handleApplyUserTemplate = useCallback(async (templateId: string) => {
+    setActiveUserTemplateId(templateId)
+    try {
+      const template = await getUserTemplate(templateId)
+      loadWorkflow({
+        id: null,
+        name: template.name,
+        nodes: template.nodes as AppNode[],
+        edges: template.edges as AppEdge[],
+      })
+      setIsTemplateModalOpen(false)
+      setAppliedTemplateGuide(null)
+      message.success(`已应用我的模板：${template.name}`)
+      scheduleFitView()
+    } catch (error) {
+      console.error('[工具栏] 应用用户模板失败:', error)
+      message.error('应用用户模板失败，请检查后端服务')
+    } finally {
+      setActiveUserTemplateId(null)
+    }
+  }, [loadWorkflow, scheduleFitView])
+
+  const handleDeleteUserTemplate = useCallback(async (templateId: string) => {
+    setActiveUserTemplateId(templateId)
+    try {
+      await deleteUserTemplate(templateId)
+      const templates = await refreshUserTemplateList()
+      if (templates.length === 0 && activeTemplateCategory === 'user') {
+        setActiveTemplateCategory(groupedTemplates[0]?.category ?? 'recommended')
+      }
+      message.success('用户模板已删除')
+    } catch (error) {
+      console.error('[工具栏] 删除用户模板失败:', error)
+      message.error('删除用户模板失败，请检查后端服务')
+    } finally {
+      setActiveUserTemplateId(null)
+    }
+  }, [activeTemplateCategory, groupedTemplates, refreshUserTemplateList])
 
   const persistWorkflow = useCallback(async (mode: 'create' | 'update') => {
     if (!hasCanvasContent) {
@@ -655,6 +798,13 @@ const Toolbar = memo(() => {
         onClick: () => void openLoadModal(),
       },
       {
+        key: 'save-template',
+        label: '保存为我的模板',
+        icon: <BorderOutlined />,
+        disabled: isWorkflowExecuting || !hasCanvasContent,
+        onClick: openSaveTemplateModal,
+      },
+      {
         key: 'import-project',
         label: '导入项目文件',
         icon: <ImportOutlined />,
@@ -690,6 +840,7 @@ const Toolbar = memo(() => {
       isWorkflowExecuting,
       nodes.length,
       openLoadModal,
+      openSaveTemplateModal,
       openSaveModal,
       showNewWorkflowConfirm,
     ]
@@ -714,6 +865,18 @@ const Toolbar = memo(() => {
         label: '版本对比',
         icon: <HistoryOutlined />,
         onClick: () => handleOpenVersionCompare(),
+      },
+      {
+        key: 'help',
+        label: '基础使用帮助',
+        icon: <QuestionCircleOutlined />,
+        onClick: () => setIsHelpModalOpen(true),
+      },
+      {
+        key: 'about',
+        label: '关于镜语',
+        icon: <InfoCircleOutlined />,
+        onClick: () => setIsAboutModalOpen(true),
       },
     ],
     [handleOpenVersionCompare]
@@ -809,7 +972,7 @@ const Toolbar = memo(() => {
           </Popconfirm>
 
           <Dropdown menu={{ items: panelMenuItems }} trigger={['click']} placement="bottomRight">
-            <Tooltip title="资产中心、执行中心、版本对比">
+            <Tooltip title="资产中心、执行中心、版本对比、基础帮助">
               <Button
                 className={`toolbar-dock-action${isDockCollapsed ? ' icon-only' : ''}`}
                 icon={<AppstoreOutlined />}
@@ -921,6 +1084,36 @@ const Toolbar = memo(() => {
         className="toolbar-hidden-file-input"
         onChange={(event) => void handleImportProjectFile(event)}
       />
+
+      <Modal
+        title="基础使用帮助"
+        open={isHelpModalOpen}
+        onCancel={() => setIsHelpModalOpen(false)}
+        width={1040}
+        destroyOnHidden
+        footer={[
+          <Button key="close" type="primary" onClick={() => setIsHelpModalOpen(false)}>
+            关闭
+          </Button>,
+        ]}
+      >
+        <HelpPage />
+      </Modal>
+
+      <Modal
+        title="关于镜语"
+        open={isAboutModalOpen}
+        onCancel={() => setIsAboutModalOpen(false)}
+        width={920}
+        destroyOnHidden
+        footer={[
+          <Button key="close" type="primary" onClick={() => setIsAboutModalOpen(false)}>
+            关闭
+          </Button>,
+        ]}
+      >
+        <AboutPage />
+      </Modal>
 
       <Modal
         title={currentWorkflowId ? '保存当前工作流' : '保存新工作流'}
@@ -1166,6 +1359,13 @@ const Toolbar = memo(() => {
         width={920}
         destroyOnHidden
         footer={[
+          <Button
+            key="save-template"
+            disabled={isWorkflowExecuting || !hasCanvasContent}
+            onClick={openSaveTemplateModal}
+          >
+            保存当前为我的模板
+          </Button>,
           <Button key="close" type="primary" disabled={isWorkflowExecuting} onClick={() => setIsTemplateModalOpen(false)}>
             关闭
           </Button>,
@@ -1173,26 +1373,82 @@ const Toolbar = memo(() => {
       >
         <div className="toolbar-template-browser">
           <div className="toolbar-template-group-header">
-            <div className="toolbar-template-group-title">{activeTemplateGroup?.meta.title ?? '模板分类'}</div>
+            <div className="toolbar-template-group-title">{activeTemplateHeaderMeta.title}</div>
             <div className="toolbar-template-group-description">
-              {activeTemplateGroup?.meta.description ?? '选择一个分类后，再挑选适合当前任务的模板。'}
+              {activeTemplateHeaderMeta.description}
             </div>
           </div>
 
           <div className="toolbar-template-category-switcher">
             <Segmented
-              value={activeTemplateGroup?.category}
-              onChange={(value) => setActiveTemplateCategory(value as WorkflowTemplateDefinition['category'])}
-              options={groupedTemplates.map((group) => ({
-                label: `${group.meta.title} (${group.templates.length})`,
-                value: group.category,
-              }))}
+              value={activeTemplateCategory}
+              onChange={(value) => setActiveTemplateCategory(value as TemplateBrowserCategory)}
+              options={templateCategoryOptions}
               className="toolbar-template-category-tabs"
             />
           </div>
 
           <div className="toolbar-template-group-list">
-            {activeTemplateGroup ? (
+            {isUserTemplateCategoryActive ? (
+              isUserTemplateListLoading ? (
+                <div className="toolbar-template-loading">
+                  <Spin />
+                </div>
+              ) : userTemplateList.length > 0 ? (
+                userTemplateList.map((template) => (
+                  <div key={template.id} className="toolbar-workflow-item toolbar-template-item">
+                    <div className="toolbar-workflow-meta">
+                      <div className="toolbar-template-title-row">
+                        <div className="toolbar-workflow-name">{template.name}</div>
+                        <div className="toolbar-template-tags">
+                          <span className="toolbar-template-badge">我的模板</span>
+                        </div>
+                      </div>
+                      <div className="toolbar-template-description">
+                        从当前画布沉淀下来的可复用工作流骨架，可以在新项目里直接套用。
+                      </div>
+                      <div className="toolbar-workflow-detail">
+                        <span>{template.node_count} 个节点</span>
+                        <span>更新时间：{formatTime(template.updated_at)}</span>
+                      </div>
+                      <div className="toolbar-template-hint">
+                        会保留结构和你填写的设定，不会把旧结果、上传图和运行状态一起带进新项目。
+                      </div>
+                    </div>
+                    <div className="toolbar-workflow-actions">
+                      <Button
+                        size="small"
+                        type="primary"
+                        disabled={isWorkflowExecuting}
+                        loading={activeUserTemplateId === template.id}
+                        onClick={() => void handleApplyUserTemplate(template.id)}
+                      >
+                        应用模板
+                      </Button>
+                      <Popconfirm
+                        title="删除模板"
+                        description={`确认删除「${template.name}」吗？`}
+                        okText="确认"
+                        cancelText="取消"
+                        onConfirm={() => void handleDeleteUserTemplate(template.id)}
+                      >
+                        <Button
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          disabled={isWorkflowExecuting}
+                          loading={activeUserTemplateId === template.id}
+                        >
+                          删除
+                        </Button>
+                      </Popconfirm>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <Empty description="还没有保存过自己的模板" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              )
+            ) : activeTemplateGroup ? (
               activeTemplateGroup.templates.map((template) => (
                 <div key={template.id} className="toolbar-workflow-item toolbar-template-item">
                   <div className="toolbar-workflow-meta">
@@ -1236,6 +1492,46 @@ const Toolbar = memo(() => {
               <Empty description="当前没有可用模板" image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )}
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        title="保存为我的模板"
+        open={isSaveTemplateModalOpen}
+        onCancel={() => {
+          if (!isUserTemplateSaving) {
+            setIsSaveTemplateModalOpen(false)
+          }
+        }}
+        destroyOnHidden
+        footer={[
+          <Button key="cancel" disabled={isUserTemplateSaving} onClick={() => setIsSaveTemplateModalOpen(false)}>
+            取消
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={isUserTemplateSaving}
+            onClick={() => void handleSaveUserTemplate()}
+          >
+            保存模板
+          </Button>,
+        ]}
+      >
+        <div className="toolbar-modal-body">
+          <div className="toolbar-template-hint">
+            会自动清理生成结果、上传图、运行状态等临时数据，只保留结构、提示词和你当前填写的节点设定。
+          </div>
+          <label className="toolbar-modal-label" htmlFor="template-name-input">
+            模板名称
+          </label>
+          <Input
+            id="template-name-input"
+            value={templateNameDraft}
+            maxLength={100}
+            onChange={(event) => setTemplateNameDraft(event.target.value)}
+            placeholder="请输入模板名称"
+          />
         </div>
       </Modal>
 

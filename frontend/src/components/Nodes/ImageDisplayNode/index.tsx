@@ -11,6 +11,7 @@ import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import type { ImageDisplayNode as ImageDisplayNodeType } from '../../../types'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
+import NodeTitleEditor from '../shared/NodeTitleEditor'
 import './style.css'
 
 const ImageDisplayNode = memo(({ id, data, selected = false }: NodeProps<ImageDisplayNodeType>) => {
@@ -54,11 +55,16 @@ const ImageDisplayNode = memo(({ id, data, selected = false }: NodeProps<ImageDi
         minWidth={DEFAULT_NODE_SIZES.imageDisplay.width}
       />
       <div className={`image-display-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
-        <Handle type="target" position={Position.Left} className="node-handle" />
+        <Handle type="target" position={Position.Left} className="node-handle handle-kind-image" />
 
         <div className="node-header">
           <PictureOutlined className="node-icon" />
-          <span className="node-title">{data.label}</span>
+          <NodeTitleEditor
+            value={data.label}
+            onChange={(value) => updateNodeData(id, { label: value })}
+            className="node-title"
+            placeholder="输入节点名称"
+          />
           {isDisabled && <span className="node-disabled-badge">已禁用</span>}
         </div>
 
@@ -103,7 +109,7 @@ const ImageDisplayNode = memo(({ id, data, selected = false }: NodeProps<ImageDi
           style={{ display: 'none' }}
         />
 
-        <Handle type="source" position={Position.Right} className="node-handle" />
+        <Handle type="source" position={Position.Right} className="node-handle handle-kind-image" />
       </div>
     </>
   )

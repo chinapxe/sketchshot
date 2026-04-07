@@ -14,9 +14,9 @@ import { useFlowStore } from '../../../stores/useFlowStore'
 import type { StyleNode as StyleNodeType } from '../../../types'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
+import NodeTextareaEditor from '../shared/NodeTextareaEditor'
+import NodeTitleEditor from '../shared/NodeTitleEditor'
 import '../storyboard.css'
-
-const { TextArea } = Input
 
 type StylePresetTabKey = 'styleTags' | 'paletteTags' | 'lightingTags' | 'framingTags' | 'qualityTags'
 type StylePresetSummaryItem = {
@@ -151,7 +151,12 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
             <BgColorsOutlined />
           </span>
           <div className="storyboard-node-title-wrap">
-            <div className="storyboard-node-title">{data.label}</div>
+            <NodeTitleEditor
+              value={data.label}
+              onChange={(value) => updateNodeData(id, { label: value })}
+              className="storyboard-node-title"
+              placeholder="输入节点名称"
+            />
             <div className="storyboard-node-subtitle">统一视觉气质、构图和光影语言</div>
           </div>
           <div className="storyboard-node-actions">
@@ -279,9 +284,9 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
 
             <div className="storyboard-field">
               <label className="storyboard-field-label">关键词</label>
-              <TextArea
+              <NodeTextareaEditor
                 value={data.keywords}
-                onChange={(event) => updateField('keywords', event.target.value)}
+                onCommit={(value) => updateField('keywords', value)}
                 placeholder="例如：胶片颗粒、雨夜霓虹、低饱和、高反差"
                 autoSize={{ minRows: 2, maxRows: 4 }}
                 className="storyboard-textarea nodrag"
@@ -321,9 +326,9 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
 
             <div className="storyboard-field">
               <label className="storyboard-field-label">备注</label>
-              <TextArea
+              <NodeTextareaEditor
                 value={data.notes}
-                onChange={(event) => updateField('notes', event.target.value)}
+                onCommit={(value) => updateField('notes', value)}
                 placeholder="补充风格禁忌、材质质感、参考导演语言等"
                 autoSize={{ minRows: 2, maxRows: 4 }}
                 className="storyboard-textarea nodrag"
@@ -332,7 +337,7 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
           </div>
         )}
 
-        <Handle type="source" position={Position.Right} className="storyboard-handle" />
+        <Handle type="source" position={Position.Right} className="storyboard-handle handle-kind-context" />
       </div>
     </>
   )

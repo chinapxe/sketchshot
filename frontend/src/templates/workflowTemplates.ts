@@ -5,16 +5,19 @@ import type {
   AppNode,
   AppNodeType,
   CharacterNodeData,
+  ContinuityNodeData,
   ImageDisplayNodeData,
   ImageGenNodeData,
   ImageUploadNodeData,
   SceneNodeData,
   ShotNodeData,
   StyleNodeData,
+  ThreeViewGenNodeData,
   VideoDisplayNodeData,
   VideoGenNodeData,
 } from '../types'
 import { MAX_CHARACTER_IDENTITY_STRENGTH } from '../utils/characterConsistency'
+import { CHARACTER_THREE_VIEW_TARGET_HANDLE_IDS, THREE_VIEW_SLOT_HANDLE_IDS } from '../utils/threeView'
 
 export interface WorkflowTemplateDefinition {
   id: string
@@ -86,6 +89,33 @@ function createImageDisplayNode(position: { x: number; y: number }, label: strin
     label,
     images: [],
     status: 'idle',
+  })
+}
+
+function createThreeViewGenNode(
+  position: { x: number; y: number },
+  options: Partial<ThreeViewGenNodeData> & Pick<ThreeViewGenNodeData, 'label' | 'prompt'>
+): AppNode {
+  const outputMode = options.outputMode ?? 'sheet'
+
+  return createNodeBase<ThreeViewGenNodeData>('threeViewGen', position, {
+    label: options.label,
+    prompt: options.prompt,
+    aspectRatio: options.aspectRatio ?? '16:9',
+    resolution: options.resolution ?? '2K',
+    adapter: options.adapter ?? 'volcengine',
+    referenceImages: [],
+    outputMode,
+    status: 'idle',
+    progress: 0,
+    creditCost: outputMode === 'split' ? 90 : 30,
+    outputImage: undefined,
+    outputImages: {},
+    lastRunSignature: undefined,
+    resultCache: {},
+    splitResultCache: {},
+    needsRefresh: false,
+    errorMessage: undefined,
   })
 }
 
@@ -218,13 +248,34 @@ function createShotNode(
   })
 }
 
-function createEdge(source: AppNode, target: AppNode): AppEdge {
+function createContinuityNode(
+  position: { x: number; y: number },
+  options: Partial<ContinuityNodeData> & Pick<ContinuityNodeData, 'label'>
+): AppNode {
+  return createNodeBase<ContinuityNodeData>('continuity', position, {
+    label: options.label,
+    collapsed: options.collapsed ?? false,
+    prompt: options.prompt ?? '',
+    frames: Array.from({ length: 9 }, (_, index) => options.frames?.[index] ?? ''),
+  })
+}
+
+function createEdge(
+  source: AppNode,
+  target: AppNode,
+  handles?: {
+    sourceHandle?: string
+    targetHandle?: string
+  }
+): AppEdge {
   return {
     id: uuidv4(),
     source: source.id,
     target: target.id,
+    sourceHandle: handles?.sourceHandle,
+    targetHandle: handles?.targetHandle,
     type: 'smoothstep',
-    animated: true,
+    animated: false,
   } as AppEdge
 }
 
@@ -564,7 +615,7 @@ function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
     stateTags: ['整洁'],
     wardrobe: '素色旗袍、长风衣',
     props: '画夹、旧钢笔',
-    notes: '把三张上传图连接到角色节点后，可在人物三视图 Lite 中指定正面 / 侧面 / 背面。',
+    notes: '把三张上传图分别接到角色节点左侧的正面 / 侧面 / 背面入口后，会自动沉淀到人物三视图。',
   })
   const sceneNode = createSceneNode({ x: 760, y: 120 }, {
     label: '场次',
@@ -615,12 +666,107 @@ function createCharacterSheetTemplate(): WorkflowTemplateDefinition {
     useCases: ['角色设定先行', '三视图沉淀', '角色稳定性确认'],
     presetHighlights: ['三张参考图沉淀角色', '定妆镜头验证', '3:4 人物设定向'],
     learningPoints: ['角色三视图', '角色设定复用', '角色到镜头继承'],
-    firstActionHint: '先把三张参考图接到角色节点，再在三视图 Lite 里指定正面、侧面、背面。',
+    firstActionHint: '先把三张参考图分别接到角色节点左侧的正面、侧面、背面入口，再直接生成定妆镜头。',
     nodes: [uploadFront, uploadSide, uploadBack, characterNode, sceneNode, styleNode, shotNode, displayNode],
     edges: [
-      createEdge(uploadFront, characterNode),
-      createEdge(uploadSide, characterNode),
-      createEdge(uploadBack, characterNode),
+      createEdge(uploadFront, characterNode, { targetHandle: CHARACTER_THREE_VIEW_TARGET_HANDLE_IDS.front }),
+      createEdge(uploadSide, characterNode, { targetHandle: CHARACTER_THREE_VIEW_TARGET_HANDLE_IDS.side }),
+      createEdge(uploadBack, characterNode, { targetHandle: CHARACTER_THREE_VIEW_TARGET_HANDLE_IDS.back }),
+      createEdge(characterNode, shotNode),
+      createEdge(sceneNode, shotNode),
+      createEdge(styleNode, shotNode),
+      createEdge(shotNode, displayNode),
+    ],
+  }
+}
+
+function createThreeViewToCharacterTemplate(): WorkflowTemplateDefinition {
+  const uploadNode = createUploadNode({ x: 60, y: 320 }, '角色参考上传')
+  const threeViewNode = createThreeViewGenNode({ x: 420, y: 260 }, {
+    label: '三视图生成',
+    prompt: '保持同一角色的发型、服装、体型和配色一致，输出全身站姿的正面、侧面、背面三视图，背景干净，适合作为角色设定。',
+    aspectRatio: '3:4',
+    outputMode: 'split',
+  })
+  const threeViewDisplayNode = createImageDisplayNode({ x: 760, y: 80 }, '三视图结果预览')
+  const characterNode = createCharacterNode({ x: 760, y: 360 }, {
+    label: '角色',
+    name: '苏离',
+    role: '故事主角 / 民国女画师',
+    appearance: '瘦高身形、眉眼清冷、发髻利落，神态内敛但专注，适合先稳定人物设定再进入正式镜头。',
+    temperamentTags: ['冷静', '温柔'],
+    stateTags: ['整洁'],
+    wardrobe: '素色旗袍、长风衣',
+    props: '画夹、旧钢笔',
+    notes: '上游三视图节点的正面 / 侧面 / 背面输出已分别连到角色节点对应入口，生成后会自动沉淀到人物三视图槽位。',
+  })
+  const sceneNode = createSceneNode({ x: 1120, y: 120 }, {
+    label: '场次',
+    title: '角色定妆确认',
+    synopsis: '先用一张定妆镜头确认角色在正式故事板中的稳定形象，再进入后续剧情镜头。',
+    beat: '角色第一次完整亮相，重点检查服装、轮廓和气质是否稳定。',
+    notes: '这套模板适合先跑通“三视图节点 -> 角色节点 -> 镜头节点”的完整链路。',
+  })
+  const styleNode = createStyleNode({ x: 1120, y: 460 }, {
+    styleTags: ['电影写实', '人物定妆'],
+    paletteTags: ['米白暗红', '暖金棕'],
+    lightingTags: ['柔和棚拍光', '轮廓边缘光'],
+    framingTags: ['居中构图', '稳定中景'],
+    qualityTags: ['高级质感', '细节清晰'],
+    label: '风格',
+    name: '复古电影定妆',
+    keywords: '电影感角色定妆，细节清晰，服装材质明确，人物气质稳定',
+    palette: '米白、暗红、暖金棕',
+    lighting: '柔和主光加轻微轮廓光',
+    framing: '中景居中，优先完整展示人物轮廓和服装',
+    notes: '适合检验角色三视图沉淀后，镜头生成是否还能保持统一形象。',
+  })
+  const shotNode = createShotNode({ x: 1460, y: 300 }, {
+    label: '镜头',
+    title: '角色定妆镜头',
+    description: '角色站定看向镜头外侧，保留完整服装轮廓和稳定气质，用于确认角色设定已经可以进入正式故事板。',
+    prompt: '优先保持角色形象稳定，完整展示服装、发型和体态，不追求激烈动作。',
+    shotSize: 'medium',
+    cameraAngle: 'eye-level',
+    cameraMovement: '静止镜头',
+    composition: '居中构图',
+    lightingStyle: '柔和主光',
+    moodTags: ['平静', '克制'],
+    qualityTags: ['电影感', '细节丰富'],
+    motion: '站姿稳定，衣摆轻微摆动',
+    emotion: '冷静专注',
+    aspectRatio: '3:4',
+    outputType: 'image',
+  })
+  const displayNode = createImageDisplayNode({ x: 1800, y: 300 }, '定妆镜头结果')
+
+  return {
+    id: 'three-view-to-character-shot',
+    name: '推荐 · 三视图生成接入角色',
+    description: '从一张角色参考图出发，先生成三视图并沉淀到角色节点，再把正式三视图带入定妆镜头，是当前最贴近实际用法的角色模板。',
+    category: 'character',
+    recommended: true,
+    useCases: ['角色定妆起步', '三视图自动沉淀', '角色稳定性验证'],
+    presetHighlights: ['三视图节点直连角色', '角色正式三视图下游复用', '3:4 定妆镜头验证'],
+    learningPoints: ['三视图生成节点', '角色正式三视图', '角色到镜头复用'],
+    firstActionHint: '先上传一张角色参考图，执行三视图生成节点，再到角色节点确认人物三视图，最后生成定妆镜头。',
+    nodes: [uploadNode, threeViewNode, threeViewDisplayNode, characterNode, sceneNode, styleNode, shotNode, displayNode],
+    edges: [
+      createEdge(uploadNode, threeViewNode),
+      createEdge(uploadNode, characterNode),
+      createEdge(threeViewNode, threeViewDisplayNode),
+      createEdge(threeViewNode, characterNode, {
+        sourceHandle: THREE_VIEW_SLOT_HANDLE_IDS.front,
+        targetHandle: CHARACTER_THREE_VIEW_TARGET_HANDLE_IDS.front,
+      }),
+      createEdge(threeViewNode, characterNode, {
+        sourceHandle: THREE_VIEW_SLOT_HANDLE_IDS.side,
+        targetHandle: CHARACTER_THREE_VIEW_TARGET_HANDLE_IDS.side,
+      }),
+      createEdge(threeViewNode, characterNode, {
+        sourceHandle: THREE_VIEW_SLOT_HANDLE_IDS.back,
+        targetHandle: CHARACTER_THREE_VIEW_TARGET_HANDLE_IDS.back,
+      }),
       createEdge(characterNode, shotNode),
       createEdge(sceneNode, shotNode),
       createEdge(styleNode, shotNode),
@@ -664,17 +810,9 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
     framing: '单点透视、空间纵深明显',
     notes: '让视频镜头更强调连续动作和空间推进。',
   })
-  const shotNode = createShotNode({ x: 1100, y: 240 }, {
-    cameraMovement: '缓慢推近',
-    composition: '纵深透视',
-    lightingStyle: '顶光压迫',
-    moodTags: ['紧张', '神秘'],
-    qualityTags: ['电影感', '空气透视'],
-    label: '镜头',
-    title: '停步回头视频镜头',
-    description: '角色在奔跑中停住，呼吸急促，随后缓慢回头看向后方。',
-    prompt: '上传首帧和尾帧后，可在镜头节点里分别选择约束图，再生成视频。',
-    continuityFrames: [
+  const continuityNode = createContinuityNode({ x: 1100, y: 520 }, {
+    label: '九宫格动作',
+    frames: [
       '角色仍保持前冲后的惯性',
       '脚步开始减速',
       '身体轻微失衡',
@@ -685,6 +823,17 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
       '目光锁定后方目标',
       '情绪最终收紧停住',
     ],
+  })
+  const shotNode = createShotNode({ x: 1460, y: 240 }, {
+    cameraMovement: '缓慢推近',
+    composition: '纵深透视',
+    lightingStyle: '顶光压迫',
+    moodTags: ['紧张', '神秘'],
+    qualityTags: ['电影感', '空气透视'],
+    label: '镜头',
+    title: '停步回头视频镜头',
+    description: '角色在奔跑中停住，呼吸急促，随后缓慢回头看向后方。',
+    prompt: '上传首帧和尾帧后，可在镜头节点里分别选择约束图，再生成视频。',
     shotSize: 'medium',
     cameraAngle: 'eye-level',
     motion: '先快后慢，最终停住回看',
@@ -694,7 +843,7 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
     durationSeconds: 5,
     motionStrength: 0.7,
   })
-  const displayNode = createVideoDisplayNode({ x: 1440, y: 240 }, '视频结果预览')
+  const displayNode = createVideoDisplayNode({ x: 1800, y: 240 }, '视频结果预览')
 
   return {
     id: 'video-continuity-shot',
@@ -705,14 +854,15 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
     useCases: ['首尾帧视频', '连续动作练习', '长镜头感'],
     presetHighlights: ['首帧 + 尾帧双约束', '九宫格动作拆解', '5秒视频镜头'],
     learningPoints: ['首帧/尾帧约束', '九宫格连续动作', '视频镜头主链路'],
-    firstActionHint: '先上传首帧和尾帧参考，再在视频镜头里分别选择约束图后执行生成。',
-    nodes: [firstFrameUpload, lastFrameUpload, sceneNode, characterNode, styleNode, shotNode, displayNode],
+    firstActionHint: '先上传首帧和尾帧参考，再补充九宫格动作节点，最后在视频镜头里选择约束图后执行生成。',
+    nodes: [firstFrameUpload, lastFrameUpload, sceneNode, characterNode, styleNode, continuityNode, shotNode, displayNode],
     edges: [
       createEdge(firstFrameUpload, shotNode),
       createEdge(lastFrameUpload, shotNode),
       createEdge(sceneNode, shotNode),
       createEdge(characterNode, shotNode),
       createEdge(styleNode, shotNode),
+      createEdge(continuityNode, shotNode),
       createEdge(shotNode, displayNode),
     ],
   }
@@ -721,6 +871,7 @@ function createVideoContinuityTemplate(): WorkflowTemplateDefinition {
 export const workflowTemplates: WorkflowTemplateDefinition[] = [
   createStoryboardDirectorTemplate(),
   createStoryboardSequenceTemplate(),
+  createThreeViewToCharacterTemplate(),
   createCharacterSheetTemplate(),
   createVideoContinuityTemplate(),
   createDualStyleTemplate(),

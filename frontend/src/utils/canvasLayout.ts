@@ -12,7 +12,7 @@ const LAYOUT_MAX_LEVEL_COLUMN_HEIGHT = 1400
 const LAYOUT_MAX_LEVEL_SUBCOLUMNS = 3
 const LAYOUT_MAX_ROW_WIDTH = 2200
 
-const storyboardTypes = new Set<AppNodeType>(['scene', 'character', 'style', 'shot'])
+const storyboardTypes = new Set<AppNodeType>(['scene', 'character', 'style', 'continuity', 'shot'])
 
 function sortNodesByPosition(left: AppNode, right: AppNode) {
   if (left.position.y !== right.position.y) {

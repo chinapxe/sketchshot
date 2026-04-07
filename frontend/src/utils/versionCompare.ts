@@ -1,5 +1,14 @@
-import type { AppEdge, AppNode, ImageGenNodeData, ShotNodeData, VideoGenNodeData } from '../types'
+import type {
+  AppEdge,
+  AppNode,
+  ContinuityNodeData,
+  ImageGenNodeData,
+  ShotNodeData,
+  ThreeViewGenNodeData,
+  VideoGenNodeData,
+} from '../types'
 import { getShotSequenceMap } from './shotSequences'
+import { getPrimaryThreeViewOutputImage, getThreeViewOutputEntries, getThreeViewOutputMode } from './threeView'
 
 export interface NodeVersionAsset {
   key: string
@@ -48,6 +57,17 @@ function getNodeVersionSource(node: AppNode): {
     }
   }
 
+  if (node.type === 'threeViewGen') {
+    const data = node.data as ThreeViewGenNodeData
+    return {
+      assetType: 'image',
+      currentAssetUrl: data.outputImage,
+      cache: data.resultCache,
+      title: compactText(data.label) || '三视图生成',
+      subtitle: compactText(data.prompt) || '等待生成三视图拼板',
+    }
+  }
+
   if (node.type === 'videoGen') {
     const data = node.data as VideoGenNodeData
     return {
@@ -56,6 +76,17 @@ function getNodeVersionSource(node: AppNode): {
       cache: data.resultCache,
       title: compactText(data.label) || '视频生成',
       subtitle: compactText(data.prompt) || '等待填写视频提示词',
+    }
+  }
+
+  if (node.type === 'continuity') {
+    const data = node.data as ContinuityNodeData
+    return {
+      assetType: 'image',
+      currentAssetUrl: data.outputImage,
+      cache: data.resultCache,
+      title: compactText(data.label) || '九宫格动作',
+      subtitle: compactText(data.prompt) || '等待生成九宫格预览图',
     }
   }
 
@@ -83,6 +114,65 @@ export function getNodeVersionAssets(node: AppNode): {
   title: string
   subtitle: string
 } {
+  if (node.type === 'threeViewGen') {
+    const data = node.data as ThreeViewGenNodeData
+
+    if (getThreeViewOutputMode(data) === 'split') {
+      const title = compactText(data.label) || '三视图生成'
+      const subtitle = compactText(data.prompt) || '输出模式: 三张独立图'
+      const versions: NodeVersionAsset[] = []
+      const seenUrls = new Set<string>()
+      const currentAssetUrl = getPrimaryThreeViewOutputImage(data)
+
+      getThreeViewOutputEntries(data).forEach((entry) => {
+        if (seenUrls.has(entry.url)) {
+          return
+        }
+
+        seenUrls.add(entry.url)
+        versions.push({
+          key: `${node.id}-current-${entry.key}-${entry.url}`,
+          url: entry.url,
+          label: `当前版本 - ${entry.label}`,
+          isCurrent: true,
+        })
+      })
+
+      let historyIndex = 1
+      Object.values(data.splitResultCache ?? {}).forEach((images) => {
+        const historyEntries = getThreeViewOutputEntries({
+          outputMode: 'split',
+          outputImage: undefined,
+          outputImages: images,
+        } as ThreeViewGenNodeData)
+
+        historyEntries.forEach((entry) => {
+          if (seenUrls.has(entry.url)) {
+            return
+          }
+
+          seenUrls.add(entry.url)
+          versions.push({
+            key: `${node.id}-history-${historyIndex}-${entry.key}-${entry.url}`,
+            url: entry.url,
+            label: `历史版本 ${historyIndex} - ${entry.label}`,
+            isCurrent: false,
+          })
+        })
+
+        historyIndex += 1
+      })
+
+      return {
+        assetType: 'image',
+        currentAssetUrl,
+        versions,
+        title,
+        subtitle,
+      }
+    }
+  }
+
   const source = getNodeVersionSource(node)
   if (!source.assetType) {
     return {
@@ -121,7 +211,13 @@ export function getNodeVersionAssets(node: AppNode): {
 }
 
 function isComparableNode(node: AppNode): boolean {
-  return node.type === 'imageGen' || node.type === 'videoGen' || node.type === 'shot'
+  return (
+    node.type === 'imageGen'
+    || node.type === 'threeViewGen'
+    || node.type === 'videoGen'
+    || node.type === 'shot'
+    || node.type === 'continuity'
+  )
 }
 
 export function getVersionCompareEntries(nodes: AppNode[], edges: AppEdge[]): VersionCompareEntry[] {

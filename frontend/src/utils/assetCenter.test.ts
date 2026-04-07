@@ -131,4 +131,46 @@ describe('getAssetCenterEntries', () => {
       },
     ])
   })
+
+  it('includes character three-view slots and preserves generated source linkage', () => {
+    const nodes: AppNode[] = [
+      {
+        id: 'character-1',
+        type: 'character',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Character',
+          name: 'Hero',
+          role: 'Lead',
+          appearance: '',
+          wardrobe: '',
+          props: '',
+          notes: '',
+          referenceImages: ['/uploads/hero.png'],
+          threeViewImages: {
+            front: '/outputs/hero-front.png',
+          },
+          generatedThreeViewImages: {
+            front: '/outputs/hero-front.png',
+          },
+        },
+      } as AppNode,
+    ]
+
+    const entries = getAssetCenterEntries(nodes)
+    const frontEntry = entries.find((entry) => entry.url === '/outputs/hero-front.png')
+
+    expect(frontEntry).toBeDefined()
+    expect(frontEntry?.category).toBe('generated')
+    expect(frontEntry?.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          nodeId: 'character-1',
+          nodeType: 'character',
+        }),
+      ])
+    )
+    expect(frontEntry?.sources).toHaveLength(2)
+    expect(new Set(frontEntry?.sources.map((source) => source.relation)).size).toBe(2)
+  })
 })

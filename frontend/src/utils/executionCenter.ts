@@ -1,5 +1,14 @@
-import type { AppEdge, AppNode, NodeStatus, ShotNodeData, VideoGenNodeData } from '../types'
+import type {
+  AppEdge,
+  AppNode,
+  ContinuityNodeData,
+  NodeStatus,
+  ShotNodeData,
+  ThreeViewGenNodeData,
+  VideoGenNodeData,
+} from '../types'
 import { getShotSequenceMap } from './shotSequences'
+import { getPrimaryThreeViewOutputImage } from './threeView'
 import { getNodeVersionAssets } from './versionCompare'
 
 export interface ExecutionCenterEntry {
@@ -29,7 +38,13 @@ function compactText(value: string | undefined): string {
 }
 
 function isExecutableNode(node: AppNode): boolean {
-  return node.type === 'imageGen' || node.type === 'videoGen' || node.type === 'shot'
+  return (
+    node.type === 'imageGen'
+    || node.type === 'threeViewGen'
+    || node.type === 'videoGen'
+    || node.type === 'shot'
+    || node.type === 'continuity'
+  )
 }
 
 export function getExecutionCenterEntries(nodes: AppNode[]): ExecutionCenterEntry[] {
@@ -75,6 +90,43 @@ export function getExecutionCenterEntriesWithEdges(nodes: AppNode[], edges: AppE
           errorMessage: data.errorMessage,
           assetType: data.outputVideo ? 'video' : undefined,
           assetUrl: data.outputVideo,
+          versionCount: versions.versions.length,
+        } satisfies ExecutionCenterEntry
+      }
+
+      if (node.type === 'threeViewGen') {
+        const data = node.data as ThreeViewGenNodeData
+        const primaryOutputImage = getPrimaryThreeViewOutputImage(data)
+        return {
+          id: node.id,
+          nodeType: node.type,
+          title: compactText(data.label) || '三视图生成',
+          subtitle: compactText(data.prompt) || '等待补充三视图要求',
+          status: data.status,
+          progress: data.progress,
+          disabled,
+          errorMessage: data.errorMessage,
+          assetType: primaryOutputImage ? 'image' : undefined,
+          assetUrl: primaryOutputImage,
+          versionCount: versions.versions.length,
+        } satisfies ExecutionCenterEntry
+      }
+
+      if (node.type === 'continuity') {
+        const data = node.data as ContinuityNodeData
+        const filledCount = (data.frames ?? []).filter((frame) => frame.trim().length > 0).length
+
+        return {
+          id: node.id,
+          nodeType: node.type,
+          title: compactText(data.label) || '九宫格动作',
+          subtitle: compactText(data.prompt) || `已填写 ${filledCount}/9 格连续动作`,
+          status: data.status ?? 'idle',
+          progress: data.progress ?? 0,
+          disabled,
+          errorMessage: data.errorMessage,
+          assetType: data.outputImage ? 'image' : undefined,
+          assetUrl: data.outputImage,
           versionCount: versions.versions.length,
         } satisfies ExecutionCenterEntry
       }

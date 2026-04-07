@@ -125,11 +125,14 @@
 .node-handle {
   width: 10px;
   height: 10px;
-  background: #fff;
-  border: 2px solid #1677ff;
+  background: var(--handle-fill, #fff);
+  border: 2px solid var(--handle-stroke, #1677ff);
   border-radius: 50%;
+  box-shadow: var(--handle-shadow, none);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .node-handle:hover {
-  background: #1677ff;
+  background: var(--handle-hover-fill, var(--handle-stroke, #1677ff));
+  transform: scale(1.08);
 }

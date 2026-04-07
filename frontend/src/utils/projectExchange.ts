@@ -3,11 +3,13 @@ import type {
   AppNode,
   CharacterNodeData,
   CharacterThreeViewImages,
+  ContinuityNodeData,
   ImageDisplayNodeData,
   ImageGenNodeData,
   ImageUploadNodeData,
   NodeStatus,
   ShotNodeData,
+  ThreeViewGenNodeData,
   VideoDisplayNodeData,
   VideoGenNodeData,
 } from '../types'
@@ -176,6 +178,17 @@ function resetTransientNodeState(node: AppNode): AppNode {
     return clonedNode
   }
 
+  if (node.type === 'continuity') {
+    const data = clonedNode.data as ContinuityNodeData
+    data.status = normalizeStatusForPersistence(data.status)
+    data.progress = data.status === 'idle' ? 0 : data.progress ?? 0
+    delete data.needsRefresh
+    if (data.status === 'idle') {
+      delete data.errorMessage
+    }
+    return clonedNode
+  }
+
   if (node.type === 'videoDisplay') {
     const data = clonedNode.data as VideoDisplayNodeData
     data.status = normalizeStatusForPersistence(data.status)
@@ -188,6 +201,17 @@ function resetTransientNodeState(node: AppNode): AppNode {
     data.progress = data.status === 'idle' ? 0 : data.progress
     data.isUploadingReferences = false
     delete data.referenceUploadError
+    delete data.needsRefresh
+    if (data.status === 'idle') {
+      delete data.errorMessage
+    }
+    return clonedNode
+  }
+
+  if (node.type === 'threeViewGen') {
+    const data = clonedNode.data as ThreeViewGenNodeData
+    data.status = normalizeStatusForPersistence(data.status)
+    data.progress = data.status === 'idle' ? 0 : data.progress
     delete data.needsRefresh
     if (data.status === 'idle') {
       delete data.errorMessage
@@ -269,6 +293,22 @@ function mapResultCache(
   return Object.fromEntries(mappedEntries)
 }
 
+function mapThreeViewResultCache(
+  value: unknown,
+  mapper: (url: string) => string
+): Record<string, CharacterThreeViewImages> | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, cacheValue]) => [
+      key,
+      mapThreeViewImages(isRecord(cacheValue) ? (cacheValue as CharacterThreeViewImages) : undefined, mapper),
+    ])
+  )
+}
+
 function mapThreeViewImages(
   value: CharacterThreeViewImages | undefined,
   mapper: (url: string) => string
@@ -305,9 +345,26 @@ function mapNodeAssetUrls(node: AppNode, mapper: (url: string) => string): AppNo
     return clonedNode
   }
 
+  if (clonedNode.type === 'threeViewGen') {
+    const data = clonedNode.data as ThreeViewGenNodeData
+    data.referenceImages = mapStringArray(data.referenceImages, mapper)
+    data.outputImage = mapOptionalUrl(data.outputImage, mapper)
+    data.outputImages = mapThreeViewImages(data.outputImages, mapper)
+    data.resultCache = mapResultCache(data.resultCache, mapper)
+    data.splitResultCache = mapThreeViewResultCache(data.splitResultCache, mapper)
+    return clonedNode
+  }
+
   if (clonedNode.type === 'imageDisplay') {
     const data = clonedNode.data as ImageDisplayNodeData
     data.images = mapStringArray(data.images, mapper)
+    return clonedNode
+  }
+
+  if (clonedNode.type === 'continuity') {
+    const data = clonedNode.data as ContinuityNodeData
+    data.outputImage = mapOptionalUrl(data.outputImage, mapper)
+    data.resultCache = mapResultCache(data.resultCache, mapper)
     return clonedNode
   }
 
@@ -328,7 +385,9 @@ function mapNodeAssetUrls(node: AppNode, mapper: (url: string) => string): AppNo
   if (clonedNode.type === 'character') {
     const data = clonedNode.data as CharacterNodeData
     data.referenceImages = mapStringArray(data.referenceImages, mapper)
+    data.threeViewSheetImage = mapOptionalUrl(data.threeViewSheetImage, mapper)
     data.threeViewImages = mapThreeViewImages(data.threeViewImages, mapper)
+    data.generatedThreeViewImages = mapThreeViewImages(data.generatedThreeViewImages, mapper)
     return clonedNode
   }
 
@@ -398,9 +457,34 @@ function collectProjectAssetSources(nodes: AppNode[]): AssetSourceCandidate[] {
       return
     }
 
+    if (node.type === 'threeViewGen') {
+      const data = node.data as ThreeViewGenNodeData
+      const baseName = sanitizeFilePart(data.label || 'three-view')
+      data.referenceImages?.forEach((url, index) => addAssetCandidate(candidates, url, `${baseName}-reference-${index + 1}`))
+      addAssetCandidate(candidates, data.outputImage, `${baseName}-output`)
+      addAssetCandidate(candidates, data.outputImages?.front, `${baseName}-front`)
+      addAssetCandidate(candidates, data.outputImages?.side, `${baseName}-side`)
+      addAssetCandidate(candidates, data.outputImages?.back, `${baseName}-back`)
+      addAssetCandidatesFromResultCache(candidates, data.resultCache, `${baseName}-cache`)
+      Object.values(data.splitResultCache ?? {}).forEach((images) => {
+        addAssetCandidate(candidates, images.front, `${baseName}-cache-front`)
+        addAssetCandidate(candidates, images.side, `${baseName}-cache-side`)
+        addAssetCandidate(candidates, images.back, `${baseName}-cache-back`)
+      })
+      return
+    }
+
     if (node.type === 'imageDisplay') {
       const data = node.data as ImageDisplayNodeData
       data.images?.forEach((url, index) => addAssetCandidate(candidates, url, `${data.label || 'image-display'}-${index + 1}`))
+      return
+    }
+
+    if (node.type === 'continuity') {
+      const data = node.data as ContinuityNodeData
+      const baseName = sanitizeFilePart(data.label || 'continuity')
+      addAssetCandidate(candidates, data.outputImage, `${baseName}-output`)
+      addAssetCandidatesFromResultCache(candidates, data.resultCache, `${baseName}-cache`)
       return
     }
 
@@ -423,9 +507,13 @@ function collectProjectAssetSources(nodes: AppNode[]): AssetSourceCandidate[] {
       const data = node.data as CharacterNodeData
       const baseName = sanitizeFilePart(data.name || data.label || 'character')
       data.referenceImages?.forEach((url, index) => addAssetCandidate(candidates, url, `${baseName}-reference-${index + 1}`))
+      addAssetCandidate(candidates, data.threeViewSheetImage, `${baseName}-three-view-sheet`)
       addAssetCandidate(candidates, data.threeViewImages?.front, `${baseName}-front`)
       addAssetCandidate(candidates, data.threeViewImages?.side, `${baseName}-side`)
       addAssetCandidate(candidates, data.threeViewImages?.back, `${baseName}-back`)
+      addAssetCandidate(candidates, data.generatedThreeViewImages?.front, `${baseName}-generated-front`)
+      addAssetCandidate(candidates, data.generatedThreeViewImages?.side, `${baseName}-generated-side`)
+      addAssetCandidate(candidates, data.generatedThreeViewImages?.back, `${baseName}-generated-back`)
       return
     }
 

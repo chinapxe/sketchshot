@@ -1,12 +1,15 @@
 import type {
   AppNode,
+  ContinuityNodeData,
   ImageDisplayNodeData,
   ImageGenNodeData,
   ShotNodeData,
+  ThreeViewGenNodeData,
   VideoDisplayNodeData,
   VideoGenNodeData,
 } from '../types'
 import { createZipBlob, encodeTextFile } from '../utils/zip'
+import { getThreeViewOutputEntries } from '../utils/threeView'
 
 interface ExportAsset {
   nodeId: string
@@ -96,6 +99,38 @@ function createExportAssets(nodes: AppNode[]): ExportAsset[] {
 
     if (node.type === 'imageGen') {
       const data = node.data as ImageGenNodeData
+      pushAsset(
+        assets,
+        seenUrls,
+        data.outputImage
+          ? {
+              nodeId: node.id,
+              nodeType: node.type,
+              nodeLabel: data.label,
+              url: data.outputImage,
+              suggestedName: `${sanitizeFilePart(data.label)}-output`,
+            }
+          : null
+      )
+      return
+    }
+
+    if (node.type === 'threeViewGen') {
+      const data = node.data as ThreeViewGenNodeData
+      getThreeViewOutputEntries(data).forEach((entry) => {
+        pushAsset(assets, seenUrls, {
+          nodeId: node.id,
+          nodeType: node.type,
+          nodeLabel: data.label,
+          url: entry.url,
+          suggestedName: `${sanitizeFilePart(data.label)}-${sanitizeFilePart(entry.label)}`,
+        })
+      })
+      return
+    }
+
+    if (node.type === 'continuity') {
+      const data = node.data as ContinuityNodeData
       pushAsset(
         assets,
         seenUrls,

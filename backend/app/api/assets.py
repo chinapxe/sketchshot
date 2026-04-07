@@ -8,7 +8,8 @@ import aiofiles
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from ..config import settings
-from ..models.schemas import UploadedAssetResponse
+from ..models.schemas import SplitThreeViewSheetRequest, SplitThreeViewSheetResponse, UploadedAssetResponse
+from ..services.three_view_split_service import ThreeViewSplitService
 
 router = APIRouter(prefix="/api/assets", tags=["assets"])
 
@@ -18,6 +19,11 @@ ALLOWED_IMAGE_TYPES = {
     "image/webp": ".webp",
     "image/gif": ".gif",
 }
+
+three_view_split_service = ThreeViewSplitService(
+    upload_dir=settings.UPLOAD_DIR,
+    output_dir=settings.OUTPUT_DIR,
+)
 
 
 @router.post("/upload", response_model=UploadedAssetResponse)
@@ -43,4 +49,21 @@ async def upload_image_asset(file: UploadFile = File(...)):
         content_type=file.content_type,
         size=len(content),
         url=f"/uploads/{stored_name}",
+    )
+
+
+@router.post("/split-three-view", response_model=SplitThreeViewSheetResponse)
+async def split_three_view_sheet(payload: SplitThreeViewSheetRequest):
+    """Split a three-view sheet image into front / side / back assets."""
+    try:
+        outputs = three_view_split_service.split_sheet(payload.asset_url)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return SplitThreeViewSheetResponse(
+        front=outputs["front"],
+        side=outputs["side"],
+        back=outputs["back"],
     )

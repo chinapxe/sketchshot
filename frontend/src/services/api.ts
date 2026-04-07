@@ -63,6 +63,23 @@ export interface WorkflowData {
   updated_at: string
 }
 
+export interface UserTemplateListItem {
+  id: string
+  name: string
+  node_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface UserTemplateData {
+  id: string
+  name: string
+  nodes: unknown[]
+  edges: unknown[]
+  created_at: string
+  updated_at: string
+}
+
 export function listWorkflows(): Promise<WorkflowListItem[]> {
   return request('/api/workflows')
 }
@@ -84,6 +101,22 @@ export function updateWorkflow(
 
 export function deleteWorkflow(id: string): Promise<{ code: number; message: string }> {
   return request(`/api/workflows/${id}`, { method: 'DELETE' })
+}
+
+export function listUserTemplates(): Promise<UserTemplateListItem[]> {
+  return request('/api/templates')
+}
+
+export function getUserTemplate(id: string): Promise<UserTemplateData> {
+  return request(`/api/templates/${id}`)
+}
+
+export function createUserTemplate(data: { name: string; nodes: unknown[]; edges: unknown[] }): Promise<UserTemplateData> {
+  return request('/api/templates', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export function deleteUserTemplate(id: string): Promise<{ code: number; message: string }> {
+  return request(`/api/templates/${id}`, { method: 'DELETE' })
 }
 
 export interface GenerateRequest {
@@ -113,12 +146,24 @@ export interface PromptGenerateRequest {
   style: string
   aspect_ratio: string
   extra_requirements: string[]
+  reference_images?: string[]
   language: 'zh' | 'en'
 }
 
 export interface PromptGenerateResponse {
   prompt: string
   task_type: 'image' | 'video' | 'general'
+  model: string
+}
+
+export interface ContinuityFramesGenerateRequest {
+  user_input: string
+  reference_images?: string[]
+  language: 'zh' | 'en'
+}
+
+export interface ContinuityFramesGenerateResponse {
+  frames: string[]
   model: string
 }
 
@@ -151,11 +196,27 @@ export function generatePrompt(req: PromptGenerateRequest): Promise<PromptGenera
   return request('/api/prompts/generate', { method: 'POST', body: JSON.stringify(req) })
 }
 
+export function generateContinuityFrames(
+  req: ContinuityFramesGenerateRequest
+): Promise<ContinuityFramesGenerateResponse> {
+  return request('/api/prompts/continuity/frames', { method: 'POST', body: JSON.stringify(req) })
+}
+
 export interface UploadedAssetResponse {
   file_name: string
   content_type: string
   size: number
   url: string
+}
+
+export interface SplitThreeViewSheetRequest {
+  asset_url: string
+}
+
+export interface SplitThreeViewSheetResponse {
+  front: string
+  side: string
+  back: string
 }
 
 export interface VolcengineConfigResponse {
@@ -193,6 +254,12 @@ export async function uploadImageAsset(file: File): Promise<UploadedAssetRespons
   }
 
   return response.json()
+}
+
+export function splitThreeViewSheet(
+  data: SplitThreeViewSheetRequest
+): Promise<SplitThreeViewSheetResponse> {
+  return request('/api/assets/split-three-view', { method: 'POST', body: JSON.stringify(data) })
 }
 
 export function getTaskStatus(taskId: string): Promise<TaskStatusResponse> {
