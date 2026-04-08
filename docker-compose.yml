@@ -1,0 +1,70 @@
+services:
+  backend:
+    image: wxhb-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        PIP_INDEX_URL: "${WXHB_PIP_INDEX_URL:-}"
+        PIP_TRUSTED_HOST: "${WXHB_PIP_TRUSTED_HOST:-}"
+    restart: unless-stopped
+    environment:
+      APP_NAME: "${WXHB_APP_NAME:-SketchShot - AI Storyboard Canvas}"
+      DEBUG: "${WXHB_DEBUG:-False}"
+      PORT: 8000
+      CORS_ORIGINS: '${WXHB_CORS_ORIGINS:-["http://localhost:8080","http://127.0.0.1:8080"]}'
+      WORKFLOW_STORAGE_DIR: /app/data/workflows
+      UPLOAD_DIR: /app/data/uploads
+      OUTPUT_DIR: /app/data/outputs
+      MOCK_DELAY: "${WXHB_MOCK_DELAY:-3.0}"
+      DEFAULT_ADAPTER: "${WXHB_DEFAULT_ADAPTER:-volcengine}"
+      PUBLIC_BASE_URL: "${WXHB_PUBLIC_BASE_URL:-}"
+      COMFYUI_ENABLED: "${WXHB_COMFYUI_ENABLED:-False}"
+      COMFYUI_BASE_URL: "${WXHB_COMFYUI_BASE_URL:-http://127.0.0.1:8188}"
+      COMFYUI_POLL_INTERVAL: "${WXHB_COMFYUI_POLL_INTERVAL:-1.0}"
+      COMFYUI_TIMEOUT: "${WXHB_COMFYUI_TIMEOUT:-180.0}"
+      COMFYUI_NEGATIVE_PROMPT: "${WXHB_COMFYUI_NEGATIVE_PROMPT:-low quality, blurry, distorted}"
+      VOLCENGINE_ENABLED: "${WXHB_VOLCENGINE_ENABLED:-False}"
+      ARK_BASE_URL: "${WXHB_ARK_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}"
+      ARK_API_KEY: "${WXHB_ARK_API_KEY:-}"
+      VOLCENGINE_TIMEOUT: "${WXHB_VOLCENGINE_TIMEOUT:-180}"
+      VOLCENGINE_REQUEST_TIMEOUT: "${WXHB_VOLCENGINE_REQUEST_TIMEOUT:-180}"
+      VOLCENGINE_VIDEO_TIMEOUT: "${WXHB_VOLCENGINE_VIDEO_TIMEOUT:-900}"
+      VOLCENGINE_POLL_INTERVAL: "${WXHB_VOLCENGINE_POLL_INTERVAL:-3}"
+      VOLCENGINE_PROMPT_MODEL: "${WXHB_VOLCENGINE_PROMPT_MODEL:-doubao-seed-1-6-251015}"
+      VOLCENGINE_IMAGE_MODEL: "${WXHB_VOLCENGINE_IMAGE_MODEL:-doubao-seedream-5-0-260128}"
+      VOLCENGINE_IMAGE_EDIT_MODEL: "${WXHB_VOLCENGINE_IMAGE_EDIT_MODEL:-doubao-seedream-5-0-260128}"
+      VOLCENGINE_VIDEO_MODEL: "${WXHB_VOLCENGINE_VIDEO_MODEL:-doubao-seedance-1-5-pro-251215}"
+      VOLCENGINE_IMAGE_OUTPUT_FORMAT: "${WXHB_VOLCENGINE_IMAGE_OUTPUT_FORMAT:-png}"
+      VOLCENGINE_WATERMARK: "${WXHB_VOLCENGINE_WATERMARK:-False}"
+    volumes:
+      - ./backend/data:/app/data
+    ports:
+      - "${WXHB_BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    image: wxhb-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: "${WXHB_VITE_API_BASE_URL:-}"
+        VITE_WS_BASE_URL: "${WXHB_VITE_WS_BASE_URL:-}"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${WXHB_FRONTEND_PORT:-8080}:80"

@@ -1,0 +1,3 @@
+.\scripts\docker-build.ps1 -Action build
+.\scripts\docker-build.ps1 -Action up
+.\scripts\docker-build.ps1 -Action logs

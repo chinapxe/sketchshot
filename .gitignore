@@ -1,0 +1,49 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.docker
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+!frontend/.env.production.example
+
+# Offline bundle artifacts
+offline-bundle/
+
+# Backend runtime data
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+backend/data/outputs/*
+!backend/data/outputs/.gitkeep
+backend/data/workflows/*
+!backend/data/workflows/.gitkeep
+backend/data/engine_config.json

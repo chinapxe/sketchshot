@@ -1,0 +1,112 @@
+.canvas-wrapper {
+  flex: 1;
+  height: 100%;
+  position: relative;
+}
+
+.handle-kind-image {
+  --handle-fill: #eff6ff;
+  --handle-stroke: #1677ff;
+  --handle-hover-fill: #1677ff;
+  --handle-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+}
+
+.handle-kind-video {
+  --handle-fill: #fff7e6;
+  --handle-stroke: #fa8c16;
+  --handle-hover-fill: #fa8c16;
+  --handle-shadow: 0 0 0 3px rgba(250, 140, 22, 0.14);
+}
+
+.handle-kind-context {
+  --handle-fill: #f6ffed;
+  --handle-stroke: #52c41a;
+  --handle-hover-fill: #52c41a;
+  --handle-shadow: 0 0 0 3px rgba(82, 196, 26, 0.14);
+}
+
+.handle-kind-storyboard {
+  --handle-fill: #fff7e6;
+  --handle-stroke: #b8872b;
+  --handle-hover-fill: #b8872b;
+  --handle-shadow: 0 0 0 3px rgba(184, 135, 43, 0.14);
+}
+
+.handle-kind-hybrid {
+  --handle-fill: conic-gradient(from 180deg, #1677ff 0deg 120deg, #52c41a 120deg 240deg, #b8872b 240deg 360deg);
+  --handle-stroke: #14b8a6;
+  --handle-hover-fill: var(--handle-fill);
+  --handle-shadow: 0 0 0 3px rgba(20, 184, 166, 0.16);
+}
+
+/* React Flow 全局样式覆盖 */
+.react-flow__minimap {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  border-bottom: 1px solid #eee;
+}
+
+/* ====== 节点禁用状态 ====== */
+.node-disabled {
+  opacity: 0.45;
+  pointer-events: auto;
+  position: relative;
+}
+
+.node-disabled::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(0, 0, 0, 0.03) 4px,
+    rgba(0, 0, 0, 0.03) 8px
+  );
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.node-disabled-badge {
+  font-size: 10px;
+  color: #fa8c16;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 4px;
+  padding: 0 4px;
+  line-height: 16px;
+}
+
+/* ====== 节点状态边框 ====== */
+.image-gen-node.status-queued {
+  border-color: #faad14;
+}
+
+.image-gen-node.status-processing {
+  border-color: #1677ff;
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+.image-gen-node.status-success {
+  border-color: #52c41a;
+}
+
+.image-gen-node.status-error {
+  border-color: #ff4d4f;
+}
+
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(22, 119, 255, 0); }
+}

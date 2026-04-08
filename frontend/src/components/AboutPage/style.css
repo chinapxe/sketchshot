@@ -1,0 +1,179 @@
+.about-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  color: #1f2937;
+}
+
+.about-page-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 24px 26px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(191, 219, 254, 0.5), transparent 34%),
+    linear-gradient(135deg, #fffdf8 0%, #f7fbff 52%, #eef6ff 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.about-page-hero::after {
+  content: '';
+  position: absolute;
+  right: -36px;
+  top: -48px;
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(148, 163, 184, 0.12), transparent 70%);
+  pointer-events: none;
+}
+
+.about-page-kicker,
+.about-page-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8a6f45;
+}
+
+.about-page-title {
+  margin: 0;
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1.04;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #172554;
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+}
+
+.about-page-subtitle {
+  margin: 0;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #475569;
+}
+
+.about-page-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.about-page-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  line-height: 1;
+  color: #5b4a2f;
+  background: rgba(255, 250, 240, 0.95);
+  border: 1px solid rgba(234, 220, 192, 0.96);
+}
+
+.about-page-grid,
+.about-page-meaning-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.about-page-meaning-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.about-page-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 18px 20px;
+  border: 1px solid #e7edf5;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+.about-page-card-quote {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 242, 0.98), rgba(255, 255, 255, 0.98)),
+    #fff;
+}
+
+.about-page-card-prose {
+  gap: 14px;
+}
+
+.about-page-poem {
+  margin: 0;
+  padding: 16px 18px;
+  border-left: 3px solid #d6c29d;
+  border-radius: 0 16px 16px 0;
+  background: rgba(255, 250, 242, 0.9);
+}
+
+.about-page-poem p {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.8;
+  color: #4b5563;
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+}
+
+.about-page-poem-source {
+  font-size: 12px;
+  color: #8b6f48;
+  letter-spacing: 0.08em;
+}
+
+.about-page-card-text,
+.about-page-prose p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #475569;
+}
+
+.about-page-prose {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-page-emphasis {
+  color: #172554;
+  font-weight: 600;
+}
+
+.about-page-meaning-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #172554;
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+}
+
+@media (max-width: 900px) {
+  .about-page-grid,
+  .about-page-meaning-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-page-hero {
+    padding: 20px 18px 22px;
+    border-radius: 20px;
+  }
+
+  .about-page-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .about-page-poem p {
+    font-size: 17px;
+  }
+}

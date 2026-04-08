@@ -1,0 +1,138 @@
+.image-upload-node {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  width: 200px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.image-upload-node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.node-icon {
+  color: #1677ff;
+  font-size: 14px;
+}
+
+.node-title {
+  flex: 1;
+}
+
+.node-body {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.error-message {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #ff4d4f;
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
+  padding: 6px 8px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.image-preview-wrapper {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.image-preview {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+}
+
+.re-upload-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.preview-hint {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.image-preview-wrapper:hover .re-upload-overlay {
+  opacity: 1;
+}
+
+.image-preview-wrapper:hover .preview-hint {
+  opacity: 1;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  color: #999;
+  font-size: 13px;
+  gap: 8px;
+  transition: border-color 0.2s;
+}
+
+.upload-placeholder:hover {
+  border-color: #1677ff;
+  color: #1677ff;
+}
+
+.upload-icon {
+  font-size: 28px;
+}
+
+.node-handle {
+  width: 10px;
+  height: 10px;
+  background: var(--handle-fill, #fff);
+  border: 2px solid var(--handle-stroke, #1677ff);
+  border-radius: 50%;
+  box-shadow: var(--handle-shadow, none);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.node-handle:hover {
+  background: var(--handle-hover-fill, var(--handle-stroke, #1677ff));
+  transform: scale(1.08);
+}
