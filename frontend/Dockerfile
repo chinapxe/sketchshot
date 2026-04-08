@@ -15,7 +15,7 @@ ENV VITE_WS_BASE_URL=${VITE_WS_BASE_URL}
 
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.29-alpine
 
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
