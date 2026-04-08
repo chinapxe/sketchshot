@@ -2,6 +2,8 @@
 
 更新日期：2026-04-08
 
+说明：当前仓库已经改为“受限源码公开”发布方式，不属于 OSI 定义下的标准开源协议仓库。本文保留“开源准备”字样，仅表示公开发布准备。
+
 ## 本轮已完成
 
 - 将根 `README.md` 改写为公开仓库首页版本。
@@ -9,6 +11,7 @@
 - 新增 `SECURITY.md`，补上安全反馈与凭据约定。
 - 新增 `CODE_OF_CONDUCT.md`，补充公开协作行为约定。
 - 新增 `ROADMAP.md` 与 `SUPPORT.md`，补充公开协作入口。
+- 新增 `LICENSE` 与 `NOTICE`，明确受限源码公开使用边界与署名要求。
 - 新增 `docs/project-structure.md`，方便后续维护者理解前后端结构。
 - 新增 `docs/repository-content-review.md`，用于筛选哪些文档适合公开。
 - 新增 `docs/first-publish-guide.md`，整理首次推送到 GitHub 的操作建议。
@@ -20,7 +23,6 @@
 
 ## 公开仓库前仍需人工确认
 
-- 选择并补充 `LICENSE`。
 - 确认 GitHub 仓库描述、主题标签、默认分支、保护规则和可见性。
 - 决定哪些中文交付 / 交接 / 验收文档继续公开，哪些迁移到 `docs/`，哪些不进入开源仓库。
   可参考 `docs/repository-content-review.md`
@@ -36,6 +38,5 @@
 
 ## 后续可继续补充
 
-- `LICENSE`
 - `.github/DISCUSSION_TEMPLATE/`
 - 发布说明与版本日志
