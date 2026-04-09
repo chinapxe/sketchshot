@@ -1,0 +1,65 @@
+name: Feature Request
+description: 提出功能建议、工作流优化或开源仓库改进想法
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提出功能建议。为了让讨论更高效，请尽量把“目标、使用场景、方案边界”说清楚。
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 想解决的问题
+      description: 先讲目标和痛点，而不是直接给实现方案。
+      placeholder: 例如：希望在公开模板里提供一个三视图驱动角色生成的完整示例，帮助新用户理解推荐连接方式。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 可以描述你期望的交互、节点关系、API 或文档呈现方式。
+      placeholder: 例如：新增一个官方模板，三视图节点输出的三张独立图直接连接到角色节点的三个视图输入口。
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 备选方案或权衡
+      description: 如果你已经考虑过其他做法，请一并写出。
+      placeholder: 例如：也可以只补文档，但模板更能减少理解偏差。
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 功能方向
+      options:
+        - 节点与画布体验
+        - 模板与示例项目
+        - AI 生成链路
+        - 项目导入导出
+        - 资产管理 / 版本对比
+        - 部署 / 交付
+        - 开源仓库建设
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 补充背景
+      description: 可补充参考截图、竞品做法、真实使用场景或预期收益。
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已确认该建议不是由真实密钥、客户数据或私有素材驱动的问题。
+          required: true

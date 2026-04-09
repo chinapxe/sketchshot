@@ -3,7 +3,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from backend.app.services.engine_config_service import EngineConfigService, VolcengineConfigSnapshot
+from backend.app.services.engine_config_service import (
+    DashScopeConfigSnapshot,
+    EngineConfigService,
+    EngineConfigSnapshot,
+    VolcengineConfigSnapshot,
+)
 
 
 class EngineConfigServiceTests(unittest.TestCase):
@@ -39,11 +44,126 @@ class EngineConfigServiceTests(unittest.TestCase):
             self.assertTrue(config_path.exists())
 
             raw = json.loads(config_path.read_text(encoding="utf-8"))
-            self.assertEqual(raw["video_model"], "video-model")
+            self.assertEqual(raw["volcengine"]["video_model"], "video-model")
 
             loaded = service.get_volcengine_config()
             self.assertEqual(loaded.ark_base_url, "https://example.com/api/v3")
             self.assertEqual(loaded.ark_api_key, "test-key")
+
+    def test_engine_config_supports_nested_dashscope_provider_settings(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "engine_config.json"
+            service = EngineConfigService(config_path)
+
+            saved = service.save_engine_config(
+                EngineConfigSnapshot(
+                    prompt_provider="qwen",
+                    generate_provider="wanx",
+                    volcengine=service.get_volcengine_config(),
+                    dashscope=DashScopeConfigSnapshot(
+                        base_url="https://dashscope.aliyuncs.com/",
+                        api_key="  dash-key  ",
+                        qwen_text_model="qwen-plus",
+                        qwen_multimodal_model="qwen-vl-plus",
+                        wanx_image_model="wan2.7-image-pro",
+                        wanx_video_model="wan2.7-i2v",
+                        wanx_video_resolution="720P",
+                        wanx_watermark=True,
+                        oss_region=" cn-shanghai ",
+                        oss_endpoint="https://oss-cn-shanghai.aliyuncs.com/",
+                        oss_access_key_id="  oss-ak  ",
+                        oss_access_key_secret="  oss-sk  ",
+                        oss_bucket="  sketchshot-temp  ",
+                        oss_key_prefix="  wanx/frames  ",
+                    ),
+                )
+            )
+
+            self.assertEqual(saved.prompt_provider, "qwen")
+            self.assertEqual(saved.generate_provider, "wanx")
+            self.assertEqual(saved.dashscope.base_url, "https://dashscope.aliyuncs.com")
+            self.assertEqual(saved.dashscope.api_key, "dash-key")
+            self.assertTrue(saved.dashscope.wanx_watermark)
+            self.assertEqual(saved.dashscope.oss_region, "cn-shanghai")
+            self.assertEqual(saved.dashscope.oss_endpoint, "https://oss-cn-shanghai.aliyuncs.com")
+            self.assertEqual(saved.dashscope.oss_bucket, "sketchshot-temp")
+            self.assertEqual(saved.dashscope.oss_key_prefix, "wanx/frames")
+
+            loaded = service.get_engine_config()
+            self.assertEqual(loaded.prompt_provider, "qwen")
+            self.assertEqual(loaded.generate_provider, "wanx")
+            self.assertEqual(loaded.dashscope.wanx_video_model, "wan2.7-i2v")
+            self.assertEqual(loaded.dashscope.oss_access_key_id, "oss-ak")
+
+    def test_dashscope_oss_region_can_build_endpoint_when_endpoint_is_empty(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = EngineConfigService(Path(temp_dir) / "engine_config.json")
+
+            saved = service.save_dashscope_config(
+                DashScopeConfigSnapshot(
+                    base_url="https://dashscope.aliyuncs.com",
+                    api_key="dash-key",
+                    qwen_text_model="qwen-plus",
+                    qwen_multimodal_model="qwen-vl-plus",
+                    wanx_image_model="wan2.7-image-pro",
+                    wanx_video_model="wan2.7-i2v",
+                    wanx_video_resolution="720P",
+                    wanx_watermark=False,
+                    oss_region="cn-hangzhou",
+                    oss_endpoint="",
+                    oss_access_key_id="oss-ak",
+                    oss_access_key_secret="oss-sk",
+                    oss_bucket="demo-bucket",
+                    oss_key_prefix="temp",
+                )
+            )
+
+            self.assertEqual(saved.oss_region, "cn-hangzhou")
+            self.assertEqual(saved.oss_endpoint, "https://oss-cn-hangzhou.aliyuncs.com")
+
+    def test_dashscope_oss_region_is_inferred_from_endpoint_when_loading_old_config(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "engine_config.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "prompt_provider": "qwen",
+                        "generate_provider": "wanx",
+                        "volcengine": {
+                            "ark_base_url": "https://example.com/api/v3",
+                            "ark_api_key": "",
+                            "prompt_model": "prompt-model",
+                            "image_model": "image-model",
+                            "image_edit_model": "image-edit-model",
+                            "video_model": "video-model",
+                        },
+                        "dashscope": {
+                            "base_url": "https://dashscope.aliyuncs.com",
+                            "api_key": "dash-key",
+                            "qwen_text_model": "qwen-plus",
+                            "qwen_multimodal_model": "qwen-vl-plus",
+                            "wanx_image_model": "wan2.7-image-pro",
+                            "wanx_video_model": "wan2.7-i2v",
+                            "wanx_video_resolution": "720P",
+                            "wanx_watermark": False,
+                            "oss_region": "",
+                            "oss_endpoint": "https://oss-cn-beijing.aliyuncs.com",
+                            "oss_access_key_id": "oss-ak",
+                            "oss_access_key_secret": "oss-sk",
+                            "oss_bucket": "demo-bucket",
+                            "oss_key_prefix": "temp",
+                        },
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            service = EngineConfigService(config_path)
+            loaded = service.get_dashscope_config()
+
+            self.assertEqual(loaded.oss_region, "cn-beijing")
+            self.assertEqual(loaded.oss_endpoint, "https://oss-cn-beijing.aliyuncs.com")
 
 
 if __name__ == "__main__":

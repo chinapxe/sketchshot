@@ -22,6 +22,16 @@ import {
   SHOT_SIZE_OPTIONS,
   getOptionLabel,
 } from '../../../config/storyboardPresets'
+import {
+  getSupportedImageAdapterValue,
+  getSupportedVideoAdapterValue,
+  resolveVisibleImageAdapter,
+  resolveVisibleVideoAdapter,
+  supportedImageAdapterOptions,
+  supportedVideoAdapterOptions,
+  type SupportedImageAdapter,
+  type SupportedVideoAdapter,
+} from '../../../services/engineSettings'
 import { generateShotPrompt } from '../../../services/promptGeneration'
 import { disconnectShotGeneration, executeShotNode } from '../../../services/storyboardGeneration'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
@@ -202,6 +212,8 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
   const [isPromptGenerating, setIsPromptGenerating] = useState(false)
   const [isPresetPanelOpen, setIsPresetPanelOpen] = useState(false)
   const [activePresetTab, setActivePresetTab] = useState<ShotPresetTabKey>('shotSize')
+  const [imageAdapterValue, setImageAdapterValue] = useState<SupportedImageAdapter>(() => getSupportedImageAdapterValue(data.imageAdapter))
+  const [videoAdapterValue, setVideoAdapterValue] = useState<SupportedVideoAdapter>(() => getSupportedVideoAdapterValue(data.videoAdapter))
   const { fitView } = useReactFlow<AppNode>()
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
   const toggleNodeCollapsed = useFlowStore((state) => state.toggleNodeCollapsed)
@@ -267,6 +279,34 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
   useEffect(() => {
     if (!isPromptGenerating) blurButtonIfFocused('.shot-prompt-helper-btn')
   }, [blurButtonIfFocused, isPromptGenerating])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void resolveVisibleImageAdapter(data.imageAdapter).then((value) => {
+      if (!cancelled) {
+        setImageAdapterValue(value)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [data.imageAdapter])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void resolveVisibleVideoAdapter(data.videoAdapter).then((value) => {
+      if (!cancelled) {
+        setVideoAdapterValue(value)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [data.videoAdapter])
 
   const updateField = useCallback(
     (field: string, value: string | number | boolean | undefined) => updateNodeData(id, { [field]: value }),
@@ -489,22 +529,31 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
       </div>
     </div>
   ) : null
-  const outputSettingsContent = data.outputType === 'image' ? (
+const outputSettingsContent = data.outputType === 'image' ? (
+  <div className="storyboard-row">
+    <div className="storyboard-field">
+      <label className="storyboard-field-label">分辨率</label>
+      <Select
+        value={data.resolution}
+        onChange={(value) => updateField('resolution', value)}
+        options={resolutionOptions}
+        className="storyboard-select nodrag nopan"
+      />
+    </div>
+    <div className="storyboard-field">
+      <label className="storyboard-field-label">出图引擎</label>
+      <Select
+        value={imageAdapterValue}
+        onChange={(value) => updateField('imageAdapter', value)}
+        options={supportedImageAdapterOptions}
+        className="storyboard-select nodrag nopan"
+      />
+    </div>
+  </div>
+) : (
+  <>
     <div className="storyboard-row">
       <div className="storyboard-field">
-        <label className="storyboard-field-label">分辨率</label>
-        <Select
-          value={data.resolution}
-          onChange={(value) => updateField('resolution', value)}
-          options={resolutionOptions}
-          className="storyboard-select nodrag nopan"
-        />
-      </div>
-    </div>
-  ) : (
-    <>
-      <div className="storyboard-row">
-        <div className="storyboard-field">
           <label className="storyboard-field-label">时长（秒）</label>
           <InputNumber
             min={1}
@@ -512,6 +561,15 @@ const ShotNode = memo(({ id, data, selected = false }: NodeProps<ShotNodeType>) 
             value={data.durationSeconds}
             onChange={(value) => updateField('durationSeconds', Number(value ?? 4))}
             className="storyboard-number nodrag"
+          />
+        </div>
+        <div className="storyboard-field">
+          <label className="storyboard-field-label">视频引擎</label>
+          <Select
+            value={videoAdapterValue}
+            onChange={(value) => updateField('videoAdapter', value)}
+            options={supportedVideoAdapterOptions}
+            className="storyboard-select nodrag nopan"
           />
         </div>
       </div>

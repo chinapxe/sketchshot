@@ -84,7 +84,7 @@ export function buildVideoGenerationSignature(data: VideoSignatureSource): strin
     aspectRatio: data.aspectRatio,
     durationSeconds: data.durationSeconds,
     motionStrength: data.motionStrength,
-    adapter: data.adapter,
+    adapter: data.adapter ?? 'auto',
     sourceImages: normalizeAssetList(data.sourceImages),
   })
 }
@@ -136,7 +136,7 @@ export function buildShotGenerationSignature(data: ShotSignatureSource): string 
     aspectRatio: data.aspectRatio,
     resolution: data.resolution,
     imageAdapter: data.imageAdapter ?? 'auto',
-    videoAdapter: data.videoAdapter ?? 'volcengine',
+    videoAdapter: data.videoAdapter ?? 'auto',
     durationSeconds: data.durationSeconds,
     motionStrength: data.motionStrength,
     referenceImages: normalizeAssetList(data.referenceImages),
@@ -153,7 +153,7 @@ export function buildContinuityGenerationSignature(data: ContinuitySignatureSour
     frames: (data.frames ?? []).map((frame) => frame.trim()),
     aspectRatio: data.aspectRatio ?? '1:1',
     resolution: data.resolution ?? '2K',
-    adapter: data.adapter ?? 'volcengine',
+    adapter: data.adapter ?? 'auto',
     contextSignature: data.contextSignature ?? '',
   })
 }

@@ -1,6 +1,7 @@
 import { message } from 'antd'
 
 import { createVideoGenerateTask } from './api'
+import { resolveVideoAdapter } from './engineSettings'
 import { connectProgress } from './websocket'
 import { useFlowStore } from '../stores/useFlowStore'
 import { buildVideoGenerationSignature } from '../utils/generationSignature'
@@ -53,7 +54,8 @@ export async function executeVideoGenNode(
 
   const prompt = data.prompt.trim()
   if (!prompt) {
-    const validationMessage = '请先填写视频提示词，九宫格图只会作为起始画面，不会自动继承视频提示词'
+    const validationMessage =
+      '请先填写视频提示词，或点击“AI 润色”生成一版运动描述；九宫格图只会作为起始画面，不会自动继承视频提示词。'
 
     store.updateNodeData(nodeId, {
       status: 'error' as NodeStatus,
@@ -68,7 +70,8 @@ export async function executeVideoGenNode(
     throw new Error(validationMessage)
   }
 
-  const signature = buildVideoGenerationSignature(data)
+  const resolvedAdapter = await resolveVideoAdapter(data.adapter)
+  const signature = buildVideoGenerationSignature({ ...data, adapter: resolvedAdapter })
   const cachedOutputVideo = data.resultCache?.[signature]
 
   if (cachedOutputVideo) {
@@ -195,7 +198,7 @@ export async function executeVideoGenNode(
       duration_seconds: data.durationSeconds,
       motion_strength: data.motionStrength,
       source_images: data.sourceImages ?? [],
-      adapter: data.adapter || 'volcengine',
+      adapter: resolvedAdapter,
     })
       .then(() => {
         useFlowStore.getState().updateNodeData(nodeId, {

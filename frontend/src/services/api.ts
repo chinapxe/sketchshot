@@ -238,6 +238,59 @@ export interface VolcengineConfigUpdateRequest {
   video_model: string
 }
 
+export type PromptProvider = 'volcengine' | 'qwen'
+export type GenerateProvider = 'volcengine' | 'wanx' | 'mock'
+
+export interface DashScopeConfigResponse {
+  base_url: string
+  api_key: string
+  qwen_text_model: string
+  qwen_multimodal_model: string
+  wanx_image_model: string
+  wanx_video_model: string
+  wanx_video_resolution: '720P' | '1080P'
+  wanx_watermark: boolean
+  configured: boolean
+  oss_region: string
+  oss_endpoint: string
+  oss_access_key_id: string
+  oss_access_key_secret: string
+  oss_bucket: string
+  oss_key_prefix: string
+  oss_configured: boolean
+}
+
+export interface DashScopeConfigUpdateRequest {
+  base_url: string
+  api_key: string
+  qwen_text_model: string
+  qwen_multimodal_model: string
+  wanx_image_model: string
+  wanx_video_model: string
+  wanx_video_resolution: '720P' | '1080P'
+  wanx_watermark: boolean
+  oss_region: string
+  oss_endpoint: string
+  oss_access_key_id: string
+  oss_access_key_secret: string
+  oss_bucket: string
+  oss_key_prefix: string
+}
+
+export interface EngineSettingsResponse {
+  prompt_provider: PromptProvider
+  generate_provider: GenerateProvider
+  volcengine: VolcengineConfigResponse
+  dashscope: DashScopeConfigResponse
+}
+
+export interface EngineSettingsUpdateRequest {
+  prompt_provider: PromptProvider
+  generate_provider: GenerateProvider
+  volcengine: VolcengineConfigUpdateRequest
+  dashscope: DashScopeConfigUpdateRequest
+}
+
 export async function uploadImageAsset(file: File): Promise<UploadedAssetResponse> {
   const formData = new FormData()
   formData.append('file', file)
@@ -278,4 +331,24 @@ export function updateVolcengineConfig(
   data: VolcengineConfigUpdateRequest
 ): Promise<VolcengineConfigResponse> {
   return request('/api/settings/engines/volcengine', { method: 'PUT', body: JSON.stringify(data) })
+}
+
+export function getDashScopeConfig(): Promise<DashScopeConfigResponse> {
+  return request('/api/settings/engines/dashscope')
+}
+
+export function updateDashScopeConfig(
+  data: DashScopeConfigUpdateRequest
+): Promise<DashScopeConfigResponse> {
+  return request('/api/settings/engines/dashscope', { method: 'PUT', body: JSON.stringify(data) })
+}
+
+export function getEngineSettings(): Promise<EngineSettingsResponse> {
+  return request('/api/settings/engines')
+}
+
+export function updateEngineSettings(
+  data: EngineSettingsUpdateRequest
+): Promise<EngineSettingsResponse> {
+  return request('/api/settings/engines', { method: 'PUT', body: JSON.stringify(data) })
 }

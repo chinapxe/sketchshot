@@ -12,8 +12,8 @@ export const NodeStatus = {
 } as const
 
 export type NodeStatus = (typeof NodeStatus)[keyof typeof NodeStatus]
-export type ImageGenAdapter = 'auto' | 'mock' | 'comfyui' | 'volcengine'
-export type VideoGenAdapter = 'mock' | 'volcengine'
+export type ImageGenAdapter = 'auto' | 'mock' | 'comfyui' | 'volcengine' | 'wanx'
+export type VideoGenAdapter = 'auto' | 'mock' | 'volcengine' | 'wanx'
 export type ThreeViewOutputMode = 'sheet' | 'split'
 export type ShotOutputType = 'image' | 'video'
 export type ShotSize =

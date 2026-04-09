@@ -7,6 +7,62 @@ import asyncio
 import json
 from typing import Any
 from urllib import error, request
+from urllib.parse import urlparse
+
+
+def _stringify_connection_reason(reason: object) -> str:
+    if isinstance(reason, str):
+        return reason.strip()
+
+    strerror = getattr(reason, "strerror", None)
+    if isinstance(strerror, str) and strerror.strip():
+        return strerror.strip()
+
+    return str(reason).strip()
+
+
+def format_volcengine_connection_error(base_url: str, reason: object, *, action: str = "connect") -> str:
+    reason_text = _stringify_connection_reason(reason)
+    endpoint = urlparse(base_url).netloc or base_url
+    target_label = "火山引擎 Ark" if action == "connect" else "火山引擎资源地址"
+    common_hint = (
+        f"请检查当前机器到 {endpoint} 的网络连通性，以及代理/VPN、防火墙、公司安全软件或 TLS 拦截设置。"
+    )
+    normalized_upper = reason_text.upper()
+    normalized_lower = reason_text.lower()
+
+    if (
+        "UNEXPECTED_EOF_WHILE_READING" in normalized_upper
+        or "EOF OCCURRED IN VIOLATION OF PROTOCOL" in normalized_upper
+        or "SSL:" in normalized_upper
+        or "TLS" in normalized_upper
+    ):
+        return f"无法连接{target_label}（TLS 握手失败）。{common_hint} 原始错误：{reason_text}"
+
+    if (
+        "TIMED OUT" in normalized_upper
+        or "TIMEOUT" in normalized_upper
+        or "超时" in reason_text
+    ):
+        return f"连接{target_label}超时。{common_hint} 原始错误：{reason_text}"
+
+    if (
+        "REFUSED" in normalized_upper
+        or "10061" in normalized_lower
+        or "ACTIVELY REFUSED" in normalized_upper
+        or "无法连接到远程服务器" in reason_text
+    ):
+        return f"当前机器无法与{target_label}建立 TCP 连接。{common_hint} 原始错误：{reason_text}"
+
+    if (
+        "NAME OR SERVICE NOT KNOWN" in normalized_upper
+        or "TEMPORARY FAILURE IN NAME RESOLUTION" in normalized_upper
+        or "NODENAME NOR SERVNAME" in normalized_upper
+        or "GETADDRINFO FAILED" in normalized_upper
+    ):
+        return f"无法解析{target_label}地址。请检查 DNS、代理或网络出口配置。原始错误：{reason_text}"
+
+    return f"无法连接{target_label}。{common_hint} 原始错误：{reason_text}"
 
 
 class VolcengineClient:
@@ -54,7 +110,9 @@ class VolcengineClient:
                     f"Volcengine request failed: HTTP {exc.code} {error_body or exc.reason}"
                 ) from exc
             except error.URLError as exc:
-                raise RuntimeError(f"Cannot reach Volcengine Ark: {exc.reason}") from exc
+                raise RuntimeError(
+                    format_volcengine_connection_error(self._base_url, exc.reason, action="connect")
+                ) from exc
 
             return json.loads(raw) if raw else {}
 
@@ -73,6 +131,8 @@ class VolcengineClient:
                     f"Volcengine asset download failed: HTTP {exc.code} {error_body or exc.reason}"
                 ) from exc
             except error.URLError as exc:
-                raise RuntimeError(f"Cannot download Volcengine asset: {exc.reason}") from exc
+                raise RuntimeError(
+                    format_volcengine_connection_error(self._base_url, exc.reason, action="download")
+                ) from exc
 
         return await asyncio.to_thread(_do_download)

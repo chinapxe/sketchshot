@@ -1,6 +1,7 @@
 import { message } from 'antd'
 
 import { createGenerateTask } from './api'
+import { resolveImageAdapter } from './engineSettings'
 import { buildContinuityPreviewPrompt } from './promptGeneration'
 import { connectProgress } from './websocket'
 import { useFlowStore } from '../stores/useFlowStore'
@@ -70,8 +71,10 @@ export async function executeContinuityNode(
     buildContinuityPreviewPrompt(data, continuityContext),
     continuityContext.referenceImages
   )
+  const resolvedAdapter = await resolveImageAdapter(data.adapter ?? 'auto')
   const signature = buildContinuityGenerationSignature({
     ...data,
+    adapter: resolvedAdapter,
     contextSignature: continuityContext.contextSignature,
   })
   const cachedOutputImage = data.resultCache?.[signature]
@@ -191,7 +194,7 @@ export async function executeContinuityNode(
       aspect_ratio: data.aspectRatio ?? '1:1',
       resolution: data.resolution ?? '2K',
       reference_images: continuityContext.referenceImages,
-      adapter: data.adapter ?? 'volcengine',
+      adapter: resolvedAdapter,
       identity_lock: hasCharacterReferenceImages(continuityContext.referenceImages),
       identity_strength: MAX_CHARACTER_IDENTITY_STRENGTH,
     })

@@ -14,6 +14,12 @@ import {
   appendPromptFragment,
   appendPromptLine,
 } from '../../../config/generationQuickPresets'
+import {
+  getSupportedVideoAdapterValue,
+  resolveVisibleVideoAdapter,
+  supportedVideoAdapterOptions,
+  type SupportedVideoAdapter,
+} from '../../../services/engineSettings'
 import { generateVideoPrompt } from '../../../services/promptGeneration'
 import { disconnectVideoGeneration, executeVideoGenNode } from '../../../services/videoGeneration'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
@@ -50,6 +56,7 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
   const activeExecutionNodeId = useFlowStore((state) => state.activeExecutionNodeId)
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
   const [isPromptGenerating, setIsPromptGenerating] = useState(false)
+  const [adapterValue, setAdapterValue] = useState<SupportedVideoAdapter>(() => getSupportedVideoAdapterValue(data.adapter))
   const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.videoGen.width)
 
   useEffect(() => {
@@ -57,6 +64,20 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
   }, [edges, getUpstreamImages, id, updateNodeData])
 
   useEffect(() => () => disconnectVideoGeneration(id), [id])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void resolveVisibleVideoAdapter(data.adapter).then((value) => {
+      if (!cancelled) {
+        setAdapterValue(value)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [data.adapter])
 
   const blurButtonIfFocused = useCallback((selector: string) => {
     const root = nodeRef.current
@@ -250,7 +271,7 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
             placeholder="描述镜头怎么动、主体怎么动，以及节奏和氛围..."
             rows={3}
           />
-          <div className="quick-template-tip">上游图像只会作为起始画面，不会自动继承视频提示词。</div>
+          <div className="quick-template-tip">上游图像只会作为起始画面，不会自动继承视频提示词；可先手写，或点“AI 润色”生成一版运动描述。</div>
         </div>
 
         <div className="form-field">
@@ -305,6 +326,16 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
               value={data.durationSeconds}
               onChange={(value) => updateNodeData(id, { durationSeconds: value })}
               options={durationOptions}
+              className="field-select nodrag nopan"
+            />
+          </div>
+          <div className="form-field flex-1">
+            <label className="field-label">视频引擎</label>
+            <Select
+              size="small"
+              value={adapterValue}
+              onChange={(value) => updateNodeData(id, { adapter: value })}
+              options={supportedVideoAdapterOptions}
               className="field-select nodrag nopan"
             />
           </div>

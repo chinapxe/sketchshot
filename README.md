@@ -1,159 +1,140 @@
 # SketchShot
 
-**以无限画布为载体的故事板 AI 创作工具。**
+SketchShot 是一个面向影视分镜、角色设定与 AI 视觉生成的节点式创作工具。它把场次、角色、风格、镜头、连续镜头、三视图、图像生成、视频生成与结果预览放到同一张无限画布里，让创作、迭代和复用都围绕一个可视化工作流展开。
 
-在画布上组织场次、角色、风格与镜头，由 AI 直接生成分镜图像和视频片段。
+> 仓库当前采用“受限源码公开”方式发布，当前文档以中文为主。
+> 仅允许个人或单一工作室内部使用；禁止封装售卖；二次发布必须继续公开源码并注明原出处。详见 [LICENSE](./LICENSE) 与 [NOTICE](./NOTICE)。
 
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
-![ReactFlow](https://img.shields.io/badge/ReactFlow-12-FF0072)
-![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
+## 界面预览
 
----
+![SketchShot 界面预览 1](./docs/t1.png)
 
-## 核心功能
+![SketchShot 界面预览 2](./docs/t2.png)
 
-- **故事板节点** - 场次、角色、风格、镜头节点协同工作，构成“设定 -> 镜头 -> 生成”的完整创作链路
-- **AI 图像与视频生成** - 接入火山引擎，支持文生图、图生图、图生视频
-- **角色一致性** - 角色三视图绑定，跨镜头保持形象稳定
-- **连续镜头** - 首帧 / 尾帧约束、九宫格动作节拍，支持连续片段创作
-- **版本对比** - 同一镜头多次生成结果可并排比较
-- **项目持久化** - 本地草稿自动保存，刷新不丢失；支持导入 / 导出文件包
-- **模板上手引导** - 内置多套故事板模板，分类展示并附操作引导
-- **Docker 部署** - 前后端均已容器化，支持在线运行与离线交付
+![SketchShot 界面预览 3](./docs/t3.png)
 
----
+## 功能亮点
+
+- 节点式故事板工作流：场次、角色、风格、镜头与生成节点可自由编排。
+- 角色一致性：角色节点支持多视图输入，适合跨镜头复用角色设定。
+- 三视图生成节点：可基于单张参考图生成三视图，支持输出拼图或三张独立图，并直接接入角色节点。
+- 连续镜头创作：支持首帧 / 尾帧约束、动作节拍与视频生成链路。
+- 版本对比与资产沉淀：同一镜头可多次生成并对比结果，素材可沉淀到项目内继续复用。
+- 模板与项目持久化：支持官方模板、本地保存、项目导入导出。
+- 双运行模式：支持本地开发、Docker Compose 和离线交付脚本。
+
+## 技术栈
+
+- 前端：React 19、React Flow、Zustand、Ant Design、Vite
+- 后端：FastAPI、Pydantic、WebSocket
+- 适配器：Mock、Volcengine、ComfyUI
+- 工程化：Docker Compose、PowerShell 脚本、Vitest、Python unittest
+
+## 仓库结构
+
+```text
+SketchShot/
+├── frontend/                  React 前端
+│   └── src/
+│       ├── components/        画布、节点、面板、上下文菜单
+│       ├── services/          API、WebSocket 与工作流执行封装
+│       ├── stores/            Zustand 状态管理
+│       ├── templates/         官方工作流模板
+│       └── utils/             导入导出、布局、连接规则、执行辅助
+├── backend/                   FastAPI 后端
+│   ├── app/
+│   │   ├── adapters/          AI 适配器与注册表
+│   │   ├── api/               HTTP / WebSocket 接口
+│   │   ├── models/            请求与响应模型
+│   │   └── services/          工作流、任务、模板、引擎配置服务
+│   ├── tests/                 后端测试
+│   └── data/                  运行期数据目录（已忽略生成产物）
+├── scripts/                   Docker、离线包、启动与校验脚本
+├── docs/                      公开维护文档
+├── docker-compose.yml
+└── docker-compose.offline.yml
+```
+
+更细的维护入口见 [docs/project-structure.md](./docs/project-structure.md)。
+
+## 路线图
+
+- 公开版路线图见 [ROADMAP.md](./ROADMAP.md)
+- 首次发布 GitHub 的操作建议见 [docs/first-publish-guide.md](./docs/first-publish-guide.md)
 
 ## 快速开始
 
-### Docker 运行（推荐）
+### 本地开发
 
-前置条件：
+1. 准备后端配置：
 
-- 已安装并启动 Docker Desktop
-- 当前仓库代码完整
-- 如需真实调用火山引擎，准备好可用的 API Key
+   ```powershell
+   Copy-Item backend\.env.example backend\.env
+   ```
 
-说明：
+   如果暂时没有火山引擎配置，可将 `backend/.env` 中的 `DEFAULT_ADAPTER` 改为 `mock`。
 
-- 当前本地仓库目录名可能仍为 `WXHB`，但产品正式名已经统一为 `SketchShot`
-- 在线 Docker 运行默认前端端口是 `8080`，后端端口是 `8000`
+2. 启动后端：
+
+   ```powershell
+   Set-Location .\backend
+   pip install -r requirements.txt
+   python run.py
+   ```
+
+3. 启动前端：
+
+   ```powershell
+   Set-Location ..\frontend
+   npm install
+   npm run dev
+   ```
+
+4. 默认访问地址：
+
+- 前端：`http://localhost:3000/`
+- 后端健康检查：`http://localhost:8000/api/health`
+
+前端开发环境默认通过 Vite 代理 `/api`、`/ws`、`/uploads`、`/outputs`，通常不需要额外设置 API 地址。如需自定义，可参考 `frontend/.env.example` 与 `frontend/.env.production.example` 创建本地配置文件。
+
+### Docker Compose
 
 ```powershell
-Set-Location E:\2026\WXHB
-
-if (-not (Test-Path .env.docker)) {
-  Copy-Item .env.docker.example .env.docker
-}
-
-# 如需在部署前预置火山配置，可按需填写：
-# WXHB_ARK_API_KEY=你的火山引擎密钥
-# 其余 Ark / 模型参数也可在启动后通过前端“工具栏 -> 引擎”界面配置
-# 保存后会写入 backend/data/engine_config.json
-
+Copy-Item .env.docker.example .env.docker
 .\scripts\docker-build.ps1 -Action up
 ```
 
-启动后默认访问：
+默认访问地址：
 
 - 前端：`http://localhost:8080/`
 - 后端健康检查：`http://localhost:8000/api/health`
 
-引擎配置说明：
+如果端口被占用，请调整 `.env.docker` 中的映射值，或修改本地运行配置。
 
-- 日常推荐直接在前端右上角工具栏点击“引擎”进行配置
-- 可配置项包括 `ARK_BASE_URL`、`ARK_API_KEY`、提示词模型、文生图模型、图像编辑模型、视频模型
-- 配置会保存到 `backend/data/engine_config.json`
-- Docker 在线运行和离线部署都会将 `/app/data` 挂载到本地目录，因此该配置在容器重建后仍会保留
-- `.env.docker` / `.env` 中的火山变量现在主要用于首次启动默认值、无人值守部署或无法进入前端时的兜底配置
+## 配置说明
 
-常用补充命令：
-
-```powershell
-.\scripts\docker-build.ps1 -Action build
-.\scripts\docker-build.ps1 -Action ps
-.\scripts\docker-build.ps1 -Action logs
-.\scripts\docker-build.ps1 -Action down
-```
-
-### 离线交付说明
-
-这里的“离线交付”指：
-
-- 目标机器部署时不需要重新拉取 Docker 镜像、npm 依赖或 Python 依赖
-- 可通过源机器打包出的离线包直接完成部署
-
-需要特别注意的边界：
-
-- 如果目标机器仍然使用火山引擎，目标机器必须能够访问 `ARK_BASE_URL`
-- 如果目标机器完全隔离外网，火山引擎链路无法工作，此时只能使用 `mock` 或其他可在目标环境访问到的适配器
-
-详细步骤请参见 [交付部署说明](./交付部署说明.md)。
-
----
-
-## 本地开发
-
-前置条件：
-
-- Node.js 20+
-- Python 3.11+
-
-### 1. 准备后端默认配置
-
-后端会从 `backend\.env` 读取默认配置。这里仍建议保留端口、默认适配器、超时等基础项；火山引擎的 Ark 地址、API Key 和模型 ID，日常使用推荐在前端“工具栏 -> 引擎”中配置。
-
-`backend\.env` 里建议至少保留以下变量：
-
-```env
-DEBUG=True
-DEFAULT_ADAPTER=volcengine
-VOLCENGINE_REQUEST_TIMEOUT=180
-VOLCENGINE_VIDEO_TIMEOUT=900
-```
-
-补充说明：
-
-- 如果希望首次启动就预置火山配置，也可以继续在 `backend\.env` 中填写 `ARK_API_KEY` 与模型参数
-- 一旦前端保存过引擎配置，后端会优先使用 `backend/data/engine_config.json` 中的值
-
-### 2. 启动后端
-
-```powershell
-Set-Location .\backend
-pip install -r requirements.txt
-python run.py
-```
-
-### 3. 启动前端
-
-```powershell
-Set-Location .\frontend
-npm install
-npm run dev
-```
-
-本地开发默认访问：
-
-- 前端：`http://localhost:3000/`
-- 后端：`http://localhost:8000/`
+- `backend/.env.example`：本地开发默认配置模板。
+- `.env.docker.example`：Docker Compose 在线运行示例配置。
+- `.env.offline.example`：离线部署参考配置。
+- `backend/data/engine_config.json`：前端工具栏保存的引擎配置，属于本地运行数据，已加入忽略列表。
 
 说明：
+- Docker 相关环境变量目前仍保留 `WXHB_` 前缀，用于兼容现有离线交付和脚本链路，不影响公开使用。
 
-- 本地前端默认通过 Vite 代理转发 `/api`、`/ws`、`/uploads`、`/outputs`
-- 一般不需要额外设置 `VITE_API_BASE_URL` 或 `VITE_WS_BASE_URL`
+火山引擎相关参数支持两种配置方式：
 
----
+- 在 `.env` / `.env.docker` 中预置默认值，适合首启或无人值守部署。
+- 在前端“工具栏 -> 引擎”里保存运行配置，适合日常调试与多模型切换。
 
-## 验证命令
+## 开发与验证
 
-后端：
+后端测试：
 
 ```powershell
 python -m unittest discover -s backend/tests -p "test_*.py"
 ```
 
-前端：
+前端测试与构建：
 
 ```powershell
 Set-Location .\frontend
@@ -161,48 +142,26 @@ npm test
 npm run build
 ```
 
-正式交付前，建议按 [正式验收清单](./正式验收清单.md) 再做一轮完整验收。
+## 维护文档
 
----
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- [SECURITY.md](./SECURITY.md)
+- [SUPPORT.md](./SUPPORT.md)
+- [ROADMAP.md](./ROADMAP.md)
+- [docs/project-structure.md](./docs/project-structure.md)
+- [docs/open-source-checklist.md](./docs/open-source-checklist.md)
+- [docs/first-publish-guide.md](./docs/first-publish-guide.md)
 
-## 技术栈
+## GitHub 协作
 
-| 层 | 技术 |
-|---|---|
-| 前端 | React 19 · ReactFlow · Zustand · Ant Design · Vite |
-| 后端 | FastAPI · Python 3.11 · WebSocket |
-| AI 接入 | 火山引擎（文生图 / 图生图 / 图生视频） |
-| 部署 | Docker · Docker Compose |
+- 仓库已补充 Issue 模板、PR 模板和基础 CI，便于公开协作。
+- CI 当前会自动执行后端单元测试，以及前端测试和生产构建。
 
----
+## 许可说明
 
-## 项目结构
-
-```text
-SketchShot/  （当前本地仓库目录名可能仍为 WXHB）
-├── frontend/               前端项目
-│   └── src/
-│       ├── components/     画布、节点、面板等 UI
-│       ├── stores/         Zustand 状态管理
-│       ├── templates/      内置工作流模板
-│       └── utils/          故事板逻辑、持久化、导入导出等工具
-├── backend/                后端项目
-│   └── app/
-│       ├── adapters/       AI 适配器层
-│       ├── services/       任务调度、提示词、工作流服务
-│       └── api/            HTTP + WebSocket 接口
-├── scripts/                Docker 构建与离线交付脚本
-├── docker-compose.yml
-├── docker-compose.offline.yml
-└── offline-bundle/         离线交付产物输出目录
-```
-
----
-
-## 相关文档
-
-- [开发计划](./开发计划.md)
-- [工作交接文档](./工作交接文档.md)
-- [当前阶段工作总结](./当前阶段工作总结.md)
-- [交付部署说明](./交付部署说明.md)
-- [正式验收清单](./正式验收清单.md)
+- 本仓库不是 OSI 定义下的标准开源协议仓库，而是“受限源码公开”仓库。
+- 允许：个人或单一工作室内部使用、学习、修改。
+- 禁止：封装售卖、白标、转售、SaaS / API 对外提供、闭源二次发布。
+- 如果你要二次发布本项目或衍生版本，必须继续公开完整源码，并保留原项目署名和出处。
+- 具体条款以 [LICENSE](./LICENSE) 和 [NOTICE](./NOTICE) 为准。

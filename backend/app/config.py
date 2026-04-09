@@ -3,7 +3,7 @@ Application settings loaded from environment variables or backend/.env.
 """
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -54,12 +54,46 @@ class Settings(BaseSettings):
     VOLCENGINE_IMAGE_OUTPUT_FORMAT: str = "png"
     VOLCENGINE_WATERMARK: bool = False
 
+    DASHSCOPE_BASE_URL: str = "https://dashscope.aliyuncs.com"
+    DASHSCOPE_API_KEY: str = ""
+    DASHSCOPE_REQUEST_TIMEOUT: float = 180.0
+    DASHSCOPE_VIDEO_TIMEOUT: float = 900.0
+    DASHSCOPE_POLL_INTERVAL: float = 3.0
+    ENGINE_PROMPT_PROVIDER: str = "volcengine"
+    ENGINE_GENERATE_PROVIDER: str = "volcengine"
+    QWEN_TEXT_MODEL: str = "qwen-plus"
+    QWEN_MULTIMODAL_MODEL: str = "qwen-vl-plus"
+    WANX_IMAGE_MODEL: str = "wan2.7-image-pro"
+    WANX_VIDEO_MODEL: str = "wan2.7-i2v"
+    WANX_VIDEO_RESOLUTION: str = "720P"
+    WANX_WATERMARK: bool = False
+    ALIYUN_OSS_ENDPOINT: str = ""
+    ALIYUN_OSS_REGION: str = ""
+    ALIYUN_OSS_ACCESS_KEY_ID: str = Field(
+        default="",
+        validation_alias=AliasChoices("ALIYUN_OSS_ACCESS_KEY_ID", "ALIYUN_ACCESS_KEY_ID"),
+    )
+    ALIYUN_OSS_ACCESS_KEY_SECRET: str = Field(
+        default="",
+        validation_alias=AliasChoices("ALIYUN_OSS_ACCESS_KEY_SECRET", "ALIYUN_ACCESS_KEY_SECRET"),
+    )
+    ALIYUN_OSS_BUCKET: str = ""
+    ALIYUN_OSS_KEY_PREFIX: str = "sketchshot-temp"
+    ALIYUN_OSS_SIGNED_URL_EXPIRE_SECONDS: int = 7200
+
     model_config = {
         "env_file": str(Path(__file__).parent.parent / ".env"),
         "case_sensitive": True,
     }
 
-    @field_validator("DEBUG", "COMFYUI_ENABLED", "VOLCENGINE_ENABLED", "VOLCENGINE_WATERMARK", mode="before")
+    @field_validator(
+        "DEBUG",
+        "COMFYUI_ENABLED",
+        "VOLCENGINE_ENABLED",
+        "VOLCENGINE_WATERMARK",
+        "WANX_WATERMARK",
+        mode="before",
+    )
     @classmethod
     def parse_bool_like_values(cls, value: object) -> object:
         if isinstance(value, bool):
@@ -73,6 +107,16 @@ class Settings(BaseSettings):
                 return False
 
         return value
+
+    @model_validator(mode="after")
+    def normalize_aliyun_oss_settings(self) -> "Settings":
+        self.ALIYUN_OSS_REGION = self.ALIYUN_OSS_REGION.strip()
+        self.ALIYUN_OSS_ENDPOINT = self.ALIYUN_OSS_ENDPOINT.strip().rstrip("/")
+
+        if not self.ALIYUN_OSS_ENDPOINT and self.ALIYUN_OSS_REGION:
+            self.ALIYUN_OSS_ENDPOINT = f"https://oss-{self.ALIYUN_OSS_REGION}.aliyuncs.com"
+
+        return self
 
 
 settings = Settings()

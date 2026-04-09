@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { AppstoreOutlined, PictureOutlined, SyncOutlined } from '@ant-design/icons'
 import { Button, Progress, Select } from 'antd'
@@ -7,6 +7,12 @@ import {
   disconnectThreeViewGeneration,
   executeThreeViewGenNode,
 } from '../../../services/threeViewGeneration'
+import {
+  getSupportedImageAdapterValue,
+  resolveVisibleImageAdapter,
+  supportedImageAdapterOptions,
+  type SupportedImageAdapter,
+} from '../../../services/engineSettings'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import type { ThreeViewGenNode as ThreeViewGenNodeType } from '../../../types'
@@ -62,6 +68,7 @@ const ThreeViewGenNode = memo(({ id, data, selected = false }: NodeProps<ThreeVi
   const isWorkflowExecuting = useFlowStore((state) => state.isWorkflowExecuting)
   const activeExecutionNodeId = useFlowStore((state) => state.activeExecutionNodeId)
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
+  const [adapterValue, setAdapterValue] = useState<SupportedImageAdapter>(() => getSupportedImageAdapterValue(data.adapter))
   const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.threeViewGen.width)
   const isProcessing = data.status === 'processing' || data.status === 'queued'
   const isDisabled = (data as Record<string, unknown>).disabled === true
@@ -78,6 +85,20 @@ const ThreeViewGenNode = memo(({ id, data, selected = false }: NodeProps<ThreeVi
   }, [edges, getUpstreamImages, id, updateNodeData])
 
   useEffect(() => () => disconnectThreeViewGeneration(id), [id])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void resolveVisibleImageAdapter(data.adapter).then((value) => {
+      if (!cancelled) {
+        setAdapterValue(value)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [data.adapter])
 
   const handleGenerate = useCallback(async () => {
     try {
@@ -228,6 +249,16 @@ const ThreeViewGenNode = memo(({ id, data, selected = false }: NodeProps<ThreeVi
                 value={data.resolution}
                 onChange={(value) => updateNodeData(id, { resolution: value })}
                 options={resolutionOptions}
+                className="storyboard-select nodrag nopan"
+              />
+            </div>
+            <div className="storyboard-field">
+              <label className="storyboard-field-label">生成引擎</label>
+              <Select
+                size="small"
+                value={adapterValue}
+                onChange={(value) => updateNodeData(id, { adapter: value })}
+                options={supportedImageAdapterOptions}
                 className="storyboard-select nodrag nopan"
               />
             </div>

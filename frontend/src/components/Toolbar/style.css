@@ -184,6 +184,274 @@
   gap: 12px;
 }
 
+.toolbar-engine-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid #dae6f7;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(224, 237, 255, 0.92), transparent 42%),
+    linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(240, 246, 255, 0.96));
+}
+
+.toolbar-engine-overview-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.toolbar-engine-overview-description {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #526071;
+}
+
+.toolbar-engine-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.toolbar-engine-routing-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-engine-routing-toggle {
+  padding-inline: 0;
+  color: #3157b7;
+  font-weight: 600;
+}
+
+.toolbar-engine-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  line-height: 20px;
+  color: #6b7280;
+  background: #f8fafc;
+  border: 1px solid #d9e2ec;
+  white-space: nowrap;
+}
+
+.toolbar-engine-pill.is-active {
+  color: #1d39c4;
+  background: #f0f5ff;
+  border-color: #adc6ff;
+}
+
+.toolbar-engine-route-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.toolbar-engine-route-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #e7ebf0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(252, 253, 255, 0.98), rgba(247, 249, 252, 0.98));
+}
+
+.toolbar-engine-route-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.toolbar-engine-route-description,
+.toolbar-engine-route-help {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #66758a;
+}
+
+.toolbar-engine-route-current {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.toolbar-engine-provider-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.toolbar-engine-provider-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e7ebf0;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+}
+
+.toolbar-engine-provider-card.is-active {
+  border-color: #adc6ff;
+  box-shadow: 0 0 0 1px rgba(173, 198, 255, 0.35), 0 14px 30px rgba(29, 57, 196, 0.08);
+}
+
+.toolbar-engine-provider-card.is-ready {
+  background:
+    radial-gradient(circle at top right, rgba(235, 255, 243, 0.88), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 252, 248, 0.98));
+}
+
+.toolbar-engine-provider-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.toolbar-engine-provider-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toolbar-engine-provider-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8b6f47;
+}
+
+.toolbar-engine-provider-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.toolbar-engine-provider-description {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #66758a;
+}
+
+.toolbar-engine-provider-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  border-radius: 999px;
+  padding: 0 12px;
+  line-height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ad4e00;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  white-space: nowrap;
+}
+
+.toolbar-engine-provider-status.is-ready {
+  color: #135200;
+  background: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.toolbar-engine-provider-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #edf1f5;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.toolbar-engine-provider-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.toolbar-engine-provider-section-description {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #66758a;
+}
+
+.toolbar-engine-inline-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-engine-inline-copy {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #526071;
+}
+
+.toolbar-engine-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar-engine-mini-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  line-height: 24px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #7a5b00;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  white-space: nowrap;
+}
+
+.toolbar-engine-mini-status.is-ready {
+  color: #135200;
+  background: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.toolbar-engine-expand-button {
+  padding-inline: 0;
+  color: #3157b7;
+  font-weight: 600;
+}
+
+.toolbar-engine-help-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #6b7280;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 9px 10px;
+}
+
 .toolbar-engine-loading {
   display: flex;
   align-items: center;
@@ -507,6 +775,11 @@
     width: min(260px, calc(100vw - 96px));
     max-height: calc(100vh - 24px);
   }
+
+  .toolbar-engine-route-grid,
+  .toolbar-engine-provider-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -523,6 +796,14 @@
 
   .toolbar-engine-grid {
     grid-template-columns: 1fr;
+  }
+
+  .toolbar-engine-provider-header {
+    flex-direction: column;
+  }
+
+  .toolbar-engine-routing-summary {
+    align-items: flex-start;
   }
 
   .toolbar-template-group-list {

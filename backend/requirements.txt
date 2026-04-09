@@ -6,3 +6,4 @@ pydantic==2.11.1
 pydantic-settings==2.9.1
 aiofiles==24.1.0
 Pillow==11.2.1
+oss2>=2.18,<3

@@ -16,6 +16,21 @@ class TaskStatus(str, Enum):
     ERROR = "error"
 
 
+class PromptProvider(str, Enum):
+    """Prompt provider selection."""
+
+    VOLCENGINE = "volcengine"
+    QWEN = "qwen"
+
+
+class GenerateProvider(str, Enum):
+    """Generation provider selection."""
+
+    VOLCENGINE = "volcengine"
+    WANX = "wanx"
+    MOCK = "mock"
+
+
 class WorkflowNode(BaseModel):
     """Workflow node on the canvas."""
 
@@ -101,7 +116,7 @@ class GenerateRequest(BaseModel):
     aspect_ratio: str = Field(default="1:1", description="Image aspect ratio")
     resolution: str = Field(default="2K", description="Target resolution")
     reference_images: list[str] = Field(default_factory=list, description="Reference image URLs")
-    adapter: str = Field(default="volcengine", description="Adapter name")
+    adapter: str = Field(default="auto", description="Adapter name")
     identity_lock: bool = Field(default=False, description="Enable character consistency lock")
     identity_strength: float = Field(default=0.7, ge=0.0, le=1.0, description="Identity lock strength")
 
@@ -115,7 +130,7 @@ class VideoGenerateRequest(BaseModel):
     duration_seconds: float = Field(default=4.0, gt=0.0, le=12.0, description="Output duration in seconds")
     motion_strength: float = Field(default=0.6, ge=0.0, le=1.0, description="Motion intensity")
     source_images: list[str] = Field(default_factory=list, description="Source image URLs")
-    adapter: str = Field(default="volcengine", description="Adapter name")
+    adapter: str = Field(default="auto", description="Adapter name")
 
 
 class PromptGenerateRequest(BaseModel):
@@ -174,6 +189,64 @@ class VolcengineConfigUpdateRequest(BaseModel):
     image_model: str = Field(..., min_length=1)
     image_edit_model: str = Field(..., min_length=1)
     video_model: str = Field(..., min_length=1)
+
+
+class DashScopeConfigResponse(BaseModel):
+    """Editable DashScope configuration returned to the frontend."""
+
+    base_url: str
+    api_key: str
+    qwen_text_model: str
+    qwen_multimodal_model: str
+    wanx_image_model: str
+    wanx_video_model: str
+    wanx_video_resolution: str
+    wanx_watermark: bool
+    configured: bool
+    oss_region: str
+    oss_endpoint: str
+    oss_access_key_id: str
+    oss_access_key_secret: str
+    oss_bucket: str
+    oss_key_prefix: str
+    oss_configured: bool
+
+
+class DashScopeConfigUpdateRequest(BaseModel):
+    """DashScope configuration submitted from the frontend."""
+
+    base_url: str = Field(..., min_length=1)
+    api_key: str = Field(default="")
+    qwen_text_model: str = Field(..., min_length=1)
+    qwen_multimodal_model: str = Field(..., min_length=1)
+    wanx_image_model: str = Field(..., min_length=1)
+    wanx_video_model: str = Field(..., min_length=1)
+    wanx_video_resolution: Literal["720P", "1080P"] = Field(default="720P")
+    wanx_watermark: bool = Field(default=False)
+    oss_region: str = Field(default="")
+    oss_endpoint: str = Field(default="")
+    oss_access_key_id: str = Field(default="")
+    oss_access_key_secret: str = Field(default="")
+    oss_bucket: str = Field(default="")
+    oss_key_prefix: str = Field(default="sketchshot-temp")
+
+
+class EngineSettingsResponse(BaseModel):
+    """Editable engine settings returned to the frontend."""
+
+    prompt_provider: PromptProvider
+    generate_provider: GenerateProvider
+    volcengine: VolcengineConfigResponse
+    dashscope: DashScopeConfigResponse
+
+
+class EngineSettingsUpdateRequest(BaseModel):
+    """Engine settings submitted from the frontend."""
+
+    prompt_provider: PromptProvider
+    generate_provider: GenerateProvider
+    volcengine: VolcengineConfigUpdateRequest
+    dashscope: DashScopeConfigUpdateRequest
 
 
 class GenerateResponse(BaseModel):

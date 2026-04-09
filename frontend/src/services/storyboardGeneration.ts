@@ -1,6 +1,7 @@
 import { message } from 'antd'
 
 import { createGenerateTask, createVideoGenerateTask } from './api'
+import { resolveImageAdapter, resolveVideoAdapter } from './engineSettings'
 import { connectProgress } from './websocket'
 import { useFlowStore } from '../stores/useFlowStore'
 import { MAX_CHARACTER_IDENTITY_STRENGTH, appendCharacterConsistencyPrompt, hasCharacterReferenceImages } from '../utils/characterConsistency'
@@ -65,8 +66,12 @@ export async function executeShotNode(
     throw new Error('视频镜头至少需要一张参考图或首帧约束图，请先连接角色参考图、上传图或上游图像结果')
   }
 
+  const resolvedImageAdapter = await resolveImageAdapter(data.imageAdapter)
+  const resolvedVideoAdapter = await resolveVideoAdapter(data.videoAdapter)
   const signature = buildShotGenerationSignature({
     ...data,
+    imageAdapter: resolvedImageAdapter,
+    videoAdapter: resolvedVideoAdapter,
     referenceImages: context.referenceImages,
     contextSignature: context.contextSignature,
   })
@@ -200,7 +205,7 @@ export async function executeShotNode(
           aspect_ratio: data.aspectRatio,
           resolution: data.resolution,
           reference_images: context.referenceImages,
-          adapter: data.imageAdapter || 'volcengine',
+          adapter: resolvedImageAdapter,
           identity_lock: hasCharacterConsistency,
           identity_strength: MAX_CHARACTER_IDENTITY_STRENGTH,
         })
@@ -211,7 +216,7 @@ export async function executeShotNode(
           duration_seconds: data.durationSeconds,
           motion_strength: data.motionStrength,
           source_images: videoSourceImages,
-          adapter: data.videoAdapter || 'volcengine',
+          adapter: resolvedVideoAdapter,
         })
 
     void submitTask

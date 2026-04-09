@@ -1,5 +1,6 @@
 import { message } from 'antd'
 import { createGenerateTask } from './api'
+import { resolveImageAdapter } from './engineSettings'
 import { connectProgress } from './websocket'
 import { useFlowStore } from '../stores/useFlowStore'
 import { MAX_CHARACTER_IDENTITY_STRENGTH, appendCharacterConsistencyPrompt, hasCharacterReferenceImages } from '../utils/characterConsistency'
@@ -49,7 +50,8 @@ export async function executeImageGenNode(
   const data = latestNode.data as ImageGenNodeData
   const hasCharacterConsistency = hasCharacterReferenceImages(data.referenceImages)
   const finalPrompt = appendCharacterConsistencyPrompt(data.prompt, data.referenceImages)
-  const signature = buildGenerationSignature(data)
+  const resolvedAdapter = await resolveImageAdapter(data.adapter)
+  const signature = buildGenerationSignature({ ...data, adapter: resolvedAdapter })
   const cachedOutputImage = data.resultCache?.[signature]
 
   if (cachedOutputImage) {
@@ -167,7 +169,7 @@ export async function executeImageGenNode(
       aspect_ratio: data.aspectRatio,
       resolution: data.resolution,
       reference_images: data.referenceImages || [],
-      adapter: data.adapter || 'volcengine',
+      adapter: resolvedAdapter,
       identity_lock: hasCharacterConsistency,
       identity_strength: MAX_CHARACTER_IDENTITY_STRENGTH,
     })

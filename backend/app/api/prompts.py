@@ -16,10 +16,13 @@ router = APIRouter(prefix="/api/prompts", tags=["prompts"])
 
 @router.post("/generate", response_model=PromptGenerateResponse)
 async def generate_prompt(req: PromptGenerateRequest):
-    """Generate a refined image/video prompt using Volcengine Ark."""
+    """Generate a refined image/video prompt using the active prompt provider."""
 
     if not prompt_service.is_available:
-        raise HTTPException(status_code=503, detail="Volcengine prompt service is not configured")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Prompt provider '{prompt_service.provider_name}' is not configured",
+        )
 
     try:
         return await prompt_service.generate_prompt(req)
@@ -34,7 +37,10 @@ async def generate_continuity_frames(req: ContinuityFramesGenerateRequest):
     """Generate nine continuity frame descriptions for a 3x3 storyboard grid."""
 
     if not prompt_service.is_available:
-        raise HTTPException(status_code=503, detail="Volcengine prompt service is not configured")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Prompt provider '{prompt_service.provider_name}' is not configured",
+        )
 
     try:
         return await prompt_service.generate_continuity_frames(req)

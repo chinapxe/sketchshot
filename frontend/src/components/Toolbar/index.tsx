@@ -11,6 +11,7 @@ import {
   Input,
   Modal,
   Popconfirm,
+  Select,
   Segmented,
   Spin,
   Tooltip,
@@ -43,6 +44,8 @@ import {
   SettingOutlined,
   InfoCircleOutlined,
   QuestionCircleOutlined,
+  DownOutlined,
+  UpOutlined,
 } from '@ant-design/icons'
 import AssetCenter from '../AssetCenter'
 import AboutPage from '../AboutPage'
@@ -55,17 +58,20 @@ import {
   createWorkflow,
   deleteUserTemplate,
   deleteWorkflow,
+  getEngineSettings,
   getUserTemplate,
   getWorkflow,
-  getVolcengineConfig,
   listUserTemplates,
   listWorkflows,
-  updateVolcengineConfig,
+  updateEngineSettings,
   updateWorkflow,
+  type EngineSettingsResponse,
+  type GenerateProvider,
+  type PromptProvider,
   type UserTemplateListItem,
-  type VolcengineConfigResponse,
   type WorkflowListItem,
 } from '../../services/api'
+import { primeEngineSettingsCache } from '../../services/engineSettings'
 import { executeWorkflow } from '../../services/workflowRunner'
 import { exportWorkflowAssetsAsZip } from '../../services/workflowExport'
 import {
@@ -118,22 +124,119 @@ type TemplateGuideSection = {
 
 type TemplateBrowserCategory = WorkflowTemplateDefinition['category'] | 'user'
 
-type VolcengineConfigDraft = {
-  ark_base_url: string
-  ark_api_key: string
-  prompt_model: string
-  image_model: string
-  image_edit_model: string
-  video_model: string
+type EngineSettingsDraft = {
+  prompt_provider: PromptProvider
+  generate_provider: GenerateProvider
+  volcengine: {
+    ark_base_url: string
+    ark_api_key: string
+    prompt_model: string
+    image_model: string
+    image_edit_model: string
+    video_model: string
+  }
+  dashscope: {
+    base_url: string
+    api_key: string
+    qwen_text_model: string
+    qwen_multimodal_model: string
+    wanx_image_model: string
+    wanx_video_model: string
+    wanx_video_resolution: '720P' | '1080P'
+    wanx_watermark: boolean
+    oss_region: string
+    oss_endpoint: string
+    oss_access_key_id: string
+    oss_access_key_secret: string
+    oss_bucket: string
+    oss_key_prefix: string
+  }
 }
 
-const emptyVolcengineConfigDraft: VolcengineConfigDraft = {
-  ark_base_url: '',
-  ark_api_key: '',
-  prompt_model: '',
-  image_model: '',
-  image_edit_model: '',
-  video_model: '',
+const emptyEngineSettingsDraft: EngineSettingsDraft = {
+  prompt_provider: 'volcengine',
+  generate_provider: 'volcengine',
+  volcengine: {
+    ark_base_url: '',
+    ark_api_key: '',
+    prompt_model: '',
+    image_model: '',
+    image_edit_model: '',
+    video_model: '',
+  },
+  dashscope: {
+    base_url: '',
+    api_key: '',
+    qwen_text_model: '',
+    qwen_multimodal_model: '',
+    wanx_image_model: '',
+    wanx_video_model: '',
+    wanx_video_resolution: '720P',
+    wanx_watermark: false,
+    oss_region: '',
+    oss_endpoint: '',
+    oss_access_key_id: '',
+    oss_access_key_secret: '',
+    oss_bucket: '',
+    oss_key_prefix: 'sketchshot-temp',
+  },
+}
+
+const promptProviderOptions = [
+  { value: 'volcengine', label: '火山 Ark' },
+  { value: 'qwen', label: '千问（DashScope）' },
+]
+
+const generateProviderOptions = [
+  { value: 'volcengine', label: '火山生成' },
+  { value: 'wanx', label: '万相（DashScope）' },
+]
+
+const wanxVideoResolutionOptions = [
+  { value: '720P', label: '720P' },
+  { value: '1080P', label: '1080P' },
+]
+
+const watermarkOptions = [
+  { value: false, label: '不加水印' },
+  { value: true, label: '保留官方水印' },
+]
+
+function getPromptProviderLabel(provider: PromptProvider): string {
+  return provider === 'qwen' ? '千问（阿里 DashScope）' : '火山 Ark'
+}
+
+function getGenerateProviderLabel(provider: GenerateProvider): string {
+  if (provider === 'wanx') {
+    return '万相（阿里 DashScope）'
+  }
+
+  return '火山 Ark'
+}
+
+function getPromptProviderHelp(provider: PromptProvider): string {
+  if (provider === 'qwen') {
+    return '总提示词生成、润色和九宫格连续动作拆分，将读取下方阿里服务卡中的 Qwen 模型。'
+  }
+
+  return '总提示词生成、润色和九宫格连续动作拆分，将读取下方火山服务卡中的提示词模型。'
+}
+
+function getGenerateProviderHelp(provider: GenerateProvider): string {
+  if (provider === 'wanx') {
+    return '图片生成和图生视频将走万相能力，请在下方阿里服务卡中填写万相模型与 DashScope 鉴权。'
+  }
+
+  return '图片生成和图生视频将走火山能力，请在下方火山服务卡中填写图片与视频模型。'
+}
+
+function getOssConfigSummary(region: string, bucket: string, configured: boolean): string {
+  if (!configured) {
+    return '未启用'
+  }
+
+  const summary = [region.trim(), bucket.trim()].filter(Boolean).join(' / ')
+  return summary || '已配置'
 }
 
 const userTemplateCategoryMeta = {
@@ -271,8 +374,12 @@ const Toolbar = memo(() => {
   const [isEngineConfigModalOpen, setIsEngineConfigModalOpen] = useState(false)
   const [isEngineConfigLoading, setIsEngineConfigLoading] = useState(false)
   const [isEngineConfigSaving, setIsEngineConfigSaving] = useState(false)
-  const [engineConfigDraft, setEngineConfigDraft] = useState<VolcengineConfigDraft>(emptyVolcengineConfigDraft)
+  const [isEngineRoutingExpanded, setIsEngineRoutingExpanded] = useState(false)
+  const [engineConfigDraft, setEngineConfigDraft] = useState<EngineSettingsDraft>(emptyEngineSettingsDraft)
   const [isVolcengineConfigured, setIsVolcengineConfigured] = useState(false)
+  const [isDashScopeConfigured, setIsDashScopeConfigured] = useState(false)
+  const [isDashScopeOssExpanded, setIsDashScopeOssExpanded] = useState(false)
+  const [isDashScopeOssAdvancedExpanded, setIsDashScopeOssAdvancedExpanded] = useState(false)
   const [compareNodeId, setCompareNodeId] = useState<string | null>(null)
   const [workflowNameDraft, setWorkflowNameDraft] = useState(currentWorkflowName)
   const [templateNameDraft, setTemplateNameDraft] = useState('')
@@ -372,16 +479,37 @@ const Toolbar = memo(() => {
     return date.toLocaleString('zh-CN', { hour12: false })
   }, [])
 
-  const applyVolcengineConfig = useCallback((config: VolcengineConfigResponse) => {
+  const applyEngineSettings = useCallback((config: EngineSettingsResponse) => {
     setEngineConfigDraft({
-      ark_base_url: config.ark_base_url,
-      ark_api_key: config.ark_api_key,
-      prompt_model: config.prompt_model,
-      image_model: config.image_model,
-      image_edit_model: config.image_edit_model,
-      video_model: config.video_model,
+      prompt_provider: config.prompt_provider,
+      generate_provider: config.generate_provider,
+      volcengine: {
+        ark_base_url: config.volcengine.ark_base_url,
+        ark_api_key: config.volcengine.ark_api_key,
+        prompt_model: config.volcengine.prompt_model,
+        image_model: config.volcengine.image_model,
+        image_edit_model: config.volcengine.image_edit_model,
+        video_model: config.volcengine.video_model,
+      },
+      dashscope: {
+        base_url: config.dashscope.base_url,
+        api_key: config.dashscope.api_key,
+        qwen_text_model: config.dashscope.qwen_text_model,
+        qwen_multimodal_model: config.dashscope.qwen_multimodal_model,
+        wanx_image_model: config.dashscope.wanx_image_model,
+        wanx_video_model: config.dashscope.wanx_video_model,
+        wanx_video_resolution: config.dashscope.wanx_video_resolution,
+        wanx_watermark: config.dashscope.wanx_watermark,
+        oss_region: config.dashscope.oss_region,
+        oss_endpoint: config.dashscope.oss_endpoint,
+        oss_access_key_id: config.dashscope.oss_access_key_id,
+        oss_access_key_secret: config.dashscope.oss_access_key_secret,
+        oss_bucket: config.dashscope.oss_bucket,
+        oss_key_prefix: config.dashscope.oss_key_prefix,
+      },
     })
-    setIsVolcengineConfigured(config.configured)
+    setIsVolcengineConfigured(config.volcengine.configured)
+    setIsDashScopeConfigured(config.dashscope.configured)
   }, [])
 
   const handleNewWorkflow = useCallback(() => {
@@ -519,21 +647,51 @@ const Toolbar = memo(() => {
   const openEngineConfigModal = useCallback(async () => {
     setIsEngineConfigModalOpen(true)
     setIsEngineConfigLoading(true)
+    setIsEngineRoutingExpanded(false)
+    setIsDashScopeOssExpanded(false)
+    setIsDashScopeOssAdvancedExpanded(false)
 
     try {
-      const config = await getVolcengineConfig()
-      applyVolcengineConfig(config)
+      const config = await getEngineSettings()
+      applyEngineSettings(config)
+      primeEngineSettingsCache(config)
     } catch (error) {
       console.error('[工具栏] 获取引擎配置失败:', error)
       message.error(error instanceof Error ? error.message : '获取引擎配置失败')
     } finally {
       setIsEngineConfigLoading(false)
     }
-  }, [applyVolcengineConfig])
+  }, [applyEngineSettings])
 
-  const updateEngineConfigField = useCallback(
-    (field: keyof VolcengineConfigDraft, value: string) => {
+  const updateEngineProviderField = useCallback(
+    (field: 'prompt_provider' | 'generate_provider', value: PromptProvider | GenerateProvider) => {
       setEngineConfigDraft((current) => ({ ...current, [field]: value }))
+    },
+    []
+  )
+
+  const updateVolcengineConfigField = useCallback(
+    (field: keyof EngineSettingsDraft['volcengine'], value: string) => {
+      setEngineConfigDraft((current) => ({
+        ...current,
+        volcengine: {
+          ...current.volcengine,
+          [field]: value,
+        },
+      }))
+    },
+    []
+  )
+
+  const updateDashScopeConfigField = useCallback(
+    (field: keyof EngineSettingsDraft['dashscope'], value: string | boolean) => {
+      setEngineConfigDraft((current) => ({
+        ...current,
+        dashscope: {
+          ...current.dashscope,
+          [field]: value,
+        },
+      }))
     },
     []
   )
@@ -542,13 +700,12 @@ const Toolbar = memo(() => {
     setIsEngineConfigSaving(true)
 
     try {
-      const saved = await updateVolcengineConfig(engineConfigDraft)
-      applyVolcengineConfig(saved)
+      const saved = await updateEngineSettings(engineConfigDraft)
+      applyEngineSettings(saved)
+      primeEngineSettingsCache(saved)
       setIsEngineConfigModalOpen(false)
       message.success(
-        saved.configured
-          ? '引擎配置已保存，新的火山配置已立即生效'
-          : '引擎配置已保存，当前未填写 API Key，火山引擎暂不可用'
+        '引擎配置已保存，新的提示词与生成 provider 已立即生效'
       )
     } catch (error) {
       console.error('[工具栏] 保存引擎配置失败:', error)
@@ -556,7 +713,7 @@ const Toolbar = memo(() => {
     } finally {
       setIsEngineConfigSaving(false)
     }
-  }, [applyVolcengineConfig, engineConfigDraft])
+  }, [applyEngineSettings, engineConfigDraft])
 
   const refreshWorkflowList = useCallback(async () => {
     setIsLoadingList(true)
@@ -882,6 +1039,29 @@ const Toolbar = memo(() => {
     [handleOpenVersionCompare]
   )
 
+  const promptProviderLabel = getPromptProviderLabel(engineConfigDraft.prompt_provider)
+  const generateProviderLabel = getGenerateProviderLabel(engineConfigDraft.generate_provider)
+  const promptProviderHelp = getPromptProviderHelp(engineConfigDraft.prompt_provider)
+  const generateProviderHelp = getGenerateProviderHelp(engineConfigDraft.generate_provider)
+  const visibleGenerateProvider = engineConfigDraft.generate_provider === 'wanx' ? 'wanx' : 'volcengine'
+  const isVolcenginePromptActive = engineConfigDraft.prompt_provider === 'volcengine'
+  const isVolcengineGenerateActive = engineConfigDraft.generate_provider === 'volcengine'
+  const isDashScopePromptActive = engineConfigDraft.prompt_provider === 'qwen'
+  const isDashScopeGenerateActive = engineConfigDraft.generate_provider === 'wanx'
+  const isVolcengineActive = isVolcenginePromptActive || isVolcengineGenerateActive
+  const isDashScopeActive = isDashScopePromptActive || isDashScopeGenerateActive
+  const isDashScopeOssReady = Boolean(
+    engineConfigDraft.dashscope.oss_bucket.trim() &&
+      engineConfigDraft.dashscope.oss_access_key_id.trim() &&
+      engineConfigDraft.dashscope.oss_access_key_secret.trim() &&
+      (engineConfigDraft.dashscope.oss_region.trim() || engineConfigDraft.dashscope.oss_endpoint.trim())
+  )
+  const dashScopeOssSummary = getOssConfigSummary(
+    engineConfigDraft.dashscope.oss_region,
+    engineConfigDraft.dashscope.oss_bucket,
+    isDashScopeOssReady
+  )
+
   return (
     <>
       <div className={`canvas-toolbar canvas-toolbar-dock${isDockCollapsed ? ' is-collapsed' : ''}`}>
@@ -939,7 +1119,7 @@ const Toolbar = memo(() => {
             </Button>
           </Tooltip>
 
-          <Tooltip title="配置火山引擎地址、API Key 和模型 ID">
+          <Tooltip title="配置火山与阿里引擎的地址、API Key 和模型">
             <Button
               className={`toolbar-dock-action${isDockCollapsed ? ' icon-only' : ''}`}
               icon={<SettingOutlined />}
@@ -1171,7 +1351,7 @@ const Toolbar = memo(() => {
             setIsEngineConfigModalOpen(false)
           }
         }}
-        width={720}
+        width={960}
         destroyOnHidden
         footer={[
           <Button
@@ -1197,81 +1377,453 @@ const Toolbar = memo(() => {
           </div>
         ) : (
           <div className="toolbar-modal-body toolbar-engine-form">
-            <div className="toolbar-template-hint">
-              配置仅保存在当前后端本机文件中，保存后新任务立即使用，无需手动修改 `.env`。
+            <div className="toolbar-engine-overview">
+              <div className="toolbar-engine-overview-title">先决定任务走向，再分别配置两套服务</div>
+              <div className="toolbar-engine-overview-description">
+                提示词 Provider 决定谁来负责总提示词、润色和九宫格连续动作拆分；生成 Provider
+                决定图片和图生视频最终由哪家服务产出。配置仅保存在当前后端本机文件中，保存后新任务立即生效，无需手动修改
+                `.env`。
+              </div>
+              <div className="toolbar-engine-routing-summary">
+                <div className="toolbar-engine-pill-row">
+                  <span className="toolbar-engine-pill is-active">提示词：{promptProviderLabel}</span>
+                  <span className="toolbar-engine-pill is-active">生成：{generateProviderLabel}</span>
+                </div>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={isEngineRoutingExpanded ? <UpOutlined /> : <DownOutlined />}
+                  className="toolbar-engine-routing-toggle"
+                  onClick={() => setIsEngineRoutingExpanded((value) => !value)}
+                >
+                  {isEngineRoutingExpanded ? '收起高级路由设置' : '展开高级路由设置'}
+                </Button>
+              </div>
             </div>
-            <div className={`toolbar-engine-status${isVolcengineConfigured ? ' is-ready' : ''}`}>
-              {isVolcengineConfigured ? '火山引擎已配置，可直接用于生成。' : '当前未配置 API Key，火山引擎暂不可用。'}
-            </div>
 
-            <label className="toolbar-modal-label" htmlFor="engine-ark-base-url">
-              Ark Base URL
-            </label>
-            <Input
-              id="engine-ark-base-url"
-              value={engineConfigDraft.ark_base_url}
-              placeholder="https://ark.cn-beijing.volces.com/api/v3"
-              onChange={(event) => updateEngineConfigField('ark_base_url', event.target.value)}
-            />
+            {isEngineRoutingExpanded && (
+              <div className="toolbar-engine-route-grid">
+                <div className="toolbar-engine-route-card">
+                  <div className="toolbar-engine-route-title">提示词路由</div>
+                  <div className="toolbar-engine-route-description">
+                    用于总提示词生成、提示词润色、九宫格连续动作拆分。
+                  </div>
+                  <label className="toolbar-modal-label" htmlFor="engine-prompt-provider">
+                    提示词 Provider
+                  </label>
+                  <Select
+                    id="engine-prompt-provider"
+                    value={engineConfigDraft.prompt_provider}
+                    options={promptProviderOptions}
+                    onChange={(value) => updateEngineProviderField('prompt_provider', value as PromptProvider)}
+                    className="field-select nodrag nopan"
+                  />
+                  <div className="toolbar-engine-route-current">当前将使用：{promptProviderLabel}</div>
+                  <div className="toolbar-engine-route-help">{promptProviderHelp}</div>
+                </div>
 
-            <label className="toolbar-modal-label" htmlFor="engine-ark-api-key">
-              Ark API Key
-            </label>
-            <Input.Password
-              id="engine-ark-api-key"
-              value={engineConfigDraft.ark_api_key}
-              placeholder="请输入你自己的 Ark API Key"
-              onChange={(event) => updateEngineConfigField('ark_api_key', event.target.value)}
-            />
-
-            <div className="toolbar-engine-grid">
-              <div className="toolbar-modal-body">
-                <label className="toolbar-modal-label" htmlFor="engine-prompt-model">
-                  提示词模型
-                </label>
-                <Input
-                  id="engine-prompt-model"
-                  value={engineConfigDraft.prompt_model}
-                  placeholder="doubao-seed-1-6-251015"
-                  onChange={(event) => updateEngineConfigField('prompt_model', event.target.value)}
-                />
+                <div className="toolbar-engine-route-card">
+                  <div className="toolbar-engine-route-title">生成路由</div>
+                  <div className="toolbar-engine-route-description">
+                    决定图片生成、图生视频最终调用哪一套接口。
+                  </div>
+                  <label className="toolbar-modal-label" htmlFor="engine-generate-provider">
+                    生成 Provider
+                  </label>
+                  <Select
+                    id="engine-generate-provider"
+                    value={visibleGenerateProvider}
+                    options={generateProviderOptions}
+                    onChange={(value) => updateEngineProviderField('generate_provider', value as GenerateProvider)}
+                    className="field-select nodrag nopan"
+                  />
+                  <div className="toolbar-engine-route-current">当前将使用：{generateProviderLabel}</div>
+                  <div className="toolbar-engine-route-help">{generateProviderHelp}</div>
+                </div>
               </div>
+            )}
 
-              <div className="toolbar-modal-body">
-                <label className="toolbar-modal-label" htmlFor="engine-video-model">
-                  视频模型
-                </label>
-                <Input
-                  id="engine-video-model"
-                  value={engineConfigDraft.video_model}
-                  placeholder="doubao-seedance-1-5-pro-251215"
-                  onChange={(event) => updateEngineConfigField('video_model', event.target.value)}
-                />
-              </div>
+            <div className="toolbar-engine-provider-grid">
+              <section
+                className={`toolbar-engine-provider-card${isVolcengineConfigured ? ' is-ready' : ''}${isVolcengineActive ? ' is-active' : ''}`}
+              >
+                <div className="toolbar-engine-provider-header">
+                  <div className="toolbar-engine-provider-copy">
+                    <div className="toolbar-engine-provider-eyebrow">服务 A</div>
+                    <div className="toolbar-engine-provider-title">火山引擎 / Ark</div>
+                    <div className="toolbar-engine-provider-description">
+                      当提示词 Provider 选“火山 Ark”或生成 Provider 选“火山生成”时，这张卡的字段必须填写。
+                    </div>
+                  </div>
+                  <div className={`toolbar-engine-provider-status${isVolcengineConfigured ? ' is-ready' : ''}`}>
+                    {isVolcengineConfigured ? '已配置' : '未配置'}
+                  </div>
+                </div>
 
-              <div className="toolbar-modal-body">
-                <label className="toolbar-modal-label" htmlFor="engine-image-model">
-                  文生图模型
-                </label>
-                <Input
-                  id="engine-image-model"
-                  value={engineConfigDraft.image_model}
-                  placeholder="doubao-seedream-5-0-260128"
-                  onChange={(event) => updateEngineConfigField('image_model', event.target.value)}
-                />
-              </div>
+                <div className="toolbar-engine-pill-row">
+                  {isVolcenginePromptActive ? <span className="toolbar-engine-pill is-active">当前负责提示词</span> : null}
+                  {isVolcengineGenerateActive ? <span className="toolbar-engine-pill is-active">当前负责生成</span> : null}
+                  <span className="toolbar-engine-pill">提示词模型</span>
+                  <span className="toolbar-engine-pill">文生图</span>
+                  <span className="toolbar-engine-pill">图像编辑</span>
+                  <span className="toolbar-engine-pill">图生视频</span>
+                </div>
 
-              <div className="toolbar-modal-body">
-                <label className="toolbar-modal-label" htmlFor="engine-image-edit-model">
-                  图像编辑模型
-                </label>
-                <Input
-                  id="engine-image-edit-model"
-                  value={engineConfigDraft.image_edit_model}
-                  placeholder="doubao-seedream-5-0-260128"
-                  onChange={(event) => updateEngineConfigField('image_edit_model', event.target.value)}
-                />
-              </div>
+                <div className="toolbar-engine-provider-section">
+                  <div className="toolbar-engine-provider-section-title">连接信息</div>
+                  <div className="toolbar-engine-provider-section-description">
+                    填写 Ark 接口地址与 API Key。
+                  </div>
+                  <div className="toolbar-modal-body">
+                    <label className="toolbar-modal-label" htmlFor="engine-ark-base-url">
+                      Ark Base URL
+                    </label>
+                    <Input
+                      id="engine-ark-base-url"
+                      value={engineConfigDraft.volcengine.ark_base_url}
+                      placeholder="https://ark.cn-beijing.volces.com/api/v3"
+                      onChange={(event) => updateVolcengineConfigField('ark_base_url', event.target.value)}
+                    />
+                  </div>
+                  <div className="toolbar-modal-body">
+                    <label className="toolbar-modal-label" htmlFor="engine-ark-api-key">
+                      Ark API Key
+                    </label>
+                    <Input.Password
+                      id="engine-ark-api-key"
+                      value={engineConfigDraft.volcengine.ark_api_key}
+                      placeholder="请输入你自己的 Ark API Key"
+                      onChange={(event) => updateVolcengineConfigField('ark_api_key', event.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="toolbar-engine-provider-section">
+                  <div className="toolbar-engine-provider-section-title">模型配置</div>
+                  <div className="toolbar-engine-provider-section-description">
+                    提示词、图片和视频都会读取这里的模型 ID。
+                  </div>
+                  <div className="toolbar-engine-grid">
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-prompt-model">
+                        提示词模型
+                      </label>
+                      <Input
+                        id="engine-prompt-model"
+                        value={engineConfigDraft.volcengine.prompt_model}
+                        placeholder="doubao-seed-1-6-251015"
+                        onChange={(event) => updateVolcengineConfigField('prompt_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-video-model">
+                        视频模型
+                      </label>
+                      <Input
+                        id="engine-video-model"
+                        value={engineConfigDraft.volcengine.video_model}
+                        placeholder="doubao-seedance-1-5-pro-251215"
+                        onChange={(event) => updateVolcengineConfigField('video_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-image-model">
+                        文生图模型
+                      </label>
+                      <Input
+                        id="engine-image-model"
+                        value={engineConfigDraft.volcengine.image_model}
+                        placeholder="doubao-seedream-5-0-260128"
+                        onChange={(event) => updateVolcengineConfigField('image_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-image-edit-model">
+                        图像编辑模型
+                      </label>
+                      <Input
+                        id="engine-image-edit-model"
+                        value={engineConfigDraft.volcengine.image_edit_model}
+                        placeholder="doubao-seedream-5-0-260128"
+                        onChange={(event) => updateVolcengineConfigField('image_edit_model', event.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                className={`toolbar-engine-provider-card${isDashScopeConfigured ? ' is-ready' : ''}${isDashScopeActive ? ' is-active' : ''}`}
+              >
+                <div className="toolbar-engine-provider-header">
+                  <div className="toolbar-engine-provider-copy">
+                    <div className="toolbar-engine-provider-eyebrow">服务 B</div>
+                    <div className="toolbar-engine-provider-title">阿里云 / DashScope</div>
+                    <div className="toolbar-engine-provider-description">
+                      千问和万相共用这一套 DashScope 鉴权。提示词 Provider 选“千问”或生成 Provider 选“万相”时，这张卡必须填写。
+                    </div>
+                  </div>
+                  <div className={`toolbar-engine-provider-status${isDashScopeConfigured ? ' is-ready' : ''}`}>
+                    {isDashScopeConfigured ? '已配置' : '未配置'}
+                  </div>
+                </div>
+
+                <div className="toolbar-engine-pill-row">
+                  {isDashScopePromptActive ? <span className="toolbar-engine-pill is-active">当前负责提示词</span> : null}
+                  {isDashScopeGenerateActive ? <span className="toolbar-engine-pill is-active">当前负责生成</span> : null}
+                  <span className="toolbar-engine-pill">Qwen 文本</span>
+                  <span className="toolbar-engine-pill">Qwen 多模态</span>
+                  <span className="toolbar-engine-pill">万相图片</span>
+                  <span className="toolbar-engine-pill">万相视频</span>
+                </div>
+
+                <div className="toolbar-engine-provider-section">
+                  <div className="toolbar-engine-provider-section-title">连接信息</div>
+                  <div className="toolbar-engine-provider-section-description">
+                    填写 DashScope 地址与 API Key，千问和万相会共同使用。
+                  </div>
+                  <div className="toolbar-modal-body">
+                    <label className="toolbar-modal-label" htmlFor="engine-dashscope-base-url">
+                      DashScope Base URL
+                    </label>
+                    <Input
+                      id="engine-dashscope-base-url"
+                      value={engineConfigDraft.dashscope.base_url}
+                      placeholder="https://dashscope.aliyuncs.com"
+                      onChange={(event) => updateDashScopeConfigField('base_url', event.target.value)}
+                    />
+                  </div>
+                  <div className="toolbar-modal-body">
+                    <label className="toolbar-modal-label" htmlFor="engine-dashscope-api-key">
+                      DashScope API Key
+                    </label>
+                    <Input.Password
+                      id="engine-dashscope-api-key"
+                      value={engineConfigDraft.dashscope.api_key}
+                      placeholder="请输入 DashScope / 百炼 API Key"
+                      onChange={(event) => updateDashScopeConfigField('api_key', event.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="toolbar-engine-provider-section">
+                  <div className="toolbar-engine-provider-section-title">Qwen 提示词模型</div>
+                  <div className="toolbar-engine-provider-section-description">
+                    用于提示词生成、润色，以及带参考图时的多模态提示词处理。
+                  </div>
+                  <div className="toolbar-engine-grid">
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-qwen-text-model">
+                        Qwen 文本模型
+                      </label>
+                      <Input
+                        id="engine-qwen-text-model"
+                        value={engineConfigDraft.dashscope.qwen_text_model}
+                        placeholder="qwen-plus"
+                        onChange={(event) => updateDashScopeConfigField('qwen_text_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-qwen-multimodal-model">
+                        Qwen 多模态模型
+                      </label>
+                      <Input
+                        id="engine-qwen-multimodal-model"
+                        value={engineConfigDraft.dashscope.qwen_multimodal_model}
+                        placeholder="qwen-vl-plus"
+                        onChange={(event) => updateDashScopeConfigField('qwen_multimodal_model', event.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="toolbar-engine-provider-section">
+                  <div className="toolbar-engine-provider-section-title">万相生成模型</div>
+                  <div className="toolbar-engine-provider-section-description">
+                    用于万相图片生成和图生视频。
+                  </div>
+                  <div className="toolbar-engine-grid">
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-wanx-image-model">
+                        万相图像模型
+                      </label>
+                      <Input
+                        id="engine-wanx-image-model"
+                        value={engineConfigDraft.dashscope.wanx_image_model}
+                        placeholder="wan2.7-image-pro"
+                        onChange={(event) => updateDashScopeConfigField('wanx_image_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-wanx-video-model">
+                        万相视频模型
+                      </label>
+                      <Input
+                        id="engine-wanx-video-model"
+                        value={engineConfigDraft.dashscope.wanx_video_model}
+                        placeholder="wan2.7-i2v"
+                        onChange={(event) => updateDashScopeConfigField('wanx_video_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-wanx-video-resolution">
+                        万相视频分辨率
+                      </label>
+                      <Select
+                        id="engine-wanx-video-resolution"
+                        value={engineConfigDraft.dashscope.wanx_video_resolution}
+                        options={wanxVideoResolutionOptions}
+                        onChange={(value) => updateDashScopeConfigField('wanx_video_resolution', value)}
+                        className="field-select nodrag nopan"
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-wanx-watermark">
+                        万相水印
+                      </label>
+                      <Select
+                        id="engine-wanx-watermark"
+                        value={engineConfigDraft.dashscope.wanx_watermark}
+                        options={watermarkOptions}
+                        onChange={(value) => updateDashScopeConfigField('wanx_watermark', value)}
+                        className="field-select nodrag nopan"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="toolbar-engine-provider-section">
+                  <div className="toolbar-engine-provider-section-title">万相视频临时托管（可选）</div>
+                  <div className="toolbar-engine-provider-section-description">
+                    只有当万相图生视频要读取本地首尾帧、且这些图片没有公网 URL 时，才需要这组 OSS 配置。
+                    如果你已经配置了 `PUBLIC_BASE_URL`，这里可以不填。
+                  </div>
+
+                    <div className="toolbar-engine-inline-summary">
+                      <div className="toolbar-engine-inline-copy">当前状态：{dashScopeOssSummary}</div>
+                      <div className="toolbar-engine-inline-actions">
+                        <span className={`toolbar-engine-mini-status${isDashScopeOssReady ? ' is-ready' : ''}`}>
+                          {isDashScopeOssReady ? '已配置' : '未启用'}
+                        </span>
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={isDashScopeOssExpanded ? <UpOutlined /> : <DownOutlined />}
+                        className="toolbar-engine-expand-button"
+                        onClick={() => setIsDashScopeOssExpanded((value) => !value)}
+                      >
+                        {isDashScopeOssExpanded ? '收起设置' : '展开设置'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {isDashScopeOssExpanded ? (
+                    <>
+                      <div className="toolbar-engine-help-note">
+                        推荐最简填写 4 项：Region、Bucket、Access Key ID、Access Key Secret。
+                        Endpoint 会按 Region 自动推导。
+                      </div>
+
+                      <div className="toolbar-engine-grid">
+                        <div className="toolbar-modal-body">
+                          <label className="toolbar-modal-label" htmlFor="engine-oss-region">
+                            OSS Region
+                          </label>
+                          <Input
+                            id="engine-oss-region"
+                            value={engineConfigDraft.dashscope.oss_region}
+                            placeholder="cn-shanghai"
+                            onChange={(event) => updateDashScopeConfigField('oss_region', event.target.value)}
+                          />
+                        </div>
+
+                        <div className="toolbar-modal-body">
+                          <label className="toolbar-modal-label" htmlFor="engine-oss-bucket">
+                            OSS Bucket
+                          </label>
+                          <Input
+                            id="engine-oss-bucket"
+                            value={engineConfigDraft.dashscope.oss_bucket}
+                            placeholder="your-temp-bucket"
+                            onChange={(event) => updateDashScopeConfigField('oss_bucket', event.target.value)}
+                          />
+                        </div>
+
+                        <div className="toolbar-modal-body">
+                          <label className="toolbar-modal-label" htmlFor="engine-oss-access-key-id">
+                            Access Key ID
+                          </label>
+                          <Input
+                            id="engine-oss-access-key-id"
+                            value={engineConfigDraft.dashscope.oss_access_key_id}
+                            placeholder="请输入阿里云 Access Key ID"
+                            onChange={(event) => updateDashScopeConfigField('oss_access_key_id', event.target.value)}
+                          />
+                        </div>
+
+                        <div className="toolbar-modal-body">
+                          <label className="toolbar-modal-label" htmlFor="engine-oss-access-key-secret">
+                            Access Key Secret
+                          </label>
+                          <Input.Password
+                            id="engine-oss-access-key-secret"
+                            value={engineConfigDraft.dashscope.oss_access_key_secret}
+                            placeholder="请输入阿里云 Access Key Secret"
+                            onChange={(event) =>
+                              updateDashScopeConfigField('oss_access_key_secret', event.target.value)
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={isDashScopeOssAdvancedExpanded ? <UpOutlined /> : <DownOutlined />}
+                        className="toolbar-engine-expand-button"
+                        onClick={() => setIsDashScopeOssAdvancedExpanded((value) => !value)}
+                      >
+                        {isDashScopeOssAdvancedExpanded ? '收起高级项' : '展开高级项'}
+                      </Button>
+
+                      {isDashScopeOssAdvancedExpanded ? (
+                        <div className="toolbar-engine-grid">
+                          <div className="toolbar-modal-body">
+                            <label className="toolbar-modal-label" htmlFor="engine-oss-endpoint">
+                              自定义 Endpoint（高级）
+                            </label>
+                            <Input
+                              id="engine-oss-endpoint"
+                              value={engineConfigDraft.dashscope.oss_endpoint}
+                              placeholder="留空时按 Region 自动推导"
+                              onChange={(event) => updateDashScopeConfigField('oss_endpoint', event.target.value)}
+                            />
+                          </div>
+
+                          <div className="toolbar-modal-body">
+                            <label className="toolbar-modal-label" htmlFor="engine-oss-key-prefix">
+                              临时目录前缀（高级）
+                            </label>
+                            <Input
+                              id="engine-oss-key-prefix"
+                              value={engineConfigDraft.dashscope.oss_key_prefix}
+                              placeholder="sketchshot-temp"
+                              onChange={(event) => updateDashScopeConfigField('oss_key_prefix', event.target.value)}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+              </section>
             </div>
           </div>
         )}

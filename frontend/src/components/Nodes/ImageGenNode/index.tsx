@@ -19,6 +19,12 @@ import {
   appendPromptFragment,
   appendPromptLine,
 } from '../../../config/generationQuickPresets'
+import {
+  getSupportedImageAdapterValue,
+  resolveVisibleImageAdapter,
+  supportedImageAdapterOptions,
+  type SupportedImageAdapter,
+} from '../../../services/engineSettings'
 import { uploadImageAsset, type UploadedAssetResponse } from '../../../services/api'
 import { disconnectNodeGeneration, executeImageGenNode } from '../../../services/nodeGeneration'
 import { generateImagePrompt } from '../../../services/promptGeneration'
@@ -55,6 +61,7 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isPromptGenerating, setIsPromptGenerating] = useState(false)
+  const [adapterValue, setAdapterValue] = useState<SupportedImageAdapter>(() => getSupportedImageAdapterValue(data.adapter))
   const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.imageGen.width)
 
   useEffect(() => {
@@ -63,6 +70,20 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
   }, [edges, id, getUpstreamImages, updateNodeData])
 
   useEffect(() => () => disconnectNodeGeneration(id), [id])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void resolveVisibleImageAdapter(data.adapter).then((value) => {
+      if (!cancelled) {
+        setAdapterValue(value)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [data.adapter])
 
   const blurButtonIfFocused = useCallback((selector: string) => {
     const root = nodeRef.current
@@ -354,6 +375,16 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
               value={data.resolution}
               onChange={(value) => updateNodeData(id, { resolution: value })}
               options={resolutionOptions}
+              className="field-select nodrag nopan"
+            />
+          </div>
+          <div className="form-field flex-1">
+            <label className="field-label">生成引擎</label>
+            <Select
+              size="small"
+              value={adapterValue}
+              onChange={(value) => updateNodeData(id, { adapter: value })}
+              options={supportedImageAdapterOptions}
               className="field-select nodrag nopan"
             />
           </div>

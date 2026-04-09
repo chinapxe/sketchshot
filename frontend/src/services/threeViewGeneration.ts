@@ -1,6 +1,7 @@
 import { message } from 'antd'
 
 import { createGenerateTask, splitThreeViewSheet } from './api'
+import { resolveImageAdapter } from './engineSettings'
 import { connectProgress } from './websocket'
 import { useFlowStore } from '../stores/useFlowStore'
 import type { CharacterThreeViewImages, NodeStatus, ThreeViewGenNodeData } from '../types'
@@ -132,6 +133,7 @@ interface RunSingleThreeViewTaskOptions {
   storeNodeId: string
   taskNodeId: string
   data: ThreeViewGenNodeData
+  adapter: Exclude<ThreeViewGenNodeData['adapter'], 'auto'>
   prompt: string
   progressStart: number
   progressEnd: number
@@ -143,6 +145,7 @@ function runSingleThreeViewTask({
   storeNodeId,
   taskNodeId,
   data,
+  adapter,
   prompt,
   progressStart,
   progressEnd,
@@ -230,7 +233,7 @@ function runSingleThreeViewTask({
       aspect_ratio: data.aspectRatio,
       resolution: data.resolution,
       reference_images: data.referenceImages,
-      adapter: data.adapter || 'volcengine',
+      adapter,
       identity_lock: hasCharacterReferenceImages(data.referenceImages),
       identity_strength: MAX_CHARACTER_IDENTITY_STRENGTH,
     })
@@ -310,11 +313,12 @@ export async function executeThreeViewGenNode(
     throw new Error('请先接入至少一张参考图，再生成三视图')
   }
 
-  const signature = buildThreeViewGenerationSignature(data)
+  const resolvedAdapter = await resolveImageAdapter(data.adapter)
+  const resolvedSignature = buildThreeViewGenerationSignature({ ...data, adapter: resolvedAdapter })
   const outputMode = getThreeViewOutputMode(data)
-  const cachedOutputImage = outputMode === 'sheet' ? data.resultCache?.[signature] : undefined
+  const cachedOutputImage = outputMode === 'sheet' ? data.resultCache?.[resolvedSignature] : undefined
   const cachedSplitOutputImages =
-    outputMode === 'split' ? normalizeLooseThreeViewImages(data.splitResultCache?.[signature]) : {}
+    outputMode === 'split' ? normalizeLooseThreeViewImages(data.splitResultCache?.[resolvedSignature]) : {}
 
   if (cachedOutputImage) {
     store.updateNodeData(nodeId, {
@@ -323,7 +327,7 @@ export async function executeThreeViewGenNode(
       outputImage: cachedOutputImage,
       outputImages: {},
       errorMessage: undefined,
-      lastRunSignature: signature,
+      lastRunSignature: resolvedSignature,
       needsRefresh: false,
     })
     syncDownstreamAfterGeneration(nodeId)
@@ -341,7 +345,7 @@ export async function executeThreeViewGenNode(
       outputImage: undefined,
       outputImages: cachedSplitOutputImages,
       errorMessage: undefined,
-      lastRunSignature: signature,
+      lastRunSignature: resolvedSignature,
       needsRefresh: false,
     })
     syncDownstreamAfterGeneration(nodeId)
@@ -356,7 +360,7 @@ export async function executeThreeViewGenNode(
     status: 'queued' as NodeStatus,
     progress: 0,
     errorMessage: undefined,
-    lastRunSignature: signature,
+    lastRunSignature: resolvedSignature,
     needsRefresh: false,
     outputImage: undefined,
     outputImages: {},
@@ -369,6 +373,7 @@ export async function executeThreeViewGenNode(
       storeNodeId: nodeId,
       taskNodeId: nodeId,
       data,
+      adapter: resolvedAdapter,
       prompt: buildThreeViewSheetPrompt(data),
       progressStart: 0,
       progressEnd: 100,
@@ -381,7 +386,7 @@ export async function executeThreeViewGenNode(
       : data
     const nextResultCache = {
       ...(currentData.resultCache ?? {}),
-      [signature]: outputImage,
+      [resolvedSignature]: outputImage,
     }
 
     useFlowStore.getState().updateNodeData(nodeId, {
@@ -390,7 +395,7 @@ export async function executeThreeViewGenNode(
       outputImage,
       outputImages: {},
       errorMessage: undefined,
-      lastRunSignature: signature,
+      lastRunSignature: resolvedSignature,
       resultCache: nextResultCache,
     })
     syncDownstreamAfterGeneration(nodeId)
@@ -409,6 +414,7 @@ export async function executeThreeViewGenNode(
       storeNodeId: nodeId,
       taskNodeId: `${nodeId}__${slot}`,
       data,
+      adapter: resolvedAdapter,
       prompt: buildThreeViewSplitPrompt(data, slot),
       progressStart: Math.round((index * 100) / THREE_VIEW_SLOT_KEYS.length),
       progressEnd: Math.round(((index + 1) * 100) / THREE_VIEW_SLOT_KEYS.length),
@@ -454,7 +460,7 @@ export async function executeThreeViewGenNode(
     : data
   const nextSplitResultCache = {
     ...(currentData.splitResultCache ?? {}),
-    [signature]: outputImages,
+    [resolvedSignature]: outputImages,
   }
 
   useFlowStore.getState().updateNodeData(nodeId, {
@@ -463,7 +469,7 @@ export async function executeThreeViewGenNode(
     outputImage: undefined,
     outputImages,
     errorMessage: undefined,
-    lastRunSignature: signature,
+    lastRunSignature: resolvedSignature,
     splitResultCache: nextSplitResultCache,
   })
   syncDownstreamAfterGeneration(nodeId)

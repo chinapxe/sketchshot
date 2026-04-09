@@ -39,8 +39,12 @@ async def lifespan(app: FastAPI):
         )
     )
 
-    if engine_config_service.refresh_volcengine_adapter():
+    refreshed = engine_config_service.refresh_runtime_adapters()
+
+    if refreshed.get("volcengine"):
         logger.info("[Startup] Volcengine adapter ready")
+    if refreshed.get("wanx"):
+        logger.info("[Startup] Wanx adapter ready")
 
     if settings.COMFYUI_ENABLED:
         comfyui_adapter = ComfyUIAdapter(
@@ -104,7 +108,11 @@ async def health_check():
         "app": settings.APP_NAME,
         "adapters": adapter_registry.list_adapters(),
         "default_adapter": settings.DEFAULT_ADAPTER,
+        "prompt_provider": engine_config_service.get_prompt_provider(),
+        "generate_provider": engine_config_service.get_generate_provider(),
         "comfyui_enabled": settings.COMFYUI_ENABLED,
         "volcengine_enabled": adapter_registry.get("volcengine") is not None,
         "volcengine_configured": engine_config_service.is_volcengine_configured(),
+        "wanx_enabled": adapter_registry.get("wanx") is not None,
+        "dashscope_configured": engine_config_service.is_dashscope_configured(),
     }

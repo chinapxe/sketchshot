@@ -1,0 +1,96 @@
+SketchShot Personal Studio Source-Available License 1.0
+
+Copyright (c) 2026 Chong and contributors
+
+This license applies to the SketchShot source code and project materials in this
+repository, except for third-party components that are distributed under their
+own licenses.
+
+This is a source-available license. It is not an OSI-approved open source
+license.
+
+1. Definitions
+
+"Software" means the source code, documentation, configuration, and other
+copyrightable materials made available in this repository by the Licensor.
+
+"Licensor" means the copyright holder(s) of the Software.
+
+"You" means an individual or legal entity exercising permissions under this
+license.
+
+"Internal Use" means use by you, or by members of a single personal studio or
+single legal entity under your control, solely for internal research,
+development, design, production, and operations. Internal Use does not include
+providing the Software itself, or a substantially similar product or hosted
+service based on the Software, to any third party.
+
+"Derivative Work" means a modified version of the Software, or any work based
+on the Software that is protected by copyright law.
+
+2. Limited License Grant
+
+Subject to your full compliance with this license, the Licensor grants you a
+limited, non-exclusive, non-transferable, non-sublicensable license to:
+
+- use, copy, run, and modify the Software for Internal Use only;
+- share the Software or Derivative Works inside your own personal studio or
+  inside a single legal entity under your control, for Internal Use only.
+
+3. Restrictions
+
+Without prior written permission from the Licensor, you may not:
+
+- sell, license, sublicense, rent, lease, assign, or otherwise commercially
+  distribute the Software or any Derivative Work;
+- package, rebrand, white-label, or wrap the Software or any Derivative Work
+  for sale or paid delivery to any third party;
+- provide the Software or any Derivative Work as a hosted service, managed
+  service, SaaS offering, API service, or external client delivery;
+- use the Software outside Internal Use;
+- remove, alter, or hide copyright, license, attribution, or notice files;
+- redistribute the Software or any Derivative Work in closed-source form.
+
+4. Redistribution Conditions
+
+If you publish or redistribute the Software or any Derivative Work to any third
+party, whether for free or not, you must comply with all of the following:
+
+- the complete corresponding source code must be made available;
+- the redistributed work must be licensed under this same license;
+- you must keep this LICENSE file and the NOTICE file with the redistributed
+  work;
+- you must clearly state that your version is based on SketchShot and include
+  the original repository URL: https://github.com/chinapxe/sketchshot
+- you must clearly identify your modifications.
+
+5. Ownership and Trademark
+
+The Software is licensed, not sold. The Licensor retains all right, title, and
+interest in and to the Software.
+
+This license does not grant you any trademark rights, branding rights, or any
+right to imply endorsement by the Licensor.
+
+6. Third-Party Components
+
+Third-party dependencies or assets included in the Software may be subject to
+their own licenses. You are responsible for complying with those licenses.
+
+7. Termination
+
+Any violation of this license automatically terminates your rights under it.
+Upon termination, you must stop using and distributing the Software and any
+Derivative Work until you obtain separate written permission from the Licensor.
+
+8. Disclaimer of Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+9. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR SHALL NOT BE LIABLE FOR ANY
+CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT, OR OTHERWISE,
+ARISING FROM OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF THE SOFTWARE.

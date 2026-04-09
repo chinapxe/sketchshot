@@ -14,6 +14,12 @@ import {
   disconnectContinuityGeneration,
   executeContinuityNode,
 } from '../../../services/continuityGeneration'
+import {
+  getSupportedImageAdapterValue,
+  resolveVisibleImageAdapter,
+  supportedImageAdapterOptions,
+  type SupportedImageAdapter,
+} from '../../../services/engineSettings'
 import { generateContinuityFrameList, generateContinuityPrompt } from '../../../services/promptGeneration'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
@@ -45,6 +51,7 @@ const ContinuityNode = memo(({ id, data, selected = false }: NodeProps<Continuit
   const [isPromptGenerating, setIsPromptGenerating] = useState(false)
   const [isFramesGenerating, setIsFramesGenerating] = useState(false)
   const [isPreviewGenerating, setIsPreviewGenerating] = useState(false)
+  const [adapterValue, setAdapterValue] = useState<SupportedImageAdapter>(() => getSupportedImageAdapterValue(data.adapter))
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
   const toggleNodeCollapsed = useFlowStore((state) => state.toggleNodeCollapsed)
   const nodes = useFlowStore((state) => state.nodes)
@@ -106,6 +113,20 @@ const ContinuityNode = memo(({ id, data, selected = false }: NodeProps<Continuit
   ])
 
   useEffect(() => () => disconnectContinuityGeneration(id), [id])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void resolveVisibleImageAdapter(data.adapter).then((value) => {
+      if (!cancelled) {
+        setAdapterValue(value)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [data.adapter])
 
   const updateFrame = useCallback(
     (index: number, value: string) => {
@@ -383,6 +404,16 @@ const ContinuityNode = memo(({ id, data, selected = false }: NodeProps<Continuit
                     value={data.resolution ?? '2K'}
                     onChange={(value) => updateNodeData(id, { resolution: value })}
                     options={resolutionOptions}
+                    className="storyboard-select nodrag nopan"
+                  />
+                </div>
+                <div className="storyboard-field">
+                  <label className="storyboard-field-label">预览引擎</label>
+                  <Select
+                    size="small"
+                    value={adapterValue}
+                    onChange={(value) => updateNodeData(id, { adapter: value })}
+                    options={supportedImageAdapterOptions}
                     className="storyboard-select nodrag nopan"
                   />
                 </div>

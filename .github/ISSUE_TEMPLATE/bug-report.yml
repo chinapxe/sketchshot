@@ -1,0 +1,93 @@
+name: Bug Report
+description: 报告一个可复现的问题，帮助我们定位和修复
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你帮助改进 SketchShot。
+
+        在提交前，请先确认：
+        - 你已阅读 README 和 CONTRIBUTING。
+        - 你使用的是最新主分支代码，或已说明当前 commit / 分支。
+        - 问题可以稳定复现，或你已经尽量提供了上下文。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题描述
+      description: 用 1 到 3 句话概括问题现象与影响范围。
+      placeholder: 例如：三视图节点选择“输出三张独立图”后，在模板链路里仍被当作拼图处理。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请按顺序描述最小复现路径。
+      placeholder: |
+        1. 打开某个官方模板
+        2. 添加三视图节点并连接到角色节点
+        3. 选择输出模式为“三张独立图”
+        4. 点击执行
+        5. 观察结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果
+      placeholder: 例如：角色节点应直接接收三张独立视图，而不是对拼图做裁切。
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      placeholder: 例如：生成结果被写入拼图输出，三个角色视图口没有正确消费独立图。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响模块
+      options:
+        - 前端节点与画布
+        - 模板与项目导入导出
+        - 后端 API / 服务
+        - AI 适配器 / 引擎配置
+        - Docker / 部署脚本
+        - 文档
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: 环境信息
+      description: 请填写操作系统、浏览器、Node / Python 版本或部署方式。
+      placeholder: Windows 11 + Chrome 136 + Node 20 + Python 3.11，本地开发模式
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志 / 截图 / 补充信息
+      description: 可粘贴控制台报错、接口返回、截图说明或录屏链接。请勿贴出真实 API Key。
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已检查内容中不包含真实密钥、隐私数据或客户素材。
+          required: true
+        - label: 我愿意在维护者需要时继续补充复现信息。
+          required: false

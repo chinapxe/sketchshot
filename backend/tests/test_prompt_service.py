@@ -9,7 +9,7 @@ from PIL import Image
 os.environ["DEBUG"] = "false"
 
 from backend.app.models.schemas import ContinuityFramesGenerateRequest, PromptGenerateRequest
-from backend.app.services.prompt_service import PromptGenerationService
+from backend.app.services.prompt_service import PromptGenerationService, QwenPromptProvider
 
 
 class FakePromptClient:
@@ -32,6 +32,36 @@ class FakePromptClient:
                     }
                 }
             ]
+        }
+
+
+class FakeDashScopePromptClient:
+    def __init__(self, response_content: str = "cinematic motion prompt"):
+        self.last_request = None
+        self.is_configured = True
+        self.response_content = response_content
+
+    async def request_json(self, *, path: str, method: str = "GET", payload=None, headers=None):
+        self.last_request = {
+            "path": path,
+            "method": method,
+            "payload": payload,
+            "headers": headers,
+        }
+        return {
+            "output": {
+                "choices": [
+                    {
+                        "message": {
+                            "content": [
+                                {
+                                    "text": self.response_content
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
         }
 
 
@@ -104,6 +134,61 @@ class PromptGenerationServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.frames[0], "起势")
         self.assertEqual(response.frames[-1], "收束")
         self.assertIsInstance(client.last_request["payload"]["messages"][1]["content"], list)
+
+    async def test_qwen_prompt_provider_uses_text_endpoint_without_reference_images(self):
+        client = FakeDashScopePromptClient("polished qwen prompt")
+        service = PromptGenerationService(
+            provider=QwenPromptProvider(
+                client,
+                "qwen-plus",
+                "qwen-vl-plus",
+                upload_dir=self.upload_dir,
+                output_dir=self.output_dir,
+            )
+        )
+
+        response = await service.generate_prompt(
+            PromptGenerateRequest(
+                task_type="general",
+                user_input="补一版更适合分镜头脚本的总提示词",
+                style="storyboard",
+                aspect_ratio="",
+                extra_requirements=["保持简洁"],
+                reference_images=[],
+            )
+        )
+
+        self.assertEqual(response.model, "qwen-plus")
+        self.assertEqual(response.prompt, "polished qwen prompt")
+        self.assertEqual(client.last_request["path"], "/api/v1/services/aigc/text-generation/generation")
+
+    async def test_qwen_prompt_provider_uses_multimodal_endpoint_with_reference_images(self):
+        client = FakeDashScopePromptClient("qwen multimodal prompt")
+        service = PromptGenerationService(
+            provider=QwenPromptProvider(
+                client,
+                "qwen-plus",
+                "qwen-vl-plus",
+                upload_dir=self.upload_dir,
+                output_dir=self.output_dir,
+            )
+        )
+
+        response = await service.generate_prompt(
+            PromptGenerateRequest(
+                task_type="image",
+                user_input="根据参考图补全设定",
+                style="cinematic",
+                aspect_ratio="3:4",
+                extra_requirements=[],
+                reference_images=["/uploads/prompt-ref.png"],
+            )
+        )
+
+        self.assertEqual(response.model, "qwen-vl-plus")
+        self.assertEqual(client.last_request["path"], "/api/v1/services/aigc/multimodal-generation/generation")
+        content = client.last_request["payload"]["input"]["messages"][1]["content"]
+        self.assertTrue(any(isinstance(item, dict) and "image" in item for item in content))
 
 
 if __name__ == "__main__":

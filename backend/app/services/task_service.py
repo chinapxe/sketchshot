@@ -10,6 +10,7 @@ from ..adapters import adapter_registry
 from ..adapters.base import GenerateParams, ProgressUpdate
 from ..config import settings
 from ..models.schemas import TaskStatus
+from .engine_config_service import engine_config_service
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,11 @@ class TaskService:
         if configured_default and configured_default != "auto":
             return configured_default
 
-        for fallback_name in ("volcengine", "comfyui", "mock"):
+        configured_provider = engine_config_service.get_generate_provider().strip().lower()
+        if configured_provider and configured_provider != "auto":
+            return configured_provider
+
+        for fallback_name in ("wanx", "volcengine", "comfyui", "mock"):
             if adapter_registry.get(fallback_name):
                 return fallback_name
 

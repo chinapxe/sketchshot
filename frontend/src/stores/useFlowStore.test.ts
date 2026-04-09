@@ -223,28 +223,28 @@ describe('useFlowStore video workflow support', () => {
     expect((displayNode?.data as { images: string[] }).images).toEqual(['/outputs/continuity-grid.png'])
   })
 
-  it('defaults new video generation nodes to the Volcengine adapter', () => {
+  it('defaults new video generation nodes to the auto adapter', () => {
     useFlowStore.getState().addNode('videoGen', { x: 120, y: 80 })
 
     const videoNode = useFlowStore.getState().nodes[0]
     expect(videoNode?.type).toBe('videoGen')
-    expect((videoNode?.data as VideoGenNodeData).adapter).toBe('volcengine')
+    expect((videoNode?.data as VideoGenNodeData).adapter).toBe('auto')
   })
 
-  it('defaults new image generation nodes to the Volcengine adapter', () => {
+  it('defaults new image generation nodes to the auto adapter', () => {
     useFlowStore.getState().addNode('imageGen', { x: 120, y: 80 })
 
     const imageNode = useFlowStore.getState().nodes[0]
     expect(imageNode?.type).toBe('imageGen')
-    expect((imageNode?.data as ImageGenNodeData).adapter).toBe('volcengine')
+    expect((imageNode?.data as ImageGenNodeData).adapter).toBe('auto')
   })
 
-  it('defaults new three-view generation nodes to the Volcengine adapter', () => {
+  it('defaults new three-view generation nodes to the auto adapter', () => {
     useFlowStore.getState().addNode('threeViewGen', { x: 120, y: 80 })
 
     const threeViewNode = useFlowStore.getState().nodes[0]
     expect(threeViewNode?.type).toBe('threeViewGen')
-    expect((threeViewNode?.data as ThreeViewGenNodeData).adapter).toBe('volcengine')
+    expect((threeViewNode?.data as ThreeViewGenNodeData).adapter).toBe('auto')
     expect((threeViewNode?.data as ThreeViewGenNodeData).aspectRatio).toBe('16:9')
     expect((threeViewNode?.data as ThreeViewGenNodeData).outputMode).toBe('sheet')
   })
@@ -260,7 +260,7 @@ describe('useFlowStore video workflow support', () => {
     expect(imageNode?.type).toBe('imageGen')
     expect((imageNode?.data as ImageGenNodeData).label).toBe('主角定妆图')
     expect((imageNode?.data as ImageGenNodeData).aspectRatio).toBe('3:4')
-    expect((imageNode?.data as ImageGenNodeData).adapter).toBe('volcengine')
+    expect((imageNode?.data as ImageGenNodeData).adapter).toBe('auto')
     expect((imageNode?.data as ImageGenNodeData).referenceImages).toEqual([])
   })
 
@@ -270,7 +270,8 @@ describe('useFlowStore video workflow support', () => {
     const shotNode = useFlowStore.getState().nodes[0]
     expect(shotNode?.type).toBe('shot')
     expect((shotNode?.data as ShotNodeData).outputType).toBe('image')
-    expect((shotNode?.data as ShotNodeData).imageAdapter).toBe('volcengine')
+    expect((shotNode?.data as ShotNodeData).imageAdapter).toBe('auto')
+    expect((shotNode?.data as ShotNodeData).videoAdapter).toBe('auto')
     expect((shotNode?.data as ShotNodeData).creditCost).toBe(30)
     expect((shotNode?.data as ShotNodeData).collapsed).toBe(false)
   })
