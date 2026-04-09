@@ -17,6 +17,48 @@ function Require-Command {
     }
 }
 
+function Assert-DockerEngineReady {
+    param(
+        [string]$Purpose = "run Docker commands"
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $output = (& docker info --format "{{.ServerVersion}}" 2>&1 | Out-String)
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($exitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($output)) {
+        return
+    }
+
+    $raw = ""
+    if ($null -ne $output) {
+        $raw = $output.Trim()
+    }
+    $hint = "Docker engine is not ready. Please start Docker Desktop (or Docker Engine) first."
+
+    if ($raw -match "dockerDesktopLinuxEngine") {
+        $hint = "Docker Desktop Linux engine is not available. Please start Docker Desktop and ensure it is running in Linux container mode."
+    }
+    elseif ($raw -match "The system cannot find the file specified" -or $raw -match "cannot find the file specified") {
+        $hint = "Docker engine pipe is missing. Please start Docker Desktop first, then retry after Docker finishes initialization."
+    }
+    elseif ($raw -match "error during connect") {
+        $hint = "Docker engine is not reachable. Please confirm Docker Desktop is fully started, then retry."
+    }
+
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        throw "$hint Purpose: $Purpose"
+    }
+
+    throw "$hint Purpose: $Purpose`nRaw output: $raw"
+}
+
 function Invoke-External {
     param(
         [Parameter(Mandatory = $true)]
@@ -163,6 +205,7 @@ $dockerEnvExample = Join-Path $repoRoot ".env.docker.example"
 $dockerEnvFile = Join-Path $repoRoot ".env.docker"
 
 Require-Command "docker"
+Assert-DockerEngineReady -Purpose "build and package offline Docker images"
 
 if (-not $OutputDir) {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"

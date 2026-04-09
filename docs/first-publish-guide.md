@@ -1,6 +1,6 @@
 # 首次发布到 GitHub 指引
 
-更新日期：2026-04-08
+更新日期：2026-04-09 18:27:26 +08:00
 
 ## 适用场景
 
@@ -13,6 +13,36 @@
 3. 已决定许可证类型，并补充 `LICENSE`。
 4. 已检查截图、示例素材、输出结果不包含隐私数据或版权风险内容。
 5. 已确认当前工作区里只保留你打算公开提交的文件。
+6. 已确认不会把真实 `KEY`、Token、密码、私有证书或运行期配置文件带进 GitHub。
+
+## 发布前必须单独检查的敏感文件
+
+公开仓库里应保留的是“示例配置”，不应保留“真实运行配置”。
+
+默认不要提交这些文件：
+
+- `backend/.env`
+- `.env.docker`
+- `.env.offline`
+- `frontend/.env`
+- `backend/data/engine_config.json`
+- 本地导出的日志、截图、测试输出、离线包产物
+
+默认可以提交的是这些示例文件：
+
+- `backend/.env.example`
+- `frontend/.env.example`
+- `frontend/.env.production.example`
+- `.env.docker.example`
+- `.env.offline.example`
+
+如果你不确定某个文件是否已被忽略，先执行：
+
+```powershell
+git check-ignore backend/.env .env.docker frontend/.env backend/data/engine_config.json
+```
+
+如果命令没有返回预期路径，先修正 `.gitignore`，再继续发布。
 
 ## 建议的首次发布顺序
 
@@ -80,6 +110,39 @@ git diff --cached --stat
 ```
 
 确认没有把 `.env`、运行产物、私有文档或不想公开的本地文件一起带上去。
+
+再额外做一轮“疑似密钥”排查：
+
+```powershell
+git diff --cached | Select-String -Pattern "API_KEY|ACCESS_KEY|SECRET|TOKEN|PASSWORD|PRIVATE KEY|BEGIN RSA|BEGIN OPENSSH"
+```
+
+如果这里出现的是：
+
+- `YOUR_ARK_API_KEY`
+- `YOUR_DASHSCOPE_API_KEY`
+- `ALIYUN_ACCESS_KEY_ID`
+- `ALIYUN_ACCESS_KEY_SECRET`
+- 其他示例占位符或文档中的环境变量名
+
+通常是正常的。
+
+如果这里出现的是：
+
+- 真实的 Key 值
+- 带长度特征的令牌字符串
+- 私钥正文
+- `.env` 里的完整配置内容
+
+就不要提交，先把文件移出暂存区或改成占位符。
+
+必要时可单独检查“已暂存文件列表”：
+
+```powershell
+git diff --cached --name-only
+```
+
+确保最终进入 GitHub 的是“代码、文档、示例配置”，而不是“真实运行凭据”。
 
 ### 6. 创建首个公开提交
 
