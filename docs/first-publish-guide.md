@@ -1,6 +1,6 @@
 # 首次发布到 GitHub 指引
 
-更新日期：2026-04-09 18:27:26 +08:00
+更新日期：2026-04-09 22:01:45 +08:00
 
 ## 适用场景
 
@@ -171,6 +171,45 @@ git push -u origin master
 - 启用 GitHub Private Vulnerability Reporting。
 - 检查 Actions 中的 CI 是否已正常运行。
 - 用一个干净浏览器窗口查看 README、Issue 模板和文档显示效果。
+
+## 日常更新最简安全推送流程
+
+当首次发布已经完成，且本地分支与远端默认分支已经对齐后，后续每天的更新通常只需要这一组流程：
+
+```powershell
+git status
+git pull --rebase origin main
+git add .
+git commit -m "你的更新说明"
+git push
+```
+
+如果你本地仍然使用 `master` 作为工作分支，但远端默认分支是 `main`，可改为：
+
+```powershell
+git pull --rebase origin main
+git push origin HEAD:main
+```
+
+日常推送前，建议先看一眼 `git status`，重点确认这些内容没有被误带进去：
+
+- `API接口文档/`
+- `backend/.env`
+- `frontend/.env`
+- `.env.docker`
+- `.env.offline`
+- `backend/data/engine_config.json`
+- 日志、截图、测试输出、离线打包产物
+
+如果发现某个不该公开的目录已经被 Git 跟踪，不要直接推送，先移出版本控制再提交：
+
+```powershell
+git rm -r --cached "API接口文档"
+```
+
+然后把它补进 `.gitignore`，再重新 `git add`、`git commit`、`git push`。
+
+如果这次推送前又出现“远端拒绝、历史不一致、需要强推”这类情况，说明已经不属于日常更新流程，应回到本文前面的“首次发布顺序”重新检查，而不要直接硬推。
 
 ## 一句话建议
 

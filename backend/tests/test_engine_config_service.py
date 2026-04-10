@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from backend.app.services.engine_config_service import (
     DashScopeConfigSnapshot,
@@ -164,6 +165,52 @@ class EngineConfigServiceTests(unittest.TestCase):
 
             self.assertEqual(loaded.oss_region, "cn-beijing")
             self.assertEqual(loaded.oss_endpoint, "https://oss-cn-beijing.aliyuncs.com")
+
+    def test_placeholder_secrets_are_sanitized_when_saving_engine_config(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "engine_config.json"
+            service = EngineConfigService(config_path)
+
+            with patch("backend.app.services.engine_config_service.settings.ARK_API_KEY", ""), patch(
+                "backend.app.services.engine_config_service.settings.DASHSCOPE_API_KEY", ""
+            ), patch("backend.app.services.engine_config_service.settings.ALIYUN_OSS_ACCESS_KEY_ID", ""), patch(
+                "backend.app.services.engine_config_service.settings.ALIYUN_OSS_ACCESS_KEY_SECRET", ""
+            ):
+                saved = service.save_engine_config(
+                    EngineConfigSnapshot(
+                        prompt_provider="volcengine",
+                        generate_provider="mock",
+                        volcengine=VolcengineConfigSnapshot(
+                            ark_base_url="https://example.com/api/v3",
+                            ark_api_key="YOUR_ARK_API_KEY",
+                            prompt_model="prompt-model",
+                            image_model="image-model",
+                            image_edit_model="image-edit-model",
+                            video_model="video-model",
+                        ),
+                        dashscope=DashScopeConfigSnapshot(
+                            base_url="https://dashscope.aliyuncs.com",
+                            api_key="REPLACE_WITH_REAL_KEY",
+                            qwen_text_model="qwen-plus",
+                            qwen_multimodal_model="qwen-vl-plus",
+                            wanx_image_model="wan2.7-image-pro",
+                            wanx_video_model="wan2.7-i2v",
+                            wanx_video_resolution="720P",
+                            wanx_watermark=False,
+                            oss_region="cn-shanghai",
+                            oss_endpoint="https://oss-cn-shanghai.aliyuncs.com",
+                            oss_access_key_id="<fill-me>",
+                            oss_access_key_secret="",
+                            oss_bucket="demo-bucket",
+                            oss_key_prefix="temp",
+                        ),
+                    )
+                )
+
+            self.assertEqual(saved.volcengine.ark_api_key, "")
+            self.assertEqual(saved.dashscope.api_key, "")
+            self.assertEqual(saved.dashscope.oss_access_key_id, "")
+            self.assertEqual(saved.dashscope.oss_access_key_secret, "")
 
 
 if __name__ == "__main__":

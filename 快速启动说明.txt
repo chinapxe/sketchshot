@@ -1,0 +1,9 @@
+SketchShot 快速启动说明
+更新时间：2026-04-10 11:54:01 +08:00
+
+1. 直接双击项目根目录里的“run_SketchShot.bat”。
+2. 如果当前还没有前端构建产物，脚本会先尝试自动执行 frontend\ 的 npm run build。
+3. 启动成功后，浏览器会打开 http://127.0.0.1:8000/ 这样的本地地址。
+4. 第一次使用独立模式时，会自动生成 backend\.env.standalone，并把独立运行数据写到 backend\data-standalone\。
+5. 如果提示缺少 Python，请先安装 Python 3；如果提示缺少 npm，请先安装 Node.js，或先手工执行 frontend\ 下的 npm run build。
+6. 关闭服务可运行 scripts\Stop-Standalone.bat。

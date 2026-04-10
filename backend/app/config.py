@@ -1,6 +1,7 @@
 """
 Application settings loaded from environment variables or backend/.env.
 """
+import os
 from pathlib import Path
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
@@ -13,6 +14,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "SketchShot - AI Storyboard Canvas"
     DEBUG: bool = True
     PORT: int = 8000
+    SERVE_FRONTEND: bool = True
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:3001",
@@ -23,6 +25,7 @@ class Settings(BaseSettings):
     TEMPLATE_STORAGE_DIR: str = str(Path(__file__).parent.parent / "data" / "templates")
     UPLOAD_DIR: str = str(Path(__file__).parent.parent / "data" / "uploads")
     OUTPUT_DIR: str = str(Path(__file__).parent.parent / "data" / "outputs")
+    FRONTEND_DIST_DIR: str = str(Path(__file__).resolve().parents[2] / "frontend" / "dist")
 
     MOCK_DELAY: float = 3.0
     DEFAULT_ADAPTER: str = "auto"
@@ -82,12 +85,17 @@ class Settings(BaseSettings):
     ALIYUN_OSS_SIGNED_URL_EXPIRE_SECONDS: int = 7200
 
     model_config = {
-        "env_file": str(Path(__file__).parent.parent / ".env"),
+        "env_file": (
+            os.getenv("SKETCHSHOT_ENV_FILE")
+            or os.getenv("WXHB_ENV_FILE")
+            or str(Path(__file__).parent.parent / ".env")
+        ),
         "case_sensitive": True,
     }
 
     @field_validator(
         "DEBUG",
+        "SERVE_FRONTEND",
         "COMFYUI_ENABLED",
         "VOLCENGINE_ENABLED",
         "VOLCENGINE_WATERMARK",
@@ -107,6 +115,28 @@ class Settings(BaseSettings):
                 return False
 
         return value
+
+    @field_validator(
+        "ARK_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "ALIYUN_OSS_ACCESS_KEY_ID",
+        "ALIYUN_OSS_ACCESS_KEY_SECRET",
+        mode="before",
+    )
+    @classmethod
+    def normalize_placeholder_secret_values(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+
+        stripped = value.strip()
+        if not stripped:
+            return ""
+
+        upper = stripped.upper()
+        if upper.startswith("YOUR_") or upper.startswith("REPLACE_") or stripped.startswith("<"):
+            return ""
+
+        return stripped
 
     @model_validator(mode="after")
     def normalize_aliyun_oss_settings(self) -> "Settings":

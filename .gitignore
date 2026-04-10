@@ -38,14 +38,19 @@ frontend/.env.*
 
 # Offline bundle artifacts
 offline-bundle/
+standalone-bundle/
+.runtime/
 
 # Backend runtime data
 backend/data/uploads/*
 !backend/data/uploads/.gitkeep
 backend/data/outputs/*
 !backend/data/outputs/.gitkeep
+backend/data/templates/*
+!backend/data/templates/.gitkeep
 backend/data/workflows/*
 !backend/data/workflows/.gitkeep
 backend/data/engine_config.json
+backend/data-standalone/
 
-API½Ó¿ÚÎÄµµ/
+APIæ¥å£æ–‡æ¡£/

@@ -1,0 +1,9 @@
+SketchShot Quick Start
+Updated: 2026-04-10 11:54:01 +08:00
+
+1. Double-click run_SketchShot.bat in the project root.
+2. If frontend/dist is missing, the script will try to run npm run build in the frontend folder.
+3. On first standalone launch, backend\.env.standalone will be created automatically.
+4. Standalone runtime data is stored in backend\data-standalone\.
+5. If Python is missing, install Python 3 first.
+6. To stop the service, run scripts\Stop-Standalone.bat.

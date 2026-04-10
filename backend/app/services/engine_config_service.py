@@ -87,6 +87,18 @@ class EngineConfigService:
     def __init__(self, storage_path: str | Path):
         self._storage_path = Path(storage_path)
 
+    @staticmethod
+    def _normalize_secret_value(value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            return ""
+
+        upper = stripped.upper()
+        if upper.startswith("YOUR_") or upper.startswith("REPLACE_") or stripped.startswith("<"):
+            return ""
+
+        return stripped
+
     def get_engine_config(self) -> EngineConfigSnapshot:
         defaults = self._default_engine_config()
         payload = {
@@ -351,7 +363,7 @@ class EngineConfigService:
     def _normalize_volcengine_config(self, snapshot: VolcengineConfigSnapshot) -> VolcengineConfigSnapshot:
         return VolcengineConfigSnapshot(
             ark_base_url=snapshot.ark_base_url.strip().rstrip("/") or settings.ARK_BASE_URL.strip().rstrip("/"),
-            ark_api_key=snapshot.ark_api_key.strip(),
+            ark_api_key=self._normalize_secret_value(snapshot.ark_api_key),
             prompt_model=snapshot.prompt_model.strip() or settings.VOLCENGINE_PROMPT_MODEL.strip(),
             image_model=snapshot.image_model.strip() or settings.VOLCENGINE_IMAGE_MODEL.strip(),
             image_edit_model=snapshot.image_edit_model.strip() or settings.VOLCENGINE_IMAGE_EDIT_MODEL.strip(),
@@ -365,7 +377,7 @@ class EngineConfigService:
 
         return DashScopeConfigSnapshot(
             base_url=snapshot.base_url.strip().rstrip("/") or settings.DASHSCOPE_BASE_URL.strip().rstrip("/"),
-            api_key=snapshot.api_key.strip(),
+            api_key=self._normalize_secret_value(snapshot.api_key),
             qwen_text_model=snapshot.qwen_text_model.strip() or settings.QWEN_TEXT_MODEL.strip(),
             qwen_multimodal_model=snapshot.qwen_multimodal_model.strip()
             or settings.QWEN_MULTIMODAL_MODEL.strip(),
@@ -385,9 +397,10 @@ class EngineConfigService:
                 settings.ALIYUN_OSS_ENDPOINT,
                 settings.ALIYUN_OSS_REGION,
             ),
-            oss_access_key_id=snapshot.oss_access_key_id.strip() or settings.ALIYUN_OSS_ACCESS_KEY_ID.strip(),
-            oss_access_key_secret=snapshot.oss_access_key_secret.strip()
-            or settings.ALIYUN_OSS_ACCESS_KEY_SECRET.strip(),
+            oss_access_key_id=self._normalize_secret_value(snapshot.oss_access_key_id)
+            or self._normalize_secret_value(settings.ALIYUN_OSS_ACCESS_KEY_ID),
+            oss_access_key_secret=self._normalize_secret_value(snapshot.oss_access_key_secret)
+            or self._normalize_secret_value(settings.ALIYUN_OSS_ACCESS_KEY_SECRET),
             oss_bucket=snapshot.oss_bucket.strip() or settings.ALIYUN_OSS_BUCKET.strip(),
             oss_key_prefix=snapshot.oss_key_prefix.strip() or settings.ALIYUN_OSS_KEY_PREFIX.strip(),
         )
@@ -395,7 +408,7 @@ class EngineConfigService:
     def _default_volcengine_config(self) -> VolcengineConfigSnapshot:
         return VolcengineConfigSnapshot(
             ark_base_url=settings.ARK_BASE_URL.strip().rstrip("/"),
-            ark_api_key=settings.ARK_API_KEY.strip(),
+            ark_api_key=self._normalize_secret_value(settings.ARK_API_KEY),
             prompt_model=settings.VOLCENGINE_PROMPT_MODEL.strip(),
             image_model=settings.VOLCENGINE_IMAGE_MODEL.strip(),
             image_edit_model=settings.VOLCENGINE_IMAGE_EDIT_MODEL.strip(),
@@ -405,7 +418,7 @@ class EngineConfigService:
     def _default_dashscope_config(self) -> DashScopeConfigSnapshot:
         return DashScopeConfigSnapshot(
             base_url=settings.DASHSCOPE_BASE_URL.strip().rstrip("/"),
-            api_key=settings.DASHSCOPE_API_KEY.strip(),
+            api_key=self._normalize_secret_value(settings.DASHSCOPE_API_KEY),
             qwen_text_model=settings.QWEN_TEXT_MODEL.strip(),
             qwen_multimodal_model=settings.QWEN_MULTIMODAL_MODEL.strip(),
             wanx_image_model=settings.WANX_IMAGE_MODEL.strip(),
@@ -420,8 +433,8 @@ class EngineConfigService:
                 settings.ALIYUN_OSS_ENDPOINT,
                 settings.ALIYUN_OSS_REGION,
             ),
-            oss_access_key_id=settings.ALIYUN_OSS_ACCESS_KEY_ID.strip(),
-            oss_access_key_secret=settings.ALIYUN_OSS_ACCESS_KEY_SECRET.strip(),
+            oss_access_key_id=self._normalize_secret_value(settings.ALIYUN_OSS_ACCESS_KEY_ID),
+            oss_access_key_secret=self._normalize_secret_value(settings.ALIYUN_OSS_ACCESS_KEY_SECRET),
             oss_bucket=settings.ALIYUN_OSS_BUCKET.strip(),
             oss_key_prefix=settings.ALIYUN_OSS_KEY_PREFIX.strip(),
         )
