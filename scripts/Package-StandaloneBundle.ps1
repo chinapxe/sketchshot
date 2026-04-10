@@ -1,7 +1,8 @@
 param(
     [switch]$SkipFrontendBuild,
     [string]$PythonRuntimeDir = "",
-    [switch]$SkipZip
+    [switch]$SkipZip,
+    [string]$BundleRootDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,7 +21,12 @@ $projectRoot = Resolve-Path (Join-Path $scriptDir "..")
 $frontendDir = Join-Path $projectRoot "frontend"
 $frontendDistDir = Join-Path $frontendDir "dist"
 $backendDir = Join-Path $projectRoot "backend"
-$bundleRoot = Join-Path $projectRoot "standalone-bundle"
+$bundleRoot = if ([string]::IsNullOrWhiteSpace($BundleRootDir)) {
+    Join-Path $projectRoot "standalone-bundle"
+}
+else {
+    $BundleRootDir
+}
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $bundleDir = Join-Path $bundleRoot $timestamp
 $zipPath = "$bundleDir.zip"
@@ -114,4 +120,9 @@ if (-not $SkipZip) {
 Write-Host "[StandalonePack] Bundle ready: $bundleDir" -ForegroundColor Green
 if (-not $SkipZip) {
     Write-Host "[StandalonePack] Zip ready: $zipPath" -ForegroundColor Green
+}
+
+[pscustomobject]@{
+    BundleDir = $bundleDir
+    ZipPath = if ($SkipZip) { $null } else { $zipPath }
 }

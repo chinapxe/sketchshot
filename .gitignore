@@ -39,6 +39,7 @@ frontend/.env.*
 # Offline bundle artifacts
 offline-bundle/
 standalone-bundle/
+green-bundle/
 .runtime/
 
 # Backend runtime data

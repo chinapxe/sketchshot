@@ -2,7 +2,7 @@
 setlocal
 set "SCRIPT_DIR=%~dp0"
 
-powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIR%Verify-Standalone.ps1"
+powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIR%Verify-Standalone.ps1" %*
 set EXIT_CODE=%ERRORLEVEL%
 
 echo.

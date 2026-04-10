@@ -1,4 +1,6 @@
-param()
+param(
+    [string]$RuntimeSubdir = ".runtime"
+)
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -20,7 +22,7 @@ function Resolve-ProjectRoot {
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectRoot = Resolve-ProjectRoot -ScriptDir $scriptDir
-$pidFile = Join-Path $projectRoot ".runtime\standalone-backend.pid"
+$pidFile = Join-Path (Join-Path $projectRoot $RuntimeSubdir) "standalone-backend.pid"
 
 if (-not (Test-Path $pidFile)) {
     Write-Host "[Standalone] No PID file found. Backend is probably not running." -ForegroundColor Yellow

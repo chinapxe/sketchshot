@@ -1,7 +1,9 @@
 param(
     [switch]$NoBrowser,
     [int]$TimeoutSec = 60,
-    [int]$Port = 0
+    [int]$Port = 0,
+    [switch]$RequireBundledPython,
+    [string]$RuntimeSubdir = ".runtime"
 )
 
 $ErrorActionPreference = "Stop"
@@ -75,7 +77,8 @@ function Ensure-DotEnvEntry {
 function Resolve-PythonLauncher {
     param(
         [string]$ProjectRoot,
-        [string]$BackendDir
+        [string]$BackendDir,
+        [switch]$RequireBundledPython
     )
 
     $directCandidates = @(
@@ -92,6 +95,10 @@ function Resolve-PythonLauncher {
                 Display = $candidate
             }
         }
+    }
+
+    if ($RequireBundledPython) {
+        throw "Bundled Python runtime not found. Expected runtime\python\python.exe next to the package files."
     }
 
     $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
@@ -210,7 +217,7 @@ $backendDir = Join-Path $projectRoot "backend"
 $frontendDistIndex = Join-Path $projectRoot "frontend\dist\index.html"
 $envTemplate = Join-Path $backendDir ".env.standalone.example"
 $envFile = Join-Path $backendDir ".env.standalone"
-$runtimeDir = Join-Path $projectRoot ".runtime"
+$runtimeDir = Join-Path $projectRoot $RuntimeSubdir
 $pidFile = Join-Path $runtimeDir "standalone-backend.pid"
 $stdoutLog = Join-Path $runtimeDir "standalone-backend.stdout.log"
 $stderrLog = Join-Path $runtimeDir "standalone-backend.stderr.log"
@@ -266,7 +273,10 @@ if ($null -ne $existingProcess) {
     Write-Host "[Standalone] Existing backend process found (PID=$($existingProcess.Id)), waiting for health check..." -ForegroundColor Yellow
 }
 else {
-    $launcher = Resolve-PythonLauncher -ProjectRoot $projectRoot -BackendDir $backendDir
+    $launcher = Resolve-PythonLauncher `
+        -ProjectRoot $projectRoot `
+        -BackendDir $backendDir `
+        -RequireBundledPython:$RequireBundledPython
     $arguments = @()
     $arguments += $launcher.PrefixArgs
     $arguments += "run.py"
