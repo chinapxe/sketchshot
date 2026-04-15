@@ -157,6 +157,44 @@
   font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
 }
 
+.about-page-contact-card {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  background:
+    radial-gradient(circle at right top, rgba(191, 219, 254, 0.35), transparent 32%),
+    linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.98));
+}
+
+.about-page-contact-copy {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.about-page-contact-qr-block {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+}
+
+.about-page-contact-qr {
+  display: block;
+  width: min(220px, 50vw);
+  height: auto;
+  border-radius: 14px;
+  background: #fff;
+}
+
 @media (max-width: 900px) {
   .about-page-grid,
   .about-page-meaning-grid {
@@ -171,6 +209,15 @@
   .about-page-card {
     padding: 16px;
     border-radius: 18px;
+  }
+
+  .about-page-contact-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .about-page-contact-qr-block {
+    align-self: center;
   }
 
   .about-page-poem p {

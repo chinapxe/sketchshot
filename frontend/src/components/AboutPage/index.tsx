@@ -82,6 +82,24 @@ function AboutPage() {
         </div>
       </section>
 
+      <section className="about-page-card about-page-contact-card">
+        <div className="about-page-contact-copy">
+          <div className="about-page-section-label">联系作者</div>
+          <div className="about-page-meaning-title">扫码添加个人微信</div>
+          <p className="about-page-card-text">
+            如果你希望交流产品想法、反馈使用体验，或沟通项目合作与定制需求，可以直接扫码联系。
+          </p>
+          <p className="about-page-card-text">
+            建议添加时备注 <strong>镜语</strong> 或 <strong>SketchShot</strong>，方便快速识别来意。
+          </p>
+        </div>
+
+        <div className="about-page-contact-qr-block">
+          <img className="about-page-contact-qr" src="/chong.png" alt="个人微信二维码" loading="lazy" />
+          <div className="about-page-poem-source">微信扫码联系</div>
+        </div>
+      </section>
+
       <section className="about-page-meaning-grid">
         {meaningCards.map((card) => (
           <article key={card.title} className="about-page-card about-page-meaning-card">

@@ -289,13 +289,23 @@ try {
 
     Test-PortablePythonRuntime -PythonExecutable $portablePythonExe -TempScriptRoot $tempScriptRoot
 
-    $bundleInfo = & (Join-Path $scriptDir "Package-StandaloneBundle.ps1") `
+    $bundleResult = & (Join-Path $scriptDir "Package-StandaloneBundle.ps1") `
         -SkipFrontendBuild:$SkipFrontendBuild `
         -PythonRuntimeDir $tempRuntimeDir `
         -SkipZip `
         -BundleRootDir $bundleRoot
 
-    $bundleDir = $bundleInfo.BundleDir
+    # Package-StandaloneBundle.ps1 can emit build logs on stdout (for example npm output),
+    # so the captured result may be an array mixing strings and the final metadata object.
+    $bundleInfo = $bundleResult | Where-Object {
+        $_ -is [psobject] -and $_.PSObject.Properties.Name -contains "BundleDir"
+    } | Select-Object -Last 1
+
+    if ($null -eq $bundleInfo -or [string]::IsNullOrWhiteSpace([string]$bundleInfo.BundleDir)) {
+        throw "Failed to resolve BundleDir from Package-StandaloneBundle output."
+    }
+
+    $bundleDir = [string]$bundleInfo.BundleDir
     $zipPath = "$bundleDir.zip"
 
     $manifest = [pscustomobject]@{

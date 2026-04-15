@@ -74,6 +74,33 @@ function Ensure-DotEnvEntry {
     Add-Content -Path $EnvPath -Value "$Key=$Value"
 }
 
+function ConvertTo-BoolLikeValue {
+    param(
+        [string]$Value,
+        [bool]$DefaultValue = $false
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $DefaultValue
+    }
+
+    switch ($Value.Trim().ToLowerInvariant()) {
+        "1" { return $true }
+        "true" { return $true }
+        "yes" { return $true }
+        "on" { return $true }
+        "debug" { return $true }
+        "0" { return $false }
+        "false" { return $false }
+        "no" { return $false }
+        "off" { return $false }
+        "release" { return $false }
+        "prod" { return $false }
+        "production" { return $false }
+        default { return $DefaultValue }
+    }
+}
+
 function Resolve-PythonLauncher {
     param(
         [string]$ProjectRoot,
@@ -136,6 +163,49 @@ function Test-HealthReady {
     }
     catch {
         return $false
+    }
+}
+
+function Get-ServiceProbeResult {
+    param(
+        [string]$BaseUrl,
+        [string]$HealthUrl,
+        [bool]$ExpectFrontend
+    )
+
+    $result = [ordered]@{
+        HealthOk = $false
+        FrontendOk = $false
+        AppName = ""
+        Error = ""
+    }
+
+    try {
+        $response = Invoke-WebRequest -Uri $HealthUrl -Method Get -TimeoutSec 3 -UseBasicParsing
+        if ($null -eq $response -or $response.StatusCode -ne 200) {
+            return [pscustomobject]$result
+        }
+
+        $payload = $response.Content | ConvertFrom-Json -ErrorAction Stop
+        if ($payload.status -ne "ok") {
+            return [pscustomobject]$result
+        }
+
+        $result.HealthOk = $true
+        $result.AppName = [string]$payload.app
+
+        if (-not $ExpectFrontend) {
+            $result.FrontendOk = $true
+            return [pscustomobject]$result
+        }
+
+        $frontend = Invoke-WebRequest -Uri "$BaseUrl/" -Method Get -TimeoutSec 3 -UseBasicParsing
+        $result.FrontendOk = ($null -ne $frontend -and $frontend.StatusCode -ge 200 -and $frontend.StatusCode -lt 400)
+        return [pscustomobject]$result
+    }
+    catch {
+        $result.Error = $_.Exception.Message
+        return [pscustomobject]$result
     }
 }
 
@@ -236,6 +306,11 @@ Ensure-DotEnvEntry -EnvPath $envFile -Key "TEMPLATE_STORAGE_DIR" -Value "./data-
 Ensure-DotEnvEntry -EnvPath $envFile -Key "UPLOAD_DIR" -Value "./data-standalone/uploads"
 Ensure-DotEnvEntry -EnvPath $envFile -Key "OUTPUT_DIR" -Value "./data-standalone/outputs"
 
+$expectedAppName = Get-DotEnvValue -EnvPath $envFile -Key "APP_NAME" -DefaultValue "SketchShot - AI Storyboard Canvas"
+$expectFrontend = ConvertTo-BoolLikeValue `
+    -Value (Get-DotEnvValue -EnvPath $envFile -Key "SERVE_FRONTEND" -DefaultValue "true") `
+    -DefaultValue $true
+
 if (-not (Test-Path $frontendDistIndex)) {
     throw "frontend\\dist\\index.html not found. Please build the frontend first:`nSet-Location .\\frontend`n npm run build"
 }
@@ -247,7 +322,12 @@ $healthUrl = "$baseUrl/api/health"
 
 New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
 
-if (Test-HealthReady -HealthUrl $healthUrl) {
+$serviceProbe = Get-ServiceProbeResult `
+    -BaseUrl $baseUrl `
+    -HealthUrl $healthUrl `
+    -ExpectFrontend:$expectFrontend
+
+if ($serviceProbe.HealthOk -and $serviceProbe.AppName -eq $expectedAppName -and $serviceProbe.FrontendOk) {
     Write-Host "[Standalone] SketchShot is already running: $baseUrl/" -ForegroundColor Green
     if (-not $NoBrowser) {
         Start-Process "$baseUrl/"
@@ -262,6 +342,14 @@ $resolvedEnvFile = (Resolve-Path $envFile).Path
 if ($null -eq $portListener -and $null -ne $existingProcess) {
     Stop-StaleProcessIfNeeded -Process $existingProcess -PidFile $pidFile | Out-Null
     $existingProcess = $null
+}
+
+if ($serviceProbe.HealthOk -and $serviceProbe.AppName -and $serviceProbe.AppName -ne $expectedAppName) {
+    throw "Port $port is already occupied by another healthy service: $($serviceProbe.AppName). Stop that service first, or rerun with -Port <new-port>."
+}
+
+if ($serviceProbe.HealthOk -and $serviceProbe.AppName -eq $expectedAppName -and -not $serviceProbe.FrontendOk) {
+    throw "Port $port is already occupied by a SketchShot-compatible backend, but the frontend root is not available. Stop the existing service, or rerun with -Port <new-port>."
 }
 
 if ($null -ne $portListener) {
