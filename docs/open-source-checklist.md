@@ -1,8 +1,8 @@
 # 开源准备清单
 
-更新日期：2026-04-08
+更新日期：2026-04-21
 
-说明：当前仓库已经改为“受限源码公开”发布方式，不属于 OSI 定义下的标准开源协议仓库。本文保留“开源准备”字样，仅表示公开发布准备。
+说明：当前仓库已切换为 `GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)` 开源协议。本文用于记录公开仓库发布与维护前后的检查项。
 
 ## 本轮已完成
 
@@ -11,7 +11,7 @@
 - 新增 `SECURITY.md`，补上安全反馈与凭据约定。
 - 新增 `CODE_OF_CONDUCT.md`，补充公开协作行为约定。
 - 新增 `ROADMAP.md` 与 `SUPPORT.md`，补充公开协作入口。
-- 新增 `LICENSE` 与 `NOTICE`，明确受限源码公开使用边界与署名要求。
+- 新增并更新 `LICENSE`，当前采用 AGPL 开源协议发布。
 - 新增 `docs/project-structure.md`，方便后续维护者理解前后端结构。
 - 新增 `docs/repository-content-review.md`，用于筛选哪些文档适合公开。
 - 新增 `docs/first-publish-guide.md`，整理首次推送到 GitHub 的操作建议。
@@ -28,6 +28,7 @@
   可参考 `docs/repository-content-review.md`
 - 确认是否需要补充项目截图、演示 GIF 或示例工作流截图。
 - 在 `SECURITY.md` 中补充正式的安全联系渠道，或启用 GitHub Private Vulnerability Reporting。
+- 确认项目对外页面、仓库标签和发布页中均已同步声明 `AGPL-3.0-or-later`。
 
 ## 强烈建议
 
@@ -35,6 +36,7 @@
 - 如果真实 Key 曾进入 Git 历史，请在公开仓库前清理历史，再执行首次公开推送。
 - 检查所有示例工作流、截图、素材、输出图片和视频，确认不包含客户数据、隐私信息或第三方版权内容。
 - 首次公开时从 `v0.x` 版本开始，避免对外形成“稳定版已承诺”的误解。
+- 如果项目未来提供在线托管版本，请确认界面中保留面向用户获取对应源代码的入口，以满足 AGPL 网络交互场景要求。
 
 ## 后续可继续补充
 
