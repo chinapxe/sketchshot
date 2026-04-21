@@ -15,7 +15,7 @@
     "@tailwindcss/vite": "^4.2.2",
     "@xyflow/react": "^12.10.2",
     "antd": "^6.3.5",
-    "react": "^19.2.4",
+    "react": "^19.2.5",
     "react-dom": "^19.2.4",
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.2.2",
