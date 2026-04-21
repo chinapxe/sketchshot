@@ -1,6 +1,6 @@
 # 首次发布到 GitHub 指引
 
-更新日期：2026-04-09 22:01:45 +08:00
+更新日期：2026-04-21 15:18:00 +08:00
 
 ## 适用场景
 
@@ -10,7 +10,7 @@
 
 1. 已轮换曾暴露过的真实密钥。
 2. 已确认哪些中文交接 / 验收 / 阶段总结文档不进入公开仓库。
-3. 已决定许可证类型，并补充 `LICENSE`。
+3. 已确认许可证为 `AGPL-3.0-or-later`，并补充 `LICENSE`。
 4. 已检查截图、示例素材、输出结果不包含隐私数据或版权风险内容。
 5. 已确认当前工作区里只保留你打算公开提交的文件。
 6. 已确认不会把真实 `KEY`、Token、密码、私有证书或运行期配置文件带进 GitHub。
@@ -167,10 +167,13 @@ git push -u origin master
 ## 推送后建议立刻处理
 
 - 在 GitHub 仓库页补充描述、Topic、网站地址和社交预览图。
+- 建议仓库描述使用：`AI storyboard canvas for scene planning, character references, shot generation, and video workflows.`
+- 建议 Topics 使用：`ai`、`storyboard`、`react`、`fastapi`、`react-flow`、`image-generation`、`video-generation`、`agpl-3.0`。
 - 启用 Issues、Discussions、Projects 或 Wiki 时，保持与仓库实际维护能力一致。
 - 启用 GitHub Private Vulnerability Reporting。
 - 检查 Actions 中的 CI 是否已正常运行。
 - 用一个干净浏览器窗口查看 README、Issue 模板和文档显示效果。
+- 确认 GitHub 许可证识别结果显示为 `AGPL-3.0` 或 GNU Affero General Public License v3.0。
 
 ## 日常更新最简安全推送流程
 

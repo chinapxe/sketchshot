@@ -1,5 +1,7 @@
 # SketchShot
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
+
 SketchShot 是一个面向影视分镜、角色设定与 AI 视觉生成的节点式创作工具。它把场次、角色、风格、镜头、连续镜头、三视图、图像生成、视频生成与结果预览放到同一张无限画布里，让创作、迭代和复用都围绕一个可视化工作流展开。
 
 > 仓库当前采用 `GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)` 开源协议发布，当前文档以中文为主。
@@ -157,6 +159,8 @@ npm run build
 
 - 仓库已补充 Issue 模板、PR 模板和基础 CI，便于公开协作。
 - CI 当前会自动执行后端单元测试，以及前端测试和生产构建。
+- 欢迎提交 Issue、PR 和复现步骤清晰的 bug 反馈；贡献代码默认需遵守本仓库的 AGPL 协议。
+- 如果你基于 SketchShot 做公开分发或网络服务，请在显著位置保留源代码获取方式，方便用户了解和获取对应源码。
 
 ## 联系作者
 
