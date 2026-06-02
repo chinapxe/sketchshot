@@ -1,0 +1,399 @@
+[
+  {
+    "asset_id": "asset-20260224225721-prllw",
+    "title": "荷兰 22岁 女性 多肉/花卉种植员",
+    "description": "22岁荷兰女性，是郁金香种植员，每天在花田里除草剪枝忙到日落。",
+    "metadata": {
+      "Country": "荷兰",
+      "Age": 22,
+      "Gender": "女性",
+      "Occupation": "多肉/花卉种植员",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225851-58vsm",
+    "title": "南非 24岁 女性 模特",
+    "description": "24岁南非女模特，常在约翰内斯堡的高端写字楼拍都市风时尚大片。",
+    "metadata": {
+      "Country": "南非",
+      "Age": 24,
+      "Gender": "女性",
+      "Occupation": "模特",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260310030618-88hlb",
+    "title": "中国 18岁 女性 美甲师",
+    "description": "她说话总带笑，是老巷里开美甲小铺的十八岁姑娘，常给客人做印着瘦金体小字、淡茶芽的国风款式。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 18,
+      "Gender": "女",
+      "Occupation": "美甲师",
+      "Temperament": "明媚",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225822-g22rm",
+    "title": "中国 40岁 男性 演员",
+    "description": "40岁的中国男演员常扮演将军，总裹着几十斤重的铠甲在黄沙布景里拍征战戏。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 40,
+      "Gender": "男性",
+      "Occupation": "演员",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225818-2r9ls",
+    "title": "中国 21岁 女性 演员",
+    "description": "21岁的中国女演员常扮演宫女，总在殿外候场，收工早总要绕路去商圈的潮玩店抽最新款的盲盒。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 21,
+      "Gender": "女性",
+      "Occupation": "演员",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225649-2k9rp",
+    "title": "中国 68岁 女性 养蜂人",
+    "description": "68岁的蜂农，养了半辈子蜂，对各种蜜源了如指掌。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 68,
+      "Gender": "女性",
+      "Occupation": "养蜂人",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224201700-zrtml",
+    "title": "中国 29岁 男 模特",
+    "description": "这位29岁的模特，常踩着木卡姆韵律在秀场走出步点，收工后总爱约发小撸红柳烤肉。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 29,
+      "Gender": "男",
+      "Occupation": "模特",
+      "Temperament": "魅惑",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260401123823-6d4x2",
+    "title": "中国 26岁 女性 网红/主播",
+    "description": "26岁沪上杭籍美妆博主，手握3个国际顶奢美妆品牌年度合作的独立内容创作者。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 26,
+      "Gender": "女",
+      "Occupation": "网红/主播",
+      "Temperament": "娴静",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260310022434-wvg96",
+    "title": "中国 23岁 女性 歌手",
+    "description": "二十三岁的她有饱满红润的嘴唇，眼下嵌着软乎乎的卧蚕，笑起来眼弯成月牙，主打国风甜歌。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 23,
+      "Gender": "女",
+      "Occupation": "歌手",
+      "Temperament": "纯真",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225738-zr98d",
+    "title": "印尼 36岁 男性 教练",
+    "description": "印尼籍36岁男性潜水教练，常年驻在南非开普敦沿海潜店，日常带新手学员熟悉潜水要领。",
+    "metadata": {
+      "Country": "印尼",
+      "Age": 36,
+      "Gender": "男性",
+      "Occupation": "教练",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225526-g6kpx",
+    "title": "中国 28岁 女性 网红/主播",
+    "description": "28岁的姑娘是个美妆主播，直播时爱讲接地气的段子，下班就窝家追古装剧。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 28,
+      "Gender": "女性",
+      "Occupation": "网红/主播",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225803-ftdx6",
+    "title": "荷兰 22岁 女性 模特",
+    "description": "22岁荷兰女模特，总下意识摸耳后那颗小痣，常待在棚拍场地赶工。",
+    "metadata": {
+      "Country": "荷兰",
+      "Age": 22,
+      "Gender": "女性",
+      "Occupation": "模特",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225843-tjnmm",
+    "title": "韩国 21岁 女性 模特",
+    "description": "21岁韩国籍模特，常在棚内拍潮牌、周边宣传照，闲暇时总对着练习室镜面翻跳热门女团舞。",
+    "metadata": {
+      "Country": "韩国",
+      "Age": 21,
+      "Gender": "女性",
+      "Occupation": "模特",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225713-cvzq4",
+    "title": "中国 40岁 男性 企业高管",
+    "description": "40岁男性，是电商公司HR经理，闲暇时总去江边玩滑板。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 40,
+      "Gender": "男性",
+      "Occupation": "企业高管",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225915-jzc9m",
+    "title": "韩国 28岁 男性 模特",
+    "description": "28岁韩国籍街头嘻哈模特，常在街头涂鸦墙取景，工作间隙总即兴freestyle写rap歌词。",
+    "metadata": {
+      "Country": "韩国",
+      "Age": 28,
+      "Gender": "男性",
+      "Occupation": "模特",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225901-jg74f",
+    "title": "日本 35岁 女性 模特",
+    "description": "35岁日本女性，资深和服模特，常到神社鸟居前拍片，工作候场时总坐在后台钩织毛线小挂件。",
+    "metadata": {
+      "Country": "日本",
+      "Age": 35,
+      "Gender": "女性",
+      "Occupation": "模特",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225726-46q5p",
+    "title": "中国 26岁 男性 科学家/研究员",
+    "description": "26岁的男性古籍修复师，指甲剪得齐整短平，周末最爱去旧物市场淘民国残纸当补料。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 26,
+      "Gender": "男性",
+      "Occupation": "科学家/研究员",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225719-pnj6s",
+    "title": "中国 24岁 女性 工程师",
+    "description": "24岁的女性拆弹专家，左手虎口留着排爆时被高温烫出的浅疤。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 24,
+      "Gender": "女性",
+      "Occupation": "工程师",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225939-s46c7",
+    "title": "丹麦 33岁 男性 搬运工",
+    "description": "33岁丹麦男性搬运工，常年在哥本哈根老街区帮居民搬运家具。",
+    "metadata": {
+      "Country": "丹麦",
+      "Age": 33,
+      "Gender": "男性",
+      "Occupation": "搬运工",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260310022614-wnxlx",
+    "title": "中国 35岁 女性 模特",
+    "description": "35岁女性模特，有着浓密卷翘的睫毛，眼尾微挑的丹凤眼自带冷艳贵气，作为国风高定模特常站在摆着苏绣屏风的影棚拍服饰大片。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 35,
+      "Gender": "女",
+      "Occupation": "模特",
+      "Temperament": "矜贵",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225742-2hv2q",
+    "title": "韩国 25岁 女性 电竞选手",
+    "description": "25岁韩国女性，是职业电竞选手，指节因常年握鼠标磨出薄茧。",
+    "metadata": {
+      "Country": "韩国",
+      "Age": 25,
+      "Gender": "女性",
+      "Occupation": "电竞选手",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225856-6t6rh",
+    "title": "韩国 32岁 女性 科学家/研究员",
+    "description": "32岁韩国籍高校科研人员，常年泡在分子生物实验室做细胞实验。",
+    "metadata": {
+      "Country": "韩国",
+      "Age": 32,
+      "Gender": "女性",
+      "Occupation": "科学家/研究员",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225934-n2w56",
+    "title": "西班牙 24岁 女性 模特",
+    "description": "24岁的西班牙女模特，常穿梭于各快时尚品牌的拍摄场地。",
+    "metadata": {
+      "Country": "西班牙",
+      "Age": 24,
+      "Gender": "女性",
+      "Occupation": "模特",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225800-gxdwm",
+    "title": "中国 25岁 男性 快递员",
+    "description": "25岁的他手掌布满搬货磨出的薄茧，是科技园片区的大件快递员。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 25,
+      "Gender": "男性",
+      "Occupation": "快递员",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225904-v6sf2",
+    "title": "中国 20岁 女性 模特",
+    "description": "20岁中国女性国潮街头模特，日常在老胡同、涂鸦墙取景。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 20,
+      "Gender": "女性",
+      "Occupation": "模特",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225535-pzn2g",
+    "title": "丹麦 59岁 男性 大学教授",
+    "description": "59岁的丹麦教授，在墙挂安徒生插画复制品的极简办公室里讲维京遗产与Hygge文化的关联。",
+    "metadata": {
+      "Country": "丹麦",
+      "Age": 59,
+      "Gender": "男性",
+      "Occupation": "大学教授",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225946-vsxnf",
+    "title": "美国 55岁 男性 演员",
+    "description": "55岁美国男演员，常对着贸易账本核对税收条目，扮演负责贸易税收的皇家总督。",
+    "metadata": {
+      "Country": "美国",
+      "Age": 55,
+      "Gender": "男性",
+      "Occupation": "演员",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260310031616-m8mpx",
+    "title": "韩国 22岁 女性 教师",
+    "description": "她是刚入职的韩文代课老师，说话细声慢语，上课时总把谚文字母写得方方正正。",
+    "metadata": {
+      "Country": "韩国",
+      "Age": 22,
+      "Gender": "女",
+      "Occupation": "教师",
+      "Temperament": "沉稳",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260310021816-kqkg8",
+    "title": "加拿大 35岁 女性 文员/行政",
+    "description": "加拿大35岁女性文员，有着浓密卷翘的金棕色睫毛，鼻尖点缀着几枚浅淡雀斑。",
+    "metadata": {
+      "Country": "加拿大",
+      "Age": 35,
+      "Gender": "女",
+      "Occupation": "文员/行政",
+      "Temperament": "谦和",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  },
+  {
+    "asset_id": "asset-20260224225521-w2t5z",
+    "title": "中国 75岁 女性 果农",
+    "description": "75岁女性果农，在山东烟台种了48年红富士，村里合作社的主心骨。",
+    "metadata": {
+      "Country": "中国",
+      "Age": 75,
+      "Gender": "女性",
+      "Occupation": "果农",
+      "Type": "portrait"
+    },
+    "thumbnail": ""
+  }
+]

@@ -13,14 +13,19 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 
 import type {
+  AnimateMixNodeData,
   AppEdge,
   AppNode,
   AppNodeType,
+  CharacterLibNodeData,
   CharacterNodeData,
   CharacterThreeViewImages,
   ContinuityNodeData,
+  DigitalHumanNodeData,
   ImageDisplayNodeData,
   ImageGenNodeData,
+  ImageUnderstandNodeData,
+  ImageUpscaleNodeData,
   ImageUploadNodeData,
   NodeCreationData,
   NodeStatus,
@@ -28,18 +33,25 @@ import type {
   ShotNodeData,
   StyleNodeData,
   ThreeViewGenNodeData,
+  TTSNodeData,
+  VideoConcatNodeData,
   VideoDisplayNodeData,
+  VideoEditNodeData,
   VideoGenNodeData,
+  VideoUploadNodeData,
 } from '../types'
 import {
   buildContinuityGenerationSignature,
   buildGenerationSignature,
   buildShotGenerationSignature,
   buildThreeViewGenerationSignature,
+  buildUpscaleGenerationSignature,
+  buildVideoEditGenerationSignature,
   buildVideoGenerationSignature,
 } from '../utils/generationSignature'
 import { isValidConnection } from '../utils/flowConnections'
 import { CAMERA_ANGLE_OPTIONS, SHOT_SIZE_OPTIONS } from '../config/storyboardPresets'
+import { DEFAULT_TTS_VOICE } from '../config/ttsVoices'
 import { MAX_CHARACTER_IDENTITY_STRENGTH } from '../utils/characterConsistency'
 import { computeAutoLayoutNodes } from '../utils/canvasLayout'
 import { getContinuityContext, getShotContext } from '../utils/storyboard'
@@ -76,6 +88,8 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         referenceUploadError: undefined,
         identityLock: true,
         identityStrength: MAX_CHARACTER_IDENTITY_STRENGTH,
+        nonRealisticStyle: false,
+        negativePrompt: '',
         status: 'idle' as NodeStatus,
         progress: 0,
         creditCost: 30,
@@ -114,6 +128,20 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         motionStrength: 0.6,
         adapter: 'auto',
         sourceImages: [],
+        happyhorseWithAudio: true,
+        happyhorseQualityMode: 'pro',
+        generateAudio: true,
+        videoResolution: '720p',
+        negativePrompt: '',
+        seed: -1,
+        cameraFixed: false,
+        videoModelTier: 'standard',
+        seedanceVersion: '1.5',
+        returnLastFrame: false,
+        referenceVideos: [],
+        referenceAudios: [],
+        multiImageRole: 'transition',
+        nonRealisticStyle: false,
         status: 'idle' as NodeStatus,
         progress: 0,
         creditCost: 90,
@@ -126,6 +154,53 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         videos: [],
         status: 'idle' as NodeStatus,
       } satisfies VideoDisplayNodeData
+    case 'videoEdit':
+      return {
+        label: '视频编辑',
+        prompt: '',
+        sourceVideo: undefined,
+        upstreamReferenceImages: [],
+        referenceImages: [],
+        veditModel: 'happyhorse-1.0-video-edit',
+        adapter: 'happyhorse',
+        seedanceVersion: '1.5',
+        resolution: '720P',
+        generateAudio: true,
+        videoResolution: '720p',
+        negativePrompt: '',
+        seed: -1,
+        cameraFixed: false,
+        returnLastFrame: false,
+        durationSeconds: 5,
+        status: 'idle' as NodeStatus,
+        progress: 0,
+        creditCost: 60,
+        resultCache: {},
+        needsRefresh: false,
+      } satisfies VideoEditNodeData
+    case 'animateMix':
+      return {
+        label: '视频换人',
+        sourceVideo: undefined,
+        sourceImage: undefined,
+        mode: 'wan-std',
+        status: 'idle' as NodeStatus,
+        progress: 0,
+        outputVideo: undefined,
+        errorMessage: undefined,
+      } satisfies AnimateMixNodeData
+    case 'digitalHuman':
+      return {
+        label: '数字人',
+        text: '',
+        voice: DEFAULT_TTS_VOICE,
+        style: 'speech',
+        resolution: '480P',
+        status: 'idle' as NodeStatus,
+        progress: 0,
+        outputVideo: undefined,
+        errorMessage: undefined,
+      } satisfies DigitalHumanNodeData
     case 'scene':
       return {
         label: '场次',
@@ -152,6 +227,14 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         threeViewImages: {},
         generatedThreeViewImages: undefined,
       } satisfies CharacterNodeData
+    case 'characterLib':
+      return {
+        label: '人像库',
+        genPrompt: '',
+        isGenerating: false,
+        status: 'idle' as NodeStatus,
+        progress: 0,
+      } satisfies CharacterLibNodeData
     case 'style':
       return {
         label: '风格',
@@ -220,6 +303,53 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         resultCache: {},
         needsRefresh: false,
       } satisfies ShotNodeData
+    case 'videoUpload':
+      return {
+        label: '视频上传',
+        videoUrl: undefined,
+        fileName: undefined,
+        isUploading: false,
+        uploadError: undefined,
+      } satisfies VideoUploadNodeData
+    case 'imageUnderstand':
+      return {
+        label: '图片理解',
+        imageUrl: undefined,
+        description: undefined,
+        generatedPrompt: undefined,
+        isGenerating: false,
+        isGeneratingPrompt: false,
+        errorMessage: undefined,
+      } satisfies ImageUnderstandNodeData
+    case 'imageUpscale':
+      return {
+        label: '图片放大',
+        prompt: '高清放大，超分辨率，增强细节和清晰度，保持原始画面构图和内容不变',
+        targetResolution: '4K',
+        adapter: 'volcengine',
+        sourceImage: undefined,
+        status: 'idle' as NodeStatus,
+        progress: 0,
+        creditCost: 30,
+        resultCache: {},
+        needsRefresh: false,
+      } satisfies ImageUpscaleNodeData
+    case 'videoConcat':
+      return {
+        label: '视频拼接',
+        sourceVideos: [],
+        status: 'idle' as NodeStatus,
+        progress: 0,
+      } satisfies VideoConcatNodeData
+    case 'tts':
+      return {
+        label: '文本转语音',
+        text: '',
+        voice: DEFAULT_TTS_VOICE,
+        speechRate: 0,
+        loudnessRate: 0,
+        status: 'idle' as NodeStatus,
+      } satisfies TTSNodeData
     default:
       return { label: '未知节点' }
   }
@@ -238,6 +368,8 @@ const createNodeData = (type: AppNodeType, initialData: NodeCreationData = {}): 
       return syncThreeViewGenDerivedState(mergedData as Partial<ThreeViewGenNodeData>)
     case 'videoGen':
       return syncVideoGenDerivedState(mergedData as Partial<VideoGenNodeData>)
+    case 'videoEdit':
+      return syncVideoEditDerivedState(mergedData as Partial<VideoEditNodeData>)
     case 'character':
       return normalizeCharacterData(mergedData as Partial<CharacterNodeData>)
     case 'style':
@@ -246,6 +378,8 @@ const createNodeData = (type: AppNodeType, initialData: NodeCreationData = {}): 
       return syncContinuityDerivedState(mergedData as Partial<ContinuityNodeData>)
     case 'shot':
       return syncShotDerivedState(mergedData as Partial<ShotNodeData>)
+    case 'imageUpscale':
+      return syncImageUpscaleDerivedState(mergedData as Partial<ImageUpscaleNodeData>)
     default:
       return mergedData
   }
@@ -388,6 +522,19 @@ const normalizeVideoGenData = (data: Partial<VideoGenNodeData>): VideoGenNodeDat
     motionStrength: 0.6,
     adapter: 'auto',
     sourceImages,
+    seedanceVersion: '1.5',
+    happyhorseWithAudio: true,
+    happyhorseQualityMode: 'pro',
+    generateAudio: true,
+    videoResolution: '720p',
+    negativePrompt: '',
+    seed: -1,
+    cameraFixed: false,
+    videoModelTier: 'standard',
+    returnLastFrame: false,
+    referenceVideos: [],
+    referenceAudios: [],
+    multiImageRole: 'transition',
     status: 'idle' as NodeStatus,
     progress: 0,
     creditCost: 90,
@@ -656,6 +803,41 @@ const syncImageGenDerivedState = (data: Partial<ImageGenNodeData>): ImageGenNode
   }
 }
 
+const normalizeImageUpscaleData = (data: Partial<ImageUpscaleNodeData>): ImageUpscaleNodeData => {
+  const resultCache = typeof data.resultCache === 'object' && data.resultCache !== null
+    ? { ...(data.resultCache as Record<string, string>) }
+    : {}
+
+  return {
+    label: '图片放大',
+    prompt: '高清放大，超分辨率，增强细节和清晰度，保持原始画面构图和内容不变',
+    targetResolution: '4K',
+    adapter: 'volcengine',
+    sourceImage: typeof data.sourceImage === 'string' ? data.sourceImage : undefined,
+    status: 'idle' as NodeStatus,
+    progress: 0,
+    creditCost: 30,
+    resultCache,
+    needsRefresh: false,
+    ...data,
+    outputImage: typeof data.outputImage === 'string' ? data.outputImage : undefined,
+    lastRunSignature: typeof data.lastRunSignature === 'string' ? data.lastRunSignature : undefined,
+    errorMessage: typeof data.errorMessage === 'string' ? data.errorMessage : undefined,
+  }
+}
+
+const syncImageUpscaleDerivedState = (data: Partial<ImageUpscaleNodeData>): ImageUpscaleNodeData => {
+  const normalizedData = normalizeImageUpscaleData(data)
+  const isGenerating = normalizedData.status === 'queued' || normalizedData.status === 'processing'
+  const hasRun = Boolean(normalizedData.lastRunSignature)
+  const currentSignature = buildUpscaleGenerationSignature(normalizedData)
+
+  return {
+    ...normalizedData,
+    needsRefresh: hasRun && !isGenerating && currentSignature !== normalizedData.lastRunSignature,
+  }
+}
+
 const syncThreeViewGenDerivedState = (data: Partial<ThreeViewGenNodeData>): ThreeViewGenNodeData => {
   const normalizedData = normalizeThreeViewGenData(data)
   const isGenerating = normalizedData.status === 'queued' || normalizedData.status === 'processing'
@@ -674,6 +856,53 @@ const syncVideoGenDerivedState = (data: Partial<VideoGenNodeData>): VideoGenNode
   const isGenerating = normalizedData.status === 'queued' || normalizedData.status === 'processing'
   const hasRun = Boolean(normalizedData.lastRunSignature)
   const currentSignature = buildVideoGenerationSignature(normalizedData)
+
+  return {
+    ...normalizedData,
+    needsRefresh: hasRun && !isGenerating && currentSignature !== normalizedData.lastRunSignature,
+  }
+}
+
+const normalizeVideoEditData = (data: Partial<VideoEditNodeData>): VideoEditNodeData => {
+  const restData = { ...data }
+  const referenceImages = dedupeStringList(restData.referenceImages)
+  const upstreamReferenceImages = dedupeStringList(restData.upstreamReferenceImages)
+  delete restData.referenceImages
+  delete restData.upstreamReferenceImages
+
+  return {
+    label: '视频编辑',
+    prompt: '',
+    sourceVideo: undefined,
+    upstreamReferenceImages: [],
+    referenceImages: [],
+    veditModel: 'happyhorse-1.0-video-edit',
+    adapter: 'happyhorse',
+    seedanceVersion: '1.5',
+    resolution: '720P',
+    generateAudio: true,
+    videoResolution: '720p',
+    negativePrompt: '',
+    seed: -1,
+    cameraFixed: false,
+    returnLastFrame: false,
+    durationSeconds: 5,
+    status: 'idle' as NodeStatus,
+    progress: 0,
+    creditCost: 60,
+    resultCache: {},
+    needsRefresh: false,
+    ...restData,
+    referenceImages,
+    upstreamReferenceImages,
+  }
+}
+
+const syncVideoEditDerivedState = (data: Partial<VideoEditNodeData>): VideoEditNodeData => {
+  const normalizedData = normalizeVideoEditData(data)
+  const isGenerating = normalizedData.status === 'queued' || normalizedData.status === 'processing'
+  const hasRun = Boolean(normalizedData.lastRunSignature)
+  const currentSignature = buildVideoEditGenerationSignature(normalizedData)
 
   return {
     ...normalizedData,
@@ -735,6 +964,24 @@ function getSourceNodeOutputImages(sourceNode: AppNode, sourceHandle?: string | 
   if (sourceNode.type === 'shot') {
     const data = sourceNode.data as ShotNodeData
     return data.outputType === 'image' && data.outputImage ? [data.outputImage] : []
+  }
+
+  if (sourceNode.type === 'characterLib') {
+    const data = sourceNode.data as CharacterLibNodeData
+    return data.selectedCharacterCdnUrl ? [data.selectedCharacterCdnUrl] : []
+  }
+
+  if (sourceNode.type === 'imageUpscale') {
+    const data = sourceNode.data as ImageUpscaleNodeData
+    return data.outputImage ? [data.outputImage] : []
+  }
+
+  if (sourceNode.type === 'videoGen') {
+    if (sourceHandle === 'lastFrame') {
+      const data = sourceNode.data as VideoGenNodeData
+      return data.outputLastFrame ? [data.outputLastFrame] : []
+    }
+    return []
   }
 
   return []
@@ -840,6 +1087,7 @@ interface FlowState {
   toggleNodeCollapsed: (nodeId: string) => void
   toggleNodeDisabled: (nodeId: string) => void
   getUpstreamImages: (nodeId: string) => string[]
+  getUpstreamImageOriginalUrls: (nodeId: string) => string[]
   getUpstreamVideos: (nodeId: string) => string[]
   syncDownstream: (sourceNodeId: string) => void
   updateNodeWidth: (nodeId: string, width: number) => void
@@ -907,7 +1155,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
     if (removedTargets.length > 0) {
       setTimeout(() => {
-        const { nodes, edges, getUpstreamImages, getUpstreamVideos } = get()
+        const { nodes, edges, getUpstreamImages, getUpstreamVideos, getUpstreamAudioUrls } = get()
 
         removedTargets.forEach((targetNodeId) => {
           const targetNode = nodes.find((node) => node.id === targetNodeId)
@@ -924,7 +1172,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           }
 
           if (targetNode.type === 'videoGen') {
-            get().updateNodeData(targetNodeId, { sourceImages: getUpstreamImages(targetNodeId) })
+            get().updateNodeData(targetNodeId, {
+              sourceImages: getUpstreamImages(targetNodeId),
+              referenceVideos: getUpstreamVideos(targetNodeId),
+              referenceAudios: getUpstreamAudioUrls(targetNodeId),
+            })
             return
           }
 
@@ -955,8 +1207,46 @@ export const useFlowStore = create<FlowState>((set, get) => ({
             return
           }
 
+          if (targetNode.type === 'imageUnderstand') {
+            get().updateNodeData(targetNodeId, { imageUrl: getUpstreamImages(targetNodeId)[0] ?? undefined })
+            return
+          }
+
           if (targetNode.type === 'videoDisplay') {
             get().updateNodeData(targetNodeId, { videos: getUpstreamVideos(targetNodeId) })
+          }
+
+          if (targetNode.type === 'videoEdit') {
+            const upstreamVideos = getUpstreamVideos(targetNodeId)
+            const upstreamImages = getUpstreamImages(targetNodeId)
+            get().updateNodeData(targetNodeId, {
+              sourceVideo: upstreamVideos[0] ?? undefined,
+              upstreamReferenceImages: upstreamImages,
+            })
+          }
+
+          if (targetNode.type === 'animateMix') {
+            const upstreamVideos = getUpstreamVideos(targetNodeId)
+            const upstreamImages = getUpstreamImages(targetNodeId)
+            get().updateNodeData(targetNodeId, {
+              sourceVideo: upstreamVideos[0] ?? undefined,
+              sourceImage: upstreamImages[0] ?? undefined,
+            })
+          }
+
+          if (targetNode.type === 'digitalHuman') {
+            get().updateNodeData(targetNodeId, {
+              sourceImage: getUpstreamImages(targetNodeId)[0] ?? undefined,
+              audioUrl: getUpstreamAudioUrls(targetNodeId)[0] ?? undefined,
+            })
+          }
+
+          if (targetNode.type === 'imageUpscale') {
+            get().updateNodeData(targetNodeId, { sourceImage: getUpstreamImages(targetNodeId)[0] ?? undefined })
+          }
+
+          if (targetNode.type === 'videoConcat') {
+            get().updateNodeData(targetNodeId, { sourceVideos: getUpstreamVideos(targetNodeId) })
           }
         })
       }, 0)
@@ -1059,6 +1349,13 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           } as AppNode
         }
 
+        if (node.type === 'videoEdit') {
+          return {
+            ...node,
+            data: syncVideoEditDerivedState(mergedData as Partial<VideoEditNodeData>),
+          } as AppNode
+        }
+
         if (node.type === 'character') {
           return {
             ...node,
@@ -1087,6 +1384,13 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           } as AppNode
         }
 
+        if (node.type === 'imageUpscale') {
+          return {
+            ...node,
+            data: syncImageUpscaleDerivedState(mergedData as Partial<ImageUpscaleNodeData>),
+          } as AppNode
+        }
+
         return { ...node, data: mergedData } as AppNode
       }),
     })
@@ -1107,7 +1411,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
     if (affectedTargetIds.length > 0) {
       setTimeout(() => {
-        const { nodes, edges, getUpstreamImages, getUpstreamVideos } = get()
+        const { nodes, edges, getUpstreamImages, getUpstreamVideos, getUpstreamAudioUrls } = get()
 
         affectedTargetIds.forEach((targetNodeId) => {
           const targetNode = nodes.find((node) => node.id === targetNodeId)
@@ -1124,7 +1428,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           }
 
           if (targetNode.type === 'videoGen') {
-            get().updateNodeData(targetNodeId, { sourceImages: getUpstreamImages(targetNodeId) })
+            get().updateNodeData(targetNodeId, {
+              sourceImages: getUpstreamImages(targetNodeId),
+              referenceVideos: getUpstreamVideos(targetNodeId),
+              referenceAudios: getUpstreamAudioUrls(targetNodeId),
+            })
             return
           }
 
@@ -1155,8 +1463,46 @@ export const useFlowStore = create<FlowState>((set, get) => ({
             return
           }
 
+          if (targetNode.type === 'imageUnderstand') {
+            get().updateNodeData(targetNodeId, { imageUrl: getUpstreamImages(targetNodeId)[0] ?? undefined })
+            return
+          }
+
           if (targetNode.type === 'videoDisplay') {
             get().updateNodeData(targetNodeId, { videos: getUpstreamVideos(targetNodeId) })
+          }
+
+          if (targetNode.type === 'videoEdit') {
+            const upstreamVideos = getUpstreamVideos(targetNodeId)
+            const upstreamImages = getUpstreamImages(targetNodeId)
+            get().updateNodeData(targetNodeId, {
+              sourceVideo: upstreamVideos[0] ?? undefined,
+              upstreamReferenceImages: upstreamImages,
+            })
+          }
+
+          if (targetNode.type === 'animateMix') {
+            const upstreamVideos = getUpstreamVideos(targetNodeId)
+            const upstreamImages = getUpstreamImages(targetNodeId)
+            get().updateNodeData(targetNodeId, {
+              sourceVideo: upstreamVideos[0] ?? undefined,
+              sourceImage: upstreamImages[0] ?? undefined,
+            })
+          }
+
+          if (targetNode.type === 'digitalHuman') {
+            get().updateNodeData(targetNodeId, {
+              sourceImage: getUpstreamImages(targetNodeId)[0] ?? undefined,
+              audioUrl: getUpstreamAudioUrls(targetNodeId)[0] ?? undefined,
+            })
+          }
+
+          if (targetNode.type === 'imageUpscale') {
+            get().updateNodeData(targetNodeId, { sourceImage: getUpstreamImages(targetNodeId)[0] ?? undefined })
+          }
+
+          if (targetNode.type === 'videoConcat') {
+            get().updateNodeData(targetNodeId, { sourceVideos: getUpstreamVideos(targetNodeId) })
           }
         })
       }, 0)
@@ -1174,7 +1520,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     })
 
     setTimeout(() => {
-      const { nodes, edges, getUpstreamImages, getUpstreamVideos } = get()
+      const { nodes, edges, getUpstreamImages, getUpstreamVideos, getUpstreamAudioUrls } = get()
       const targetNode = nodes.find((node) => node.id === targetEdge.target)
       if (!targetNode) return
 
@@ -1189,7 +1535,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       }
 
       if (targetNode.type === 'videoGen') {
-        get().updateNodeData(targetEdge.target, { sourceImages: getUpstreamImages(targetEdge.target) })
+        get().updateNodeData(targetEdge.target, {
+          sourceImages: getUpstreamImages(targetEdge.target),
+          referenceVideos: getUpstreamVideos(targetEdge.target),
+          referenceAudios: getUpstreamAudioUrls(targetEdge.target),
+        })
         return
       }
 
@@ -1220,8 +1570,43 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         return
       }
 
+      if (targetNode.type === 'imageUnderstand') {
+        get().updateNodeData(targetEdge.target, { imageUrl: getUpstreamImages(targetEdge.target)[0] ?? undefined })
+        return
+      }
+
       if (targetNode.type === 'videoDisplay') {
         get().updateNodeData(targetEdge.target, { videos: getUpstreamVideos(targetEdge.target) })
+      }
+
+      if (targetNode.type === 'videoEdit') {
+        const upstreamVideos = getUpstreamVideos(targetEdge.target)
+        const upstreamImages = getUpstreamImages(targetEdge.target)
+        get().updateNodeData(targetEdge.target, {
+          sourceVideo: upstreamVideos[0] ?? undefined,
+          upstreamReferenceImages: upstreamImages,
+        })
+      }
+
+      if (targetNode.type === 'animateMix') {
+        const upstreamVideos = getUpstreamVideos(targetEdge.target)
+        const upstreamImages = getUpstreamImages(targetEdge.target)
+        get().updateNodeData(targetEdge.target, {
+          sourceVideo: upstreamVideos[0] ?? undefined,
+          sourceImage: upstreamImages[0] ?? undefined,
+        })
+      }
+
+      if (targetNode.type === 'digitalHuman') {
+        get().updateNodeData(targetEdge.target, { sourceImage: getUpstreamImages(targetEdge.target)[0] ?? undefined, audioUrl: getUpstreamAudioUrls(targetEdge.target)[0] ?? undefined })
+      }
+
+      if (targetNode.type === 'imageUpscale') {
+        get().updateNodeData(targetEdge.target, { sourceImage: getUpstreamImages(targetEdge.target)[0] ?? undefined })
+      }
+
+      if (targetNode.type === 'videoConcat') {
+        get().updateNodeData(targetEdge.target, { sourceVideos: getUpstreamVideos(targetEdge.target) })
       }
     }, 0)
   },
@@ -1290,6 +1675,35 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     return dedupeStringList(images)
   },
 
+  getUpstreamImageOriginalUrls: (nodeId: string): string[] => {
+    const { nodes, edges } = get()
+    const incomingEdges = edges.filter((edge) => edge.target === nodeId)
+    const images: string[] = []
+
+    for (const edge of incomingEdges) {
+      const sourceNode = nodes.find((node) => node.id === edge.source)
+      if (!sourceNode) continue
+      if ((sourceNode.data as Record<string, unknown>).disabled === true) continue
+
+      if (sourceNode.type === 'characterLib') {
+        const data = sourceNode.data as CharacterLibNodeData
+        if (data.selectedCharacterCdnUrl) images.push(data.selectedCharacterCdnUrl)
+      } else if (sourceNode.type === 'imageGen') {
+        const data = sourceNode.data as import('../types').ImageGenNodeData
+        const url = data.outputImageOriginalUrl || data.outputImage
+        if (url) images.push(url)
+      } else if (sourceNode.type === 'imageUpscale') {
+        const data = sourceNode.data as import('../types').ImageUpscaleNodeData
+        const url = data.outputImageOriginalUrl || data.outputImage
+        if (url) images.push(url)
+      } else {
+        images.push(...getSourceNodeOutputImages(sourceNode, edge.sourceHandle))
+      }
+    }
+
+    return dedupeStringList(images)
+  },
+
   getUpstreamVideos: (nodeId: string): string[] => {
     const { nodes, edges } = get()
     const incomingEdges = edges.filter((edge) => edge.target === nodeId)
@@ -1303,22 +1717,78 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       if (sourceNode.type === 'videoGen') {
         const data = sourceNode.data as VideoGenNodeData
         if (data.outputVideo) videos.push(data.outputVideo)
+      } else if (sourceNode.type === 'videoEdit') {
+        const data = sourceNode.data as VideoEditNodeData
+        if (data.outputVideo) videos.push(data.outputVideo)
       } else if (sourceNode.type === 'shot') {
         const data = sourceNode.data as ShotNodeData
         if (data.outputType === 'video' && data.outputVideo) videos.push(data.outputVideo)
+      } else if (sourceNode.type === 'videoUpload') {
+        const data = sourceNode.data as VideoUploadNodeData
+        if (data.videoUrl) videos.push(data.videoUrl)
+      } else if (sourceNode.type === 'animateMix') {
+        const data = sourceNode.data as AnimateMixNodeData
+        if (data.outputVideo) videos.push(data.outputVideo)
+      } else if (sourceNode.type === 'digitalHuman') {
+        const data = sourceNode.data as DigitalHumanNodeData
+        if (data.outputVideo) videos.push(data.outputVideo)
+      } else if (sourceNode.type === 'videoConcat') {
+        const data = sourceNode.data as VideoConcatNodeData
+        if (data.outputVideo) videos.push(data.outputVideo)
       }
     }
 
     return dedupeStringList(videos)
   },
 
+  getUpstreamAudioUrls: (nodeId: string): string[] => {
+    const { nodes, edges } = get()
+    const incomingEdges = edges.filter((edge) => edge.target === nodeId)
+    const audioUrls: string[] = []
+
+    for (const edge of incomingEdges) {
+      const sourceNode = nodes.find((node) => node.id === edge.source)
+      if (!sourceNode) continue
+      if (sourceNode.type === 'tts') {
+        const data = sourceNode.data as TTSNodeData
+        if (data.ttsAudioUrl) audioUrls.push(data.ttsAudioUrl)
+      }
+    }
+
+    return dedupeStringList(audioUrls)
+  },
+
   syncDownstream: (sourceNodeId: string) => {
-    const { nodes, edges, updateNodeData, getUpstreamImages, getUpstreamVideos } = get()
+    const { nodes, edges, updateNodeData, getUpstreamImages, getUpstreamVideos, getUpstreamAudioUrls } = get()
     const downstreamEdges = edges.filter((edge) => edge.source === sourceNodeId)
+    const sourceNode = nodes.find((node) => node.id === sourceNodeId)
 
     for (const edge of downstreamEdges) {
       const targetNode = nodes.find((node) => node.id === edge.target)
       if (!targetNode) continue
+
+      // Propagate generated prompt from imageUnderstand to downstream nodes
+      if (sourceNode?.type === 'imageUnderstand') {
+        const sourceData = sourceNode.data as ImageUnderstandNodeData
+        if (sourceData.generatedPrompt && (targetNode.type === 'imageGen' || targetNode.type === 'videoGen')) {
+          if (!(targetNode.data as Record<string, unknown>).prompt) {
+            updateNodeData(edge.target, { prompt: sourceData.generatedPrompt })
+          }
+        }
+      }
+
+      // Propagate TTS audio URL to downstream DigitalHuman nodes
+      if (sourceNode?.type === 'tts') {
+        const sourceData = sourceNode.data as TTSNodeData
+        if (sourceData.ttsAudioUrl && targetNode.type === 'digitalHuman') {
+          updateNodeData(edge.target, { audioUrl: sourceData.ttsAudioUrl })
+        }
+      }
+
+      if (targetNode.type === 'imageUnderstand') {
+        updateNodeData(edge.target, { imageUrl: getUpstreamImages(edge.target)[0] ?? undefined })
+        continue
+      }
 
       if (targetNode.type === 'imageGen') {
         updateNodeData(edge.target, { upstreamReferenceImages: getUpstreamImages(edge.target) })
@@ -1331,7 +1801,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       }
 
       if (targetNode.type === 'videoGen') {
-        updateNodeData(edge.target, { sourceImages: getUpstreamImages(edge.target) })
+        updateNodeData(edge.target, {
+          sourceImages: getUpstreamImages(edge.target),
+          referenceVideos: getUpstreamVideos(edge.target),
+          referenceAudios: getUpstreamAudioUrls(edge.target),
+        })
         continue
       }
 
@@ -1364,6 +1838,36 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
       if (targetNode.type === 'videoDisplay') {
         updateNodeData(edge.target, { videos: getUpstreamVideos(edge.target) })
+      }
+
+      if (targetNode.type === 'videoEdit') {
+        const upstreamVideos = getUpstreamVideos(edge.target)
+        const upstreamImages = getUpstreamImages(edge.target)
+        updateNodeData(edge.target, {
+          sourceVideo: upstreamVideos[0] ?? undefined,
+          upstreamReferenceImages: upstreamImages,
+        })
+      }
+
+      if (targetNode.type === 'animateMix') {
+        const upstreamVideos = getUpstreamVideos(edge.target)
+        const upstreamImages = getUpstreamImages(edge.target)
+        updateNodeData(edge.target, {
+          sourceVideo: upstreamVideos[0] ?? undefined,
+          sourceImage: upstreamImages[0] ?? undefined,
+        })
+      }
+
+      if (targetNode.type === 'digitalHuman') {
+        updateNodeData(edge.target, { sourceImage: getUpstreamImages(edge.target)[0] ?? undefined, audioUrl: getUpstreamAudioUrls(edge.target)[0] ?? undefined })
+      }
+
+      if (targetNode.type === 'imageUpscale') {
+        updateNodeData(edge.target, { sourceImage: getUpstreamImages(edge.target)[0] ?? undefined })
+      }
+
+      if (targetNode.type === 'videoConcat') {
+        updateNodeData(edge.target, { sourceVideos: getUpstreamVideos(edge.target) })
       }
     }
   },
@@ -1482,6 +1986,21 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         } as AppNode
       }
 
+      if (node.type === 'videoEdit') {
+        return {
+          ...node,
+          selected: false,
+          data: syncVideoEditDerivedState(node.data as Partial<VideoEditNodeData>),
+        } as AppNode
+      }
+
+      if (node.type === 'animateMix') {
+        return {
+          ...node,
+          selected: false,
+        } as AppNode
+      }
+
       if (node.type === 'character') {
         return {
           ...node,
@@ -1511,6 +2030,14 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           ...node,
           selected: false,
           data: syncShotDerivedState(node.data as Partial<ShotNodeData>),
+        } as AppNode
+      }
+
+      if (node.type === 'imageUpscale') {
+        return {
+          ...node,
+          selected: false,
+          data: syncImageUpscaleDerivedState(node.data as Partial<ImageUpscaleNodeData>),
         } as AppNode
       }
 

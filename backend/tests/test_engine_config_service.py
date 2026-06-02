@@ -37,6 +37,8 @@ class EngineConfigServiceTests(unittest.TestCase):
                     image_model="image-model",
                     image_edit_model="image-edit-model",
                     video_model="video-model",
+                    video_v2_model="",
+                    video_version="1.5",
                 )
             )
 
@@ -76,6 +78,13 @@ class EngineConfigServiceTests(unittest.TestCase):
                         oss_access_key_secret="  oss-sk  ",
                         oss_bucket="  sketchshot-temp  ",
                         oss_key_prefix="  wanx/frames  ",
+                        happyhorse_t2v_model="happyhorse-1.0-t2v",
+                        happyhorse_i2v_model="happyhorse-1.0-i2v",
+                        happyhorse_r2v_model="happyhorse-1.0-r2v",
+                        happyhorse_vedit_model="happyhorse-1.0-video-edit",
+                        happyhorse_video_resolution="720P",
+                        animate_mix_model="",
+                        s2v_model="",
                     ),
                 )
             )
@@ -116,6 +125,13 @@ class EngineConfigServiceTests(unittest.TestCase):
                     oss_access_key_secret="oss-sk",
                     oss_bucket="demo-bucket",
                     oss_key_prefix="temp",
+                    happyhorse_t2v_model="happyhorse-1.0-t2v",
+                    happyhorse_i2v_model="happyhorse-1.0-i2v",
+                    happyhorse_r2v_model="happyhorse-1.0-r2v",
+                    happyhorse_vedit_model="happyhorse-1.0-video-edit",
+                    happyhorse_video_resolution="720P",
+                    animate_mix_model="",
+                    s2v_model="",
                 )
             )
 
@@ -187,6 +203,8 @@ class EngineConfigServiceTests(unittest.TestCase):
                             image_model="image-model",
                             image_edit_model="image-edit-model",
                             video_model="video-model",
+                            video_v2_model="",
+                            video_version="1.5",
                         ),
                         dashscope=DashScopeConfigSnapshot(
                             base_url="https://dashscope.aliyuncs.com",
@@ -203,6 +221,13 @@ class EngineConfigServiceTests(unittest.TestCase):
                             oss_access_key_secret="",
                             oss_bucket="demo-bucket",
                             oss_key_prefix="temp",
+                            happyhorse_t2v_model="happyhorse-1.0-t2v",
+                            happyhorse_i2v_model="happyhorse-1.0-i2v",
+                            happyhorse_r2v_model="happyhorse-1.0-r2v",
+                            happyhorse_vedit_model="happyhorse-1.0-video-edit",
+                            happyhorse_video_resolution="720P",
+                            animate_mix_model="",
+                            s2v_model="",
                         ),
                     )
                 )

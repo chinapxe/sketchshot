@@ -1,0 +1,185 @@
+.tts-node {
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  color: #333;
+  font-size: 13px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tts-node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.tts-node.selected {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
+.tts-node.status-success {
+  border-color: #52c41a;
+}
+
+.tts-node.status-error {
+  border-color: #ff4d4f;
+}
+
+.tts-node.status-processing {
+  border-color: #1677ff;
+}
+
+.tts-node .node-header {
+  align-items: center;
+  background: #f0f5ff;
+  border-bottom: 1px solid #d6e4ff;
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.tts-node .node-header-icon {
+  color: #1677ff;
+  font-size: 14px;
+}
+
+.tts-node .node-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.tts-node .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tts-node .field-label {
+  color: #888;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.tts-node .field-select {
+  width: 100%;
+}
+
+.tts-node .form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.tts-node .flex-1 {
+  flex: 1;
+  min-width: 0;
+}
+
+.tts-node .form-actions {
+  padding-top: 2px;
+}
+
+.tts-node .tts-textarea {
+  background: #fafafa;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  color: #333;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 8px;
+  resize: vertical;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.tts-node .tts-textarea:focus {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+  outline: none;
+}
+
+.tts-node .tts-textarea::placeholder {
+  color: #bbb;
+}
+
+.tts-node .tts-progress-text {
+  color: #888;
+  font-size: 11px;
+  text-align: center;
+}
+
+.tts-node .tts-audio-card {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tts-node .tts-audio-element {
+  width: 100%;
+  display: block;
+  background: #fafafa;
+}
+
+.tts-node .tts-download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
+  color: #1677ff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tts-node .tts-download-btn:hover {
+  background: #f0f5ff;
+  color: #0958d9;
+}
+
+.tts-node .tts-error-message {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 6px;
+  color: #ff4d4f;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  word-break: break-all;
+}
+
+.tts-node .node-status-badge {
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.tts-node .node-status-badge.status-processing {
+  background: #e6f4ff;
+  color: #1677ff;
+}
+
+.tts-node .node-status-badge.status-success {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.tts-node .node-status-badge.status-error {
+  background: #fff2f0;
+  color: #ff4d4f;
+}

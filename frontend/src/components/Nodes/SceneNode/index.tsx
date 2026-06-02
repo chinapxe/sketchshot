@@ -46,7 +46,7 @@ const SceneNode = memo(({ id, data, selected = false }: NodeProps<SceneNodeType>
         currentWidth={nodeWidth}
         minWidth={DEFAULT_NODE_SIZES.scene.width}
       />
-      <div className={`storyboard-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+      <div className={`storyboard-node${selected ? ' selected' : ''}${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
         <div className="storyboard-node-header">
         <span className="storyboard-node-icon">
           <BranchesOutlined />

@@ -24,6 +24,11 @@
   border-color: #ff4d4f;
 }
 
+.image-gen-node.selected {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
 .image-gen-node.needs-refresh {
   border-color: #fa8c16;
   box-shadow: 0 0 0 1px rgba(250, 140, 22, 0.1);
@@ -310,6 +315,19 @@
   margin-top: 4px;
   border-radius: 8px;
   font-weight: 500;
+}
+
+.seedance-audio-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+}
+
+.seedance-audio-hint {
+  font-size: 11px;
+  color: #8c8c8c;
+  line-height: 1.2;
 }
 
 @media (max-width: 640px) {

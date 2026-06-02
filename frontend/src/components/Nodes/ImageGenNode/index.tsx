@@ -11,7 +11,7 @@ import {
   PlusOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
-import { Button, Progress, Select, message } from 'antd'
+import { Button, Progress, Select, Switch, message } from 'antd'
 
 import {
   IMAGE_QUICK_PROMPT_CHIPS,
@@ -277,7 +277,7 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
       />
       <div
         ref={nodeRef}
-        className={`image-gen-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
+        className={`image-gen-node status-${data.status}${selected ? ' selected' : ''}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
         style={{ width: nodeWidth }}
       >
         <Handle type="target" position={Position.Left} className="node-handle handle-kind-image" />
@@ -388,6 +388,35 @@ const ImageGenNode = memo(({ id, data, selected = false }: NodeProps<ImageGenNod
               className="field-select nodrag nopan"
             />
           </div>
+        </div>
+
+        <div className="form-field">
+          <label className="field-label">非真人风格</label>
+          <div className="seedance-audio-switch">
+            <Switch
+              size="small"
+              checked={data.nonRealisticStyle === true}
+              onChange={(checked) => updateNodeData(id, { nonRealisticStyle: checked })}
+              className="nodrag"
+            />
+            <span className="seedance-audio-hint">
+              {data.nonRealisticStyle === true
+                ? '已注入 3D/CG 风格提示词，避免生成真人画面'
+                : '关闭后按原始提示词生成，可能触发合规拦截'}
+            </span>
+          </div>
+        </div>
+
+        <div className="form-field">
+          <label className="field-label">负面提示词（可选）</label>
+          <NodeTextareaEditor
+            variant="native"
+            className="negative-prompt-textarea nodrag"
+            value={data.negativePrompt || ''}
+            onCommit={(value) => updateNodeData(id, { negativePrompt: value })}
+            placeholder="描述不想在画面中出现的元素，例如：模糊，低质量，变形，水印..."
+            rows={2}
+          />
         </div>
 
         <div className="form-field">

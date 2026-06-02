@@ -5,11 +5,19 @@ import {
   BorderOutlined,
   BranchesOutlined,
   CameraOutlined,
+  CustomerServiceOutlined,
+  DownOutlined,
+  EditOutlined,
+  ExpandOutlined,
   HighlightOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MergeCellsOutlined,
   PictureOutlined,
   PlaySquareOutlined,
+  RightOutlined,
+  ScanOutlined,
+  SwapOutlined,
   TeamOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons'
@@ -26,6 +34,7 @@ interface NodeTypeItem {
 }
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sketchshot-sidebar-collapsed'
+const SIDEBAR_SECTIONS_COLLAPSED_STORAGE_KEY = 'sketchshot-sidebar-sections-collapsed'
 const SHOW_PRESET_NODE_SECTION = false
 
 const BrandLogo = memo(() => (
@@ -51,7 +60,7 @@ const BrandLogo = memo(() => (
 
 BrandLogo.displayName = 'BrandLogo'
 
-const basicNodeTypes: NodeTypeItem[] = [
+const storyNodeTypes: NodeTypeItem[] = [
   {
     type: 'scene',
     label: '场次',
@@ -82,11 +91,20 @@ const basicNodeTypes: NodeTypeItem[] = [
     description: '拆解视频镜头的 9 格连续动作',
     icon: <BorderOutlined />,
   },
+]
+
+const imageNodeTypes: NodeTypeItem[] = [
   {
     type: 'imageUpload',
     label: '图片上传',
     description: '上传参考图或起始图',
     icon: <PictureOutlined />,
+  },
+  {
+    type: 'characterLib',
+    label: '人像库',
+    description: '浏览和选择已生成的人物图片',
+    icon: <TeamOutlined />,
   },
   {
     type: 'imageGen',
@@ -101,10 +119,31 @@ const basicNodeTypes: NodeTypeItem[] = [
     icon: <AppstoreOutlined />,
   },
   {
+    type: 'imageUnderstand',
+    label: '图片理解',
+    description: '分析图片并生成场景描述提示词',
+    icon: <ScanOutlined />,
+  },
+  {
+    type: 'imageUpscale',
+    label: '图片放大',
+    description: '将低分辨率图片高清放大至目标分辨率',
+    icon: <ExpandOutlined />,
+  },
+  {
     type: 'imageDisplay',
     label: '图片预览',
     description: '查看生成出的图像',
     icon: <AppstoreOutlined />,
+  },
+]
+
+const videoNodeTypes: NodeTypeItem[] = [
+  {
+    type: 'videoUpload',
+    label: '视频上传',
+    description: '上传视频文件供下游使用',
+    icon: <VideoCameraOutlined />,
   },
   {
     type: 'videoGen',
@@ -113,10 +152,43 @@ const basicNodeTypes: NodeTypeItem[] = [
     icon: <VideoCameraOutlined />,
   },
   {
+    type: 'videoEdit',
+    label: '视频编辑',
+    description: '对视频进行编辑，支持风格变换、背景替换等',
+    icon: <EditOutlined />,
+  },
+  {
+    type: 'animateMix',
+    label: '视频换人',
+    description: '将视频中的人物替换为指定角色',
+    icon: <SwapOutlined />,
+  },
+  {
+    type: 'videoConcat',
+    label: '视频拼接',
+    description: '将多段视频首尾拼接为完整视频',
+    icon: <MergeCellsOutlined />,
+  },
+  {
     type: 'videoDisplay',
     label: '视频预览',
     description: '查看生成出的视频片段',
     icon: <PlaySquareOutlined />,
+  },
+]
+
+const voiceNodeTypes: NodeTypeItem[] = [
+  {
+    type: 'digitalHuman',
+    label: '数字人',
+    description: '根据文本和角色图片生成数字人视频',
+    icon: <CustomerServiceOutlined />,
+  },
+  {
+    type: 'tts',
+    label: '文本转语音',
+    description: '将文本合成为语音并导出音频文件',
+    icon: <CustomerServiceOutlined />,
   },
 ]
 
@@ -211,7 +283,10 @@ const presetNodeTypes: NodeTypeItem[] = [
 ]
 
 const nodeSections: Array<{ key: string; title: string; items: NodeTypeItem[] }> = [
-  { key: 'basic', title: '基础节点', items: basicNodeTypes },
+  { key: 'story', title: '故事板', items: storyNodeTypes },
+  { key: 'image', title: '图像', items: imageNodeTypes },
+  { key: 'video', title: '视频', items: videoNodeTypes },
+  { key: 'voice', title: '数字人 / 语音', items: voiceNodeTypes },
   { key: 'preset', title: '常用预设', items: presetNodeTypes },
 ]
 
@@ -224,9 +299,32 @@ const Sidebar = memo(() => {
     return window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === '1'
   })
 
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') {
+      return {}
+    }
+    try {
+      const raw = window.localStorage.getItem(SIDEBAR_SECTIONS_COLLAPSED_STORAGE_KEY)
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {}
+    } catch {
+      return {}
+    }
+  })
+
   useEffect(() => {
     window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, isCollapsed ? '1' : '0')
   }, [isCollapsed])
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      SIDEBAR_SECTIONS_COLLAPSED_STORAGE_KEY,
+      JSON.stringify(collapsedSections),
+    )
+  }, [collapsedSections])
+
+  const toggleSection = (key: string) => {
+    setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const onDragStart = (event: React.DragEvent, item: NodeTypeItem) => {
     const payload: NodeCreationPayload = {
@@ -271,30 +369,54 @@ const Sidebar = memo(() => {
       <div className="sidebar-list">
         {nodeSections
           .filter((section) => SHOW_PRESET_NODE_SECTION || section.key !== 'preset')
-          .map((section) => (
-          <div key={section.key} className="sidebar-section">
-            {!isCollapsed && <div className="sidebar-section-title">{section.title}</div>}
-            <div className="sidebar-section-items">
-              {section.items.map((item) => (
-                <div
-                  key={`${section.key}-${item.label}`}
-                  className="sidebar-item"
-                  draggable
-                  onDragStart={(event) => onDragStart(event, item)}
-                  title={isCollapsed ? `${item.label}：${item.description}` : undefined}
-                >
-                  <div className="sidebar-item-icon">{item.icon}</div>
-                  {!isCollapsed && (
-                    <div className="sidebar-item-info">
-                      <div className="sidebar-item-label">{item.label}</div>
-                      <div className="sidebar-item-desc">{item.description}</div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-          ))}
+          .map((section) => {
+            const isSectionCollapsed = !isCollapsed && !!collapsedSections[section.key]
+            return (
+              <div
+                key={section.key}
+                className={`sidebar-section${isSectionCollapsed ? ' is-section-collapsed' : ''}`}
+              >
+                {!isCollapsed && (
+                  <button
+                    type="button"
+                    className="sidebar-section-title"
+                    onClick={() => toggleSection(section.key)}
+                    aria-expanded={!isSectionCollapsed}
+                    title={isSectionCollapsed ? `展开${section.title}` : `折叠${section.title}`}
+                  >
+                    <span className="sidebar-section-title-text">
+                      {section.title}
+                      <span className="sidebar-section-title-count">{section.items.length}</span>
+                    </span>
+                    <span className="sidebar-section-title-caret">
+                      {isSectionCollapsed ? <RightOutlined /> : <DownOutlined />}
+                    </span>
+                  </button>
+                )}
+                {(isCollapsed || !isSectionCollapsed) && (
+                  <div className="sidebar-section-items">
+                    {section.items.map((item) => (
+                      <div
+                        key={`${section.key}-${item.label}`}
+                        className="sidebar-item"
+                        draggable
+                        onDragStart={(event) => onDragStart(event, item)}
+                        title={isCollapsed ? `${item.label}：${item.description}` : undefined}
+                      >
+                        <div className="sidebar-item-icon">{item.icon}</div>
+                        {!isCollapsed && (
+                          <div className="sidebar-item-info">
+                            <div className="sidebar-item-label">{item.label}</div>
+                            <div className="sidebar-item-desc">{item.description}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
       </div>
     </aside>
   )

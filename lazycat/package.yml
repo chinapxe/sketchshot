@@ -1,0 +1,13 @@
+package: cloud.lazycat.app.sketchshot
+version: 0.1.1
+name: SketchShot
+description: AI storyboard canvas for visual planning, image generation, and video generation.
+homepage: https://github.com/chinapxe/sketchshot
+author: Chong
+application:
+  subdomain: sketchshot
+locales:
+  zh-CN:
+    name: 镜语
+    description: 用镜头语言讲述万千故事
+

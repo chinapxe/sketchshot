@@ -9,7 +9,7 @@ let engineSettingsCache: EngineSettingsResponse | null = null
 let engineSettingsPromise: Promise<EngineSettingsResponse> | null = null
 
 export type SupportedImageAdapter = Extract<ImageGenAdapter, 'volcengine' | 'wanx'>
-export type SupportedVideoAdapter = Extract<VideoGenAdapter, 'volcengine' | 'wanx'>
+export type SupportedVideoAdapter = Extract<VideoGenAdapter, 'volcengine' | 'wanx' | 'happyhorse'>
 
 export const supportedImageAdapterOptions: Array<{ value: SupportedImageAdapter; label: string }> = [
   { value: 'wanx', label: '万相' },
@@ -18,6 +18,7 @@ export const supportedImageAdapterOptions: Array<{ value: SupportedImageAdapter;
 
 export const supportedVideoAdapterOptions: Array<{ value: SupportedVideoAdapter; label: string }> = [
   { value: 'wanx', label: '万相' },
+  { value: 'happyhorse', label: 'HappyHorse' },
   { value: 'volcengine', label: '火山' },
 ]
 
@@ -63,6 +64,10 @@ function resolveVideoProvider(provider: GenerateProvider): SupportedVideoAdapter
     return 'wanx'
   }
 
+  if (provider === 'happyhorse') {
+    return 'happyhorse'
+  }
+
   return 'volcengine'
 }
 
@@ -89,7 +94,9 @@ export function getSupportedImageAdapterValue(adapter: ImageGenAdapter | undefin
 }
 
 export function getSupportedVideoAdapterValue(adapter: VideoGenAdapter | undefined): SupportedVideoAdapter {
-  return adapter === 'wanx' ? 'wanx' : 'volcengine'
+  if (adapter === 'wanx') return 'wanx'
+  if (adapter === 'happyhorse') return 'happyhorse'
+  return 'volcengine'
 }
 
 export async function resolveVisibleImageAdapter(

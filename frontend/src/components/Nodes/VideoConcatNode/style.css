@@ -1,0 +1,90 @@
+.video-concat-node {
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  width: 300px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.video-concat-node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.video-concat-node.status-processing {
+  border-color: #1677ff;
+}
+
+.video-concat-node.status-success {
+  border-color: #52c41a;
+}
+
+.video-concat-node.status-error {
+  border-color: #ff4d4f;
+}
+
+.video-concat-node.selected {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
+.video-concat-node .node-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-concat-node .source-video-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.video-concat-node .source-video-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #666;
+}
+
+.video-concat-node .source-video-item .video-index {
+  font-weight: 600;
+  color: #1677ff;
+  min-width: 18px;
+}
+
+.video-concat-node .source-video-item .video-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-concat-node .source-placeholder {
+  padding: 12px;
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.video-concat-node .output-video-preview {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #52c41a;
+}
+
+.video-concat-node .concat-info {
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+}

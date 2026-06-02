@@ -182,24 +182,28 @@
 
 .toolbar-engine-form {
   gap: 12px;
+  height: 100%;
+  overflow: hidden;
 }
 
 .toolbar-engine-overview {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 18px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
   border: 1px solid #dae6f7;
-  border-radius: 16px;
+  border-radius: 12px;
   background:
     radial-gradient(circle at top right, rgba(224, 237, 255, 0.92), transparent 42%),
     linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(240, 246, 255, 0.96));
+  flex-shrink: 0;
 }
 
 .toolbar-engine-overview-title {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: #1f2937;
+  white-space: nowrap;
 }
 
 .toolbar-engine-overview-description {
@@ -212,20 +216,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.toolbar-engine-routing-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.toolbar-engine-routing-toggle {
-  padding-inline: 0;
-  color: #3157b7;
-  font-weight: 600;
 }
 
 .toolbar-engine-pill {
@@ -284,13 +274,6 @@
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 8px 10px;
-}
-
-.toolbar-engine-provider-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  align-items: start;
 }
 
 .toolbar-engine-provider-card {
@@ -479,6 +462,24 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.toolbar-engine-form .ant-tabs {
+  flex: 1;
+  min-height: 0;
+}
+
+.toolbar-engine-form .ant-tabs-content-holder {
+  overflow: hidden;
+}
+
+.toolbar-engine-form .ant-tabs-content {
+  height: 100%;
+}
+
+.toolbar-engine-form .ant-tabs-tabpane {
+  height: 100%;
+  overflow-y: auto;
 }
 
 .toolbar-modal-label {
@@ -776,8 +777,7 @@
     max-height: calc(100vh - 24px);
   }
 
-  .toolbar-engine-route-grid,
-  .toolbar-engine-provider-grid {
+  .toolbar-engine-route-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -802,11 +802,7 @@
     flex-direction: column;
   }
 
-  .toolbar-engine-routing-summary {
-    align-items: flex-start;
-  }
-
-  .toolbar-template-group-list {
+.toolbar-template-group-list {
     max-height: min(50vh, 420px);
     padding-right: 0;
   }

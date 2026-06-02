@@ -61,7 +61,7 @@ const VideoDisplayNode = memo(({ id, data, selected = false }: NodeProps<VideoDi
         currentWidth={nodeWidth}
         minWidth={DEFAULT_NODE_SIZES.videoDisplay.width}
       />
-      <div className={`video-display-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+      <div className={`video-display-node${selected ? ' selected' : ''}${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
         <Handle type="target" position={Position.Left} className="node-handle handle-kind-video" />
 
       <div className="node-header">

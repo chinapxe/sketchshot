@@ -54,4 +54,29 @@ backend/data/workflows/*
 backend/data/engine_config.json
 backend/data-standalone/
 
+# lazycat build artifacts
+*.lpk
+
 API接口文档/
+
+# Temp / backup files
+00000
+bp.json
+backup.bat
+backup.ps1
+*.zip
+
+# Internal Chinese work docs (root)
+HappyHorse*.md
+Seedance*.md
+交付部署说明.md
+关键词大全.md
+原始需求设想.md
+工作交接文档.md
+开发计划.md
+当前阶段工作总结.md
+正式验收清单.md
+节点预设增强执行计划.md
+
+# Claude Code local config
+.claude/

@@ -1,19 +1,38 @@
 import type {
   ContinuityNodeData,
   ImageGenNodeData,
+  ImageUpscaleNodeData,
   ShotNodeData,
   ThreeViewGenNodeData,
+  VideoEditNodeData,
   VideoGenNodeData,
 } from '../types'
 
 type ImageSignatureSource = Pick<
   ImageGenNodeData,
-  'prompt' | 'aspectRatio' | 'resolution' | 'adapter' | 'referenceImages'
+  'prompt' | 'aspectRatio' | 'resolution' | 'adapter' | 'referenceImages' | 'nonRealisticStyle' | 'negativePrompt'
 >
 
 type VideoSignatureSource = Pick<
   VideoGenNodeData,
-  'prompt' | 'aspectRatio' | 'durationSeconds' | 'motionStrength' | 'adapter' | 'sourceImages'
+  | 'prompt'
+  | 'aspectRatio'
+  | 'durationSeconds'
+  | 'motionStrength'
+  | 'adapter'
+  | 'sourceImages'
+  | 'seedanceVersion'
+  | 'referenceVideos'
+  | 'referenceAudios'
+  | 'multiImageRole'
+  | 'generateAudio'
+  | 'videoResolution'
+  | 'negativePrompt'
+  | 'seed'
+  | 'cameraFixed'
+  | 'videoModelTier'
+  | 'returnLastFrame'
+  | 'nonRealisticStyle'
 >
 
 type ThreeViewSignatureSource = Pick<
@@ -72,6 +91,8 @@ export function buildGenerationSignature(data: ImageSignatureSource): string {
     resolution: data.resolution,
     adapter: data.adapter ?? 'auto',
     referenceImages: normalizeAssetList(data.referenceImages),
+    nonRealisticStyle: data.nonRealisticStyle ?? false,
+    negativePrompt: (data.negativePrompt || '').trim(),
   })
 }
 
@@ -86,6 +107,18 @@ export function buildVideoGenerationSignature(data: VideoSignatureSource): strin
     motionStrength: data.motionStrength,
     adapter: data.adapter ?? 'auto',
     sourceImages: normalizeAssetList(data.sourceImages),
+    seedanceVersion: data.seedanceVersion ?? '1.5',
+    referenceVideos: normalizeAssetList(data.referenceVideos),
+    referenceAudios: normalizeAssetList(data.referenceAudios),
+    multiImageRole: data.multiImageRole ?? 'transition',
+    generateAudio: data.generateAudio,
+    videoResolution: data.videoResolution,
+    negativePrompt: data.negativePrompt,
+    seed: data.seed ?? -1,
+    cameraFixed: data.cameraFixed,
+    videoModelTier: data.videoModelTier,
+    returnLastFrame: data.returnLastFrame,
+    nonRealisticStyle: data.nonRealisticStyle ?? false,
   })
 }
 
@@ -155,5 +188,56 @@ export function buildContinuityGenerationSignature(data: ContinuitySignatureSour
     resolution: data.resolution ?? '2K',
     adapter: data.adapter ?? 'auto',
     contextSignature: data.contextSignature ?? '',
+  })
+}
+
+type UpscaleSignatureSource = Pick<
+  ImageUpscaleNodeData,
+  'prompt' | 'targetResolution' | 'sourceImage'
+>
+
+export function buildUpscaleGenerationSignature(data: UpscaleSignatureSource): string {
+  return JSON.stringify({
+    prompt: data.prompt.trim(),
+    targetResolution: data.targetResolution,
+    sourceImage: data.sourceImage ?? '',
+  })
+}
+
+type VideoEditSignatureSource = Pick<
+  VideoEditNodeData,
+  | 'prompt'
+  | 'sourceVideo'
+  | 'referenceImages'
+  | 'seedanceVersion'
+  | 'resolution'
+  | 'veditModel'
+  | 'generateAudio'
+  | 'videoResolution'
+  | 'negativePrompt'
+  | 'seed'
+  | 'cameraFixed'
+  | 'returnLastFrame'
+  | 'durationSeconds'
+>
+
+/**
+ * Build a stable signature for video edit generation inputs.
+ */
+export function buildVideoEditGenerationSignature(data: VideoEditSignatureSource): string {
+  return JSON.stringify({
+    prompt: data.prompt.trim(),
+    sourceVideo: data.sourceVideo ?? '',
+    referenceImages: normalizeAssetList(data.referenceImages),
+    seedanceVersion: data.seedanceVersion ?? '1.5',
+    resolution: data.resolution,
+    veditModel: data.veditModel ?? '',
+    generateAudio: data.generateAudio,
+    videoResolution: data.videoResolution,
+    negativePrompt: data.negativePrompt,
+    seed: data.seed ?? -1,
+    cameraFixed: data.cameraFixed,
+    returnLastFrame: data.returnLastFrame,
+    durationSeconds: data.durationSeconds,
   })
 }

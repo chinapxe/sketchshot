@@ -14,6 +14,38 @@ from .engine_config_service import engine_config_service
 
 logger = logging.getLogger(__name__)
 
+# Keywords that indicate a content-policy / safety-moderation rejection from the generation API.
+_CONTENT_POLICY_KEYWORDS = [
+    "真人", "真实人脸", "真实人物", "人像", "人脸", "人物肖像",
+    "安全审核", "内容审核", "审核不通过", "审核未通过",
+    "违规", "不合规", "敏感内容", "内容安全",
+    "realistic human", "photorealistic", "real person",
+    "human face", "portrait photo",
+    "content policy", "content moderation", "sensitive content",
+]
+
+_CONTENT_POLICY_HINT = (
+    "生成被平台安全审核拦截：提示词可能生成真人/真实人脸内容。"
+    "建议开启节点中的「非真人风格」开关，或修改提示词使用动画、CG、卡通等非真人风格描述。"
+)
+
+
+def _translate_error_message(raw_message: str) -> str:
+    """Translate raw API error messages into user-friendly Chinese hints.
+
+    Detects content-policy / safety-moderation rejections and returns an
+    actionable message; otherwise passes through the original error text.
+    """
+    if not raw_message:
+        return raw_message
+
+    lowered = raw_message.lower()
+    for keyword in _CONTENT_POLICY_KEYWORDS:
+        if keyword.lower() in lowered:
+            return f"{_CONTENT_POLICY_HINT}\n\n原始错误：{raw_message}"
+
+    return raw_message
+
 
 class TaskInfo:
     """Runtime task information."""
@@ -24,7 +56,9 @@ class TaskInfo:
         "status",
         "progress",
         "output_image",
+        "output_image_original_url",
         "output_video",
+        "output_last_frame",
         "error_message",
     )
 
@@ -34,7 +68,9 @@ class TaskInfo:
         self.status = TaskStatus.PENDING
         self.progress = 0
         self.output_image: Optional[str] = None
+        self.output_image_original_url: Optional[str] = None
         self.output_video: Optional[str] = None
+        self.output_last_frame: Optional[str] = None
         self.error_message: Optional[str] = None
 
 
@@ -65,7 +101,14 @@ class TaskService:
 
     def _resolve_adapter_name(self, requested_name: str) -> str:
         adapter_name = (requested_name or settings.DEFAULT_ADAPTER or "auto").strip().lower()
+        logger.info(
+            "[TaskService] _resolve_adapter_name: requested=%r DEFAULT_ADAPTER=%r generate_provider=%r",
+            requested_name,
+            settings.DEFAULT_ADAPTER,
+            engine_config_service.get_generate_provider(),
+        )
         if adapter_name and adapter_name != "auto":
+            logger.info("[TaskService] using explicit adapter: %s", adapter_name)
             return adapter_name
 
         configured_default = (settings.DEFAULT_ADAPTER or "auto").strip().lower()
@@ -91,6 +134,13 @@ class TaskService:
 
         resolved_adapter_name = self._resolve_adapter_name(adapter_name)
         adapter = adapter_registry.get(resolved_adapter_name)
+        logger.info(
+            "[TaskService] run_task: requested=%r resolved=%r available=%s found=%s",
+            adapter_name,
+            resolved_adapter_name,
+            adapter_registry.list_adapters(),
+            adapter is not None,
+        )
         if not adapter:
             available_adapters = ", ".join(adapter_registry.list_adapters()) or "none"
             info.status = TaskStatus.ERROR
@@ -113,6 +163,10 @@ class TaskService:
             params.task_type,
         )
 
+        # Yield to the event loop so that pending WebSocket connections
+        # have a chance to register their progress queues.
+        await asyncio.sleep(0)
+
         try:
             async for update in adapter.generate(params):
                 info.progress = update.progress
@@ -121,14 +175,18 @@ class TaskService:
                     info.status = TaskStatus.SUCCESS
                 elif update.status == "error":
                     info.status = TaskStatus.ERROR
-                    info.error_message = update.message
+                    info.error_message = _translate_error_message(update.message)
                 else:
                     info.status = TaskStatus.PROCESSING
 
                 if update.output_image:
                     info.output_image = update.output_image
+                if update.output_image_original_url:
+                    info.output_image_original_url = update.output_image_original_url
                 if update.output_video:
                     info.output_video = update.output_video
+                if update.output_last_frame:
+                    info.output_last_frame = update.output_last_frame
 
                 await self._push_progress(info.node_id, update)
 
@@ -143,7 +201,7 @@ class TaskService:
 
         except Exception as exc:
             info.status = TaskStatus.ERROR
-            info.error_message = str(exc)
+            info.error_message = _translate_error_message(str(exc))
             logger.error("[TaskService] task failed: task_id=%s error=%s", task_id, exc)
             await self._push_progress(
                 info.node_id,
@@ -154,6 +212,14 @@ class TaskService:
         queue = self._progress_callbacks.get(node_id)
         if queue:
             await queue.put(update)
+        else:
+            logger.warning(
+                "[TaskService] no progress queue for node_id=%s (WS not connected yet); "
+                "update dropped: progress=%d status=%s",
+                node_id,
+                update.progress,
+                update.status,
+            )
 
 
 task_service = TaskService()

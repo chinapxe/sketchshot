@@ -1,0 +1,89 @@
+.voice-clone-manager {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  background: #fafafa;
+}
+
+.vc-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #595959;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vc-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.vc-label {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-bottom: 4px;
+}
+
+.vc-name-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.vc-name-row .ant-input {
+  flex: 1;
+}
+
+.vc-voices-list {
+  margin-top: 10px;
+  border-top: 1px solid #e8e8e8;
+  padding-top: 8px;
+}
+
+.vc-voice-item {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 6px 8px !important;
+  transition: background 0.15s;
+}
+
+.vc-voice-item:hover {
+  background: #e6f4ff;
+}
+
+.vc-voice-item.vc-selected {
+  background: #e6f4ff;
+  border: 1px solid #91caff;
+}
+
+.vc-delete-btn {
+  color: #999;
+  font-size: 12px;
+  transition: color 0.15s;
+}
+
+.vc-delete-btn:hover {
+  color: #ff4d4f;
+}
+
+.vc-voice-item .ant-list-item-meta-title {
+  font-size: 13px !important;
+  margin-bottom: 0 !important;
+}
+
+.vc-voice-item .ant-list-item-meta-description {
+  font-size: 11px !important;
+}
+
+.vc-voice-item .ant-list-item-action {
+  margin-inline-start: 8px !important;
+}

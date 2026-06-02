@@ -1,0 +1,11 @@
+pkgout: ./
+icon: ../app.png
+
+# If LazyCat cannot pull images from your registry, uncomment `images`
+# and replace the file names with exported image archives.
+#
+# images:
+#   - name: wxhb-backend:offline
+#     file: ./images/wxhb-backend-offline.tar
+#   - name: wxhb-frontend:offline
+#     file: ./images/wxhb-frontend-offline.tar

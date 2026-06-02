@@ -6,6 +6,7 @@ import { executeImageGenNode } from './nodeGeneration'
 import { executeShotNode } from './storyboardGeneration'
 import { executeThreeViewGenNode } from './threeViewGeneration'
 import { executeVideoGenNode } from './videoGeneration'
+import { executeVideoEditNode } from './videoEditGeneration'
 
 export interface WorkflowExecutionResult {
   orderedNodeIds: string[]
@@ -33,6 +34,7 @@ function isExecutableNode(node: AppNode, edges: AppEdge[], nodes: AppNode[]): bo
     node.type === 'imageGen'
     || node.type === 'threeViewGen'
     || node.type === 'videoGen'
+    || node.type === 'videoEdit'
     || node.type === 'shot'
     || isContinuityPreviewExecutionTarget(node, edges, nodes)
   )
@@ -83,6 +85,11 @@ export async function executeWorkflow(): Promise<WorkflowExecutionResult> {
         })
       } else if (latestNode.type === 'shot') {
         await executeShotNode(node.id, {
+          showSuccessMessage: false,
+          showErrorMessage: false,
+        })
+      } else if (latestNode.type === 'videoEdit') {
+        await executeVideoEditNode(node.id, {
           showSuccessMessage: false,
           showErrorMessage: false,
         })

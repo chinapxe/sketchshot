@@ -1,12 +1,15 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import {
+  DownOutlined,
   HighlightOutlined,
   PlayCircleOutlined,
   SyncOutlined,
+  TeamOutlined,
+  UpOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons'
-import { Button, Progress, Select, Slider, message } from 'antd'
+import { Button, Input, InputNumber, Progress, Segmented, Select, Switch, message } from 'antd'
 
 import {
   VIDEO_MOTION_PROMPT_CHIPS,
@@ -47,6 +50,27 @@ const durationOptions = [
   { value: 8, label: '8 秒' },
 ]
 
+const durationOptionsV2 = [
+  { value: 4, label: '4 秒' },
+  { value: 5, label: '5 秒' },
+  { value: 8, label: '8 秒' },
+  { value: 10, label: '10 秒' },
+  { value: 12, label: '12 秒' },
+  { value: 15, label: '15 秒' },
+]
+
+const videoResolutionOptions = [
+  { value: '480p', label: '480p' },
+  { value: '720p', label: '720p' },
+  { value: '1080p', label: '1080p' },
+]
+
+const happyhorseModeOptions = [
+  { value: 't2v', label: '文生视频 (T2V)' },
+  { value: 'i2v', label: '图生视频 (I2V)' },
+  { value: 'r2v', label: '参考生视频 (R2V)' },
+]
+
 const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNodeType>) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const updateNodeData = useFlowStore((state) => state.updateNodeData)
@@ -57,6 +81,12 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
   const [isPromptGenerating, setIsPromptGenerating] = useState(false)
   const [adapterValue, setAdapterValue] = useState<SupportedVideoAdapter>(() => getSupportedVideoAdapterValue(data.adapter))
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
+  const isHappyHorse = adapterValue === 'happyhorse'
+  const happyhorseMode = data.happyhorseMode || (isHappyHorse ? 't2v' : undefined)
+  const isVolcengine = adapterValue === 'volcengine'
+  const seedanceVersion = data.seedanceVersion || '1.5'
+  const isSeedanceV2 = isVolcengine && seedanceVersion === '2.0'
   const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.videoGen.width)
 
   useEffect(() => {
@@ -180,6 +210,27 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
     })
   }, [data.label, data.outputVideo, openPreview])
 
+  const handlePreviewLastFrame = useCallback(() => {
+    if (!data.outputLastFrame) return
+
+    openPreview({
+      type: 'image',
+      src: data.outputLastFrame,
+      title: `${data.label} - 末帧画面`,
+    })
+  }, [data.label, data.outputLastFrame, openPreview])
+
+  const handlePreviewReferenceVideo = useCallback(
+    (videoUrl: string) => {
+      openPreview({
+        type: 'video',
+        src: videoUrl,
+        title: `${data.label} - 参考视频`,
+      })
+    },
+    [data.label, openPreview]
+  )
+
   const isProcessing = data.status === 'processing' || data.status === 'queued'
   const isDisabled = (data as Record<string, unknown>).disabled === true
   const needsRefresh = data.needsRefresh === true
@@ -187,6 +238,16 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
   const hasPrompt = data.prompt.trim().length > 0
   const isBlockedByWorkflowExecution = isWorkflowExecuting && activeExecutionNodeId !== id
   const outputAssetType = data.outputVideo ? getPreviewAssetType(data.outputVideo) : 'video'
+  const happyhorseNeedsImages = !isHappyHorse || happyhorseMode !== 't2v'
+  const happyhorseSourceLabel = isHappyHorse && happyhorseMode === 'r2v' ? '参考画面' : '起始画面'
+  const referenceVideos = (data.referenceVideos ?? []).slice(0, 1)
+  const referenceAudios = (data.referenceAudios ?? []).slice(0, 1)
+  const hasReferenceVideo = referenceVideos.length > 0
+  const hasReferenceAudio = referenceAudios.length > 0
+  const refAudioMissingCarrier = isSeedanceV2 && hasReferenceAudio && !hasSourceImages && !hasReferenceVideo
+  const canGenerate = isHappyHorse && happyhorseMode === 't2v'
+    ? hasPrompt
+    : (hasSourceImages && hasPrompt && !refAudioMissingCarrier)
 
   useEffect(() => {
     if (!isProcessing && (!isWorkflowExecuting || activeExecutionNodeId !== id)) {
@@ -204,7 +265,7 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
       />
       <div
         ref={nodeRef}
-        className={`video-gen-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
+        className={`video-gen-node status-${data.status}${selected ? ' selected' : ''}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
         style={{ width: nodeWidth }}
       >
         <Handle type="target" position={Position.Left} className="node-handle handle-kind-image" />
@@ -227,8 +288,12 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
 
       <div className="node-body nodrag nopan nowheel">
         <div className="form-field">
-          <label className="field-label">起始画面</label>
-          {hasSourceImages ? (
+          <label className="field-label">{happyhorseSourceLabel}</label>
+          {isHappyHorse && happyhorseMode === 't2v' ? (
+            <div className="video-empty-panel">
+              T2V 文生视频模式无需图片输入，填写提示词即可直接生成视频。
+            </div>
+          ) : hasSourceImages ? (
             <div className="video-source-grid">
               {(data.sourceImages ?? []).map((imageUrl, index) => (
                 <button
@@ -237,7 +302,13 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
                   className="video-source-button"
                   onClick={() => handlePreviewSource(imageUrl, index)}
                 >
-                  <img src={imageUrl} alt={`源图 ${index + 1}`} className="video-source-thumb" />
+                  {/^(https?:|\/)/.test(imageUrl) ? (
+                    <img src={imageUrl} alt={`源图 ${index + 1}`} className="video-source-thumb" />
+                  ) : (
+                    <div className="video-source-thumb video-source-placeholder">
+                      <TeamOutlined />
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -246,7 +317,103 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
               请先连接图片上传、图片生成或镜头节点的图像结果，再开始生成视频。
             </div>
           )}
+          {isHappyHorse && happyhorseMode === 'i2v' && (data.sourceImages?.length ?? 0) > 1 && (
+            <div className="quick-template-tip" style={{ color: '#ad6800' }}>
+              I2V 模式仅使用第一张图作为起始帧，其余 {data.sourceImages!.length - 1} 张不会被使用。多图生视频请切换至 R2V（参考生视频）模式。
+            </div>
+          )}
+          {isHappyHorse && happyhorseMode === 'r2v' && hasSourceImages && (
+            <div className="quick-template-tip">
+              可在提示词中用 [Image 1]、[Image 2] 等编号精确引用上方的参考画面，如「[Image 1]中的人物穿上[Image 2]中的外套」。
+            </div>
+          )}
         </div>
+
+        {isSeedanceV2 && (data.sourceImages?.length ?? 0) >= 2 && (
+          <div className="form-field">
+            <label className="field-label">多图角色</label>
+            <Segmented
+              size="small"
+              block
+              disabled={hasReferenceVideo || hasReferenceAudio}
+              value={(hasReferenceVideo || hasReferenceAudio) ? 'reference' : (data.multiImageRole || 'transition')}
+              onChange={(value) =>
+                updateNodeData(id, { multiImageRole: value as 'transition' | 'reference' })
+              }
+              options={[
+                { value: 'transition', label: '首尾过渡' },
+                { value: 'reference', label: '全部参考' },
+              ]}
+              className="nodrag"
+            />
+            <div className="quick-template-tip">
+              {hasReferenceVideo || hasReferenceAudio
+                ? 'R2V 模式下所有图像统一作为参考图，此开关已锁定。'
+                : (data.multiImageRole || 'transition') === 'transition'
+                  ? '首图/末图作首尾关键帧，中间图作参考；适合制作 A→B 过渡动画。'
+                  : '所有图像作为参考，模型综合内容/风格生成自由动画。'}
+            </div>
+          </div>
+        )}
+
+        {isSeedanceV2 && (
+          <div className="form-field">
+            <label className="field-label">参考视频（可选）</label>
+            {hasReferenceVideo ? (
+              <div className="video-source-grid">
+                {referenceVideos.map((videoUrl, index) => (
+                  <button
+                    key={`${videoUrl}-${index}`}
+                    type="button"
+                    className="video-source-button vref-video-button"
+                    onClick={() => handlePreviewReferenceVideo(videoUrl)}
+                    title="点击预览参考视频"
+                  >
+                    <video
+                      className="video-source-thumb"
+                      src={videoUrl}
+                      muted
+                      preload="metadata"
+                    />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="video-empty-panel vref-empty">
+                可选：连接视频上传 / 上一段视频生成 / 视频编辑节点，作为参考视频（建议 2-15s / 480-720p / 无真人脸）。
+              </div>
+            )}
+          </div>
+        )}
+
+        {isSeedanceV2 && (
+          <div className="form-field">
+            <label className="field-label">参考音频（可选）</label>
+            {hasReferenceAudio ? (
+              <div className="vref-audio-list">
+                {referenceAudios.map((audioUrl, index) => (
+                  <div key={`${audioUrl}-${index}`} className="vref-audio-item">
+                    <audio
+                      controls
+                      preload="metadata"
+                      src={audioUrl}
+                      className="vref-audio-player"
+                    />
+                  </div>
+                ))}
+                {refAudioMissingCarrier && (
+                  <div className="vref-audio-warning">
+                    参考音频必须搭配至少一张图像或一段参考视频。
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="video-empty-panel vref-empty">
+                可选：连接 TTS 或数字人节点的音频输出作为参考音频（必须搭配图像或参考视频）。
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="form-field">
           <div className="field-label-row">
@@ -325,7 +492,7 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
               size="small"
               value={data.durationSeconds}
               onChange={(value) => updateNodeData(id, { durationSeconds: value })}
-              options={durationOptions}
+              options={isSeedanceV2 ? durationOptionsV2 : durationOptions}
               className="field-select nodrag nopan"
             />
           </div>
@@ -342,17 +509,263 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
         </div>
 
         <div className="form-field">
-          <label className="field-label">运动强度</label>
-          <Slider
-            min={0.1}
-            max={1}
-            step={0.05}
-            value={data.motionStrength}
-            onChange={(value) => updateNodeData(id, { motionStrength: Number(value) })}
-            tooltip={{ formatter: (value) => `${Math.round((value ?? 0) * 100)}%` }}
-            className="nodrag"
-          />
+          <label className="field-label">非真人风格</label>
+          <div className="seedance-audio-switch">
+            <Switch
+              size="small"
+              checked={data.nonRealisticStyle === true}
+              onChange={(checked) => updateNodeData(id, { nonRealisticStyle: checked })}
+              className="nodrag"
+            />
+            <span className="seedance-audio-hint">
+              {data.nonRealisticStyle === true
+                ? '已注入 3D/CG 风格提示词，避免生成真人画面'
+                : '关闭后按原始提示词生成，可能触发合规拦截'}
+            </span>
+          </div>
         </div>
+
+        {isHappyHorse && (
+          <>
+            <div className="form-field">
+              <label className="field-label">HappyHorse 生成模式</label>
+              <Select
+                size="small"
+                value={happyhorseMode}
+                onChange={(value) => updateNodeData(id, { happyhorseMode: value })}
+                options={happyhorseModeOptions}
+                className="field-select nodrag nopan"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="field-label">原生音频</label>
+              <div className="seedance-audio-switch">
+                <Switch
+                  size="small"
+                  checked={data.happyhorseWithAudio !== false}
+                  onChange={(checked) => updateNodeData(id, { happyhorseWithAudio: checked })}
+                  className="nodrag"
+                />
+                <span className="seedance-audio-hint">
+                  {data.happyhorseWithAudio !== false
+                    ? '根据 prompt 自动生成口型同步音频，支持中英日韩等 7 种语言'
+                    : '仅生成画面，不生成音频'}
+                </span>
+              </div>
+            </div>
+
+            <div className="form-field">
+              <label className="field-label">画质模式</label>
+              <Segmented
+                size="small"
+                options={[
+                  { value: 'pro', label: '质量优先' },
+                  { value: 'std', label: '速度优先' },
+                ]}
+                value={data.happyhorseQualityMode || 'pro'}
+                onChange={(value) => {
+                  const mode = value as 'pro' | 'std'
+                  const patch: Partial<VideoGenNodeType['data']> = { happyhorseQualityMode: mode }
+                  if (mode === 'std' && data.videoResolution === '1080p') {
+                    patch.videoResolution = '720p'
+                  }
+                  updateNodeData(id, patch)
+                }}
+                className="nodrag nopan"
+                block
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="field-label">输出分辨率</label>
+              <Select
+                size="small"
+                value={data.videoResolution || '720p'}
+                onChange={(value) => updateNodeData(id, { videoResolution: value as '480p' | '720p' | '1080p' })}
+                options={
+                  (data.happyhorseQualityMode || 'pro') === 'std'
+                    ? videoResolutionOptions.filter((opt) => opt.value !== '1080p')
+                    : videoResolutionOptions
+                }
+                className="field-select nodrag nopan"
+              />
+            </div>
+
+            <div className="form-field">
+              <button
+                type="button"
+                className="seedance-advanced-toggle nodrag"
+                onClick={() => setIsAdvancedOpen((prev) => !prev)}
+              >
+                <span>高级参数</span>
+                {isAdvancedOpen ? <UpOutlined /> : <DownOutlined />}
+              </button>
+            </div>
+
+            {isAdvancedOpen && (
+              <div className="seedance-advanced-panel">
+                <div className="form-field">
+                  <label className="field-label">随机种子</label>
+                  <InputNumber
+                    size="small"
+                    value={data.seed ?? -1}
+                    min={-1}
+                    max={2147483647}
+                    step={1}
+                    onChange={(value) => updateNodeData(id, { seed: typeof value === 'number' ? value : -1 })}
+                    className="nodrag"
+                    style={{ width: '100%' }}
+                    placeholder="-1 = 随机"
+                  />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {isVolcengine && (
+          <div className="form-field">
+            <label className="field-label">Seedance 版本</label>
+            <Segmented
+              size="small"
+              options={[
+                { value: '1.5', label: '1.5' },
+                { value: '2.0', label: '2.0' },
+              ]}
+              value={seedanceVersion}
+              onChange={(value) => updateNodeData(id, { seedanceVersion: value as '1.5' | '2.0' })}
+              className="nodrag nopan"
+              block
+            />
+          </div>
+        )}
+
+        {isSeedanceV2 && (
+          <>
+            <div className="form-field">
+              <label className="field-label">模型档位</label>
+              <Segmented
+                size="small"
+                options={[
+                  { value: 'standard', label: '标准版' },
+                  { value: 'fast', label: '极速版' },
+                ]}
+                value={data.videoModelTier || 'standard'}
+                onChange={(value) => {
+                  const tier = value as 'standard' | 'fast'
+                  const patch: Partial<VideoGenNodeType['data']> = { videoModelTier: tier }
+                  if (tier === 'fast' && data.videoResolution === '1080p') {
+                    patch.videoResolution = '720p'
+                  }
+                  updateNodeData(id, patch)
+                }}
+                className="nodrag nopan"
+                block
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-field flex-1">
+                <label className="field-label">输出分辨率</label>
+                <Select
+                  size="small"
+                  value={data.videoResolution || '720p'}
+                  onChange={(value) => updateNodeData(id, { videoResolution: value as '480p' | '720p' | '1080p' })}
+                  options={
+                    (data.videoModelTier || 'standard') === 'fast'
+                      ? videoResolutionOptions.filter((opt) => opt.value !== '1080p')
+                      : videoResolutionOptions
+                  }
+                  className="field-select nodrag nopan"
+                />
+              </div>
+              <div className="form-field flex-1">
+                <label className="field-label">生成音频</label>
+                <div className="seedance-audio-switch">
+                  <Switch
+                    size="small"
+                    checked={data.generateAudio !== false}
+                    onChange={(checked) => updateNodeData(id, { generateAudio: checked })}
+                    className="nodrag"
+                  />
+                  <span className="seedance-audio-hint">{data.generateAudio !== false ? '同步生成环境音' : '仅生成画面'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-field">
+              <button
+                type="button"
+                className="seedance-advanced-toggle nodrag"
+                onClick={() => setIsAdvancedOpen((prev) => !prev)}
+              >
+                <span>高级参数</span>
+                {isAdvancedOpen ? <UpOutlined /> : <DownOutlined />}
+              </button>
+            </div>
+
+            {isAdvancedOpen && (
+              <div className="seedance-advanced-panel">
+                <div className="form-field">
+                  <label className="field-label">反向提示词</label>
+                  <Input.TextArea
+                    size="small"
+                    rows={2}
+                    value={data.negativePrompt || ''}
+                    onChange={(event) => updateNodeData(id, { negativePrompt: event.target.value })}
+                    placeholder="希望避免的内容，如 模糊、低清、变形 等"
+                    className="nodrag nopan"
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-field flex-1">
+                    <label className="field-label">随机种子</label>
+                    <InputNumber
+                      size="small"
+                      value={data.seed ?? -1}
+                      min={-1}
+                      max={2147483647}
+                      step={1}
+                      onChange={(value) => updateNodeData(id, { seed: typeof value === 'number' ? value : -1 })}
+                      className="nodrag"
+                      style={{ width: '100%' }}
+                      placeholder="-1 = 随机"
+                    />
+                  </div>
+                  <div className="form-field flex-1">
+                    <label className="field-label">固定运镜</label>
+                    <div className="seedance-audio-switch">
+                      <Switch
+                        size="small"
+                        checked={data.cameraFixed === true}
+                        onChange={(checked) => updateNodeData(id, { cameraFixed: checked })}
+                        className="nodrag"
+                      />
+                      <span className="seedance-audio-hint">{data.cameraFixed === true ? '锁定机位' : '允许运镜'}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="form-field">
+                  <label className="field-label">返回末帧</label>
+                  <div className="seedance-audio-switch">
+                    <Switch
+                      size="small"
+                      checked={data.returnLastFrame === true}
+                      onChange={(checked) => updateNodeData(id, { returnLastFrame: checked })}
+                      className="nodrag"
+                    />
+                    <span className="seedance-audio-hint">
+                      {data.returnLastFrame === true
+                        ? '同时输出末帧图像，可从右侧末帧端口接入下一段视频'
+                        : '仅输出视频；开启后会多出"末帧"输出端口'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {needsRefresh && !isProcessing && (
           <div className="refresh-tip">
@@ -381,6 +794,16 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
           </div>
         )}
 
+        {isSeedanceV2 && data.outputLastFrame && (
+          <div className="form-field">
+            <label className="field-label">末帧画面</label>
+            <button type="button" className="video-lastframe-card" onClick={handlePreviewLastFrame}>
+              <img className="video-lastframe-media" src={data.outputLastFrame} alt={`${data.label} 末帧`} />
+              <span className="video-output-hint">从右下角"末帧"端口接入下一段视频</span>
+            </button>
+          </div>
+        )}
+
         {(data.status === 'processing' || data.status === 'queued') && (
           <div className="progress-bar">
             <Progress
@@ -401,7 +824,7 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
           block
           onClick={handleGenerate}
           loading={isProcessing || (isWorkflowExecuting && activeExecutionNodeId === id)}
-          disabled={isDisabled || isBlockedByWorkflowExecution || !hasSourceImages}
+          disabled={isDisabled || isBlockedByWorkflowExecution || !canGenerate}
           className="generate-btn nodrag"
           icon={<PlayCircleOutlined />}
         >
@@ -411,15 +834,26 @@ const VideoGenNode = memo(({ id, data, selected = false }: NodeProps<VideoGenNod
               ? '生成中...'
               : isBlockedByWorkflowExecution
                 ? '工作流执行中，请稍候'
-                : !hasSourceImages
+                : happyhorseNeedsImages && !hasSourceImages
                   ? '请先接入图像输入'
                   : !hasPrompt
                     ? '请先填写视频提示词'
-                    : needsRefresh ? '重新生成视频' : '开始生成视频'}
+                    : refAudioMissingCarrier
+                      ? '参考音频需配合图像或参考视频'
+                      : needsRefresh ? '重新生成视频' : '开始生成视频'}
         </Button>
       </div>
 
-        <Handle type="source" position={Position.Right} className="node-handle handle-kind-video" />
+        <Handle type="source" position={Position.Right} className="node-handle handle-kind-video video-handle-main" />
+        {isSeedanceV2 && data.returnLastFrame === true && (
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="lastFrame"
+            className="node-handle handle-kind-image video-handle-lastframe"
+            title="末帧（图像）→ 可作为下一段视频的起始画面"
+          />
+        )}
       </div>
     </>
   )

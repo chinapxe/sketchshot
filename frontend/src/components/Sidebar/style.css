@@ -168,11 +168,69 @@
 }
 
 .sidebar-section-title {
-  padding: 0 6px;
-  font-size: 11px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  margin: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #8a94a6;
+  color: #5b6675;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.sidebar-section-title:hover {
+  background: #eef5ff;
+  border-color: #cfe3ff;
+  color: #1677ff;
+}
+
+.sidebar-section-title-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sidebar-section-title-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #6b7686;
+  background: #eef1f6;
+  border-radius: 9px;
+}
+
+.sidebar-section-title:hover .sidebar-section-title-count {
+  color: #1677ff;
+  background: #dfecff;
+}
+
+.sidebar-section-title-caret {
+  font-size: 11px;
+  color: #9aa3b2;
+  transition: color 0.18s ease;
+}
+
+.sidebar-section-title:hover .sidebar-section-title-caret {
+  color: #1677ff;
 }
 
 .sidebar-section-items {

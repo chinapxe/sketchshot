@@ -91,7 +91,7 @@ const ImageUploadNode = memo(({ id, data, selected = false }: NodeProps<ImageUpl
         currentWidth={nodeWidth}
         minWidth={DEFAULT_NODE_SIZES.imageUpload.width}
       />
-      <div className={`image-upload-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+      <div className={`image-upload-node${selected ? ' selected' : ''}${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
         <div className="node-header">
           <PictureOutlined className="node-icon" />
           <NodeTitleEditor

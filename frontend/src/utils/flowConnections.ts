@@ -2,7 +2,7 @@ import type { Connection } from '@xyflow/react'
 
 import type { AppEdge, AppNode, AppNodeType } from '../types'
 
-export type HandleToneKind = 'image' | 'video' | 'context' | 'storyboard' | 'hybrid'
+export type HandleToneKind = 'image' | 'video' | 'context' | 'storyboard' | 'hybrid' | 'audio'
 
 export interface NodeCatalogEntry {
   label: string
@@ -38,6 +38,10 @@ export const NODE_CATALOG: Record<AppNodeType, NodeCatalogEntry> = {
     label: '图片生成',
     description: '生成静态图像结果',
   },
+  imageUnderstand: {
+    label: '图片理解',
+    description: '分析图片并生成场景描述提示词',
+  },
   threeViewGen: {
     label: '三视图生成',
     description: '基于参考图生成角色三视图拼板',
@@ -50,9 +54,41 @@ export const NODE_CATALOG: Record<AppNodeType, NodeCatalogEntry> = {
     label: '视频生成',
     description: '基于上游图像生成动态片段',
   },
+  videoEdit: {
+    label: '视频编辑',
+    description: '对视频进行编辑，支持风格变换、背景替换等',
+  },
   videoDisplay: {
     label: '视频预览',
     description: '查看生成出的动态片段',
+  },
+  videoUpload: {
+    label: '视频上传',
+    description: '上传视频文件供下游使用',
+  },
+  animateMix: {
+    label: '视频换人',
+    description: '将视频中的人物替换为指定角色',
+  },
+  digitalHuman: {
+    label: '数字人',
+    description: '根据文本和角色图片生成数字人视频',
+  },
+  tts: {
+    label: '文本转语音',
+    description: '将文本合成为语音并导出音频',
+  },
+  imageUpscale: {
+    label: '图片放大',
+    description: '将低分辨率图片高清放大至目标分辨率',
+  },
+  videoConcat: {
+    label: '视频拼接',
+    description: '将多段视频首尾拼接为完整视频',
+  },
+  characterLib: {
+    label: '人像库',
+    description: '浏览和选择已生成的人物图片，支持生成新人像',
   },
 }
 
@@ -60,10 +96,19 @@ const BASE_VALID_TARGETS: Partial<Record<AppNodeType, AppNodeType[]>> = {
   scene: ['shot', 'continuity'],
   character: ['shot', 'continuity'],
   style: ['shot', 'continuity'],
-  imageUpload: ['imageGen', 'threeViewGen', 'videoGen', 'character', 'shot', 'continuity'],
-  imageGen: ['imageDisplay', 'threeViewGen', 'videoGen', 'character', 'shot', 'continuity'],
-  threeViewGen: ['imageDisplay', 'videoGen', 'imageGen', 'character', 'shot', 'continuity'],
-  videoGen: ['videoDisplay'],
+  imageUpload: ['imageGen', 'threeViewGen', 'videoGen', 'videoEdit', 'animateMix', 'character', 'shot', 'continuity', 'imageUnderstand', 'digitalHuman', 'imageUpscale'],
+  imageGen: ['imageDisplay', 'threeViewGen', 'videoGen', 'character', 'shot', 'continuity', 'imageUnderstand', 'animateMix', 'digitalHuman', 'imageUpscale'],
+  imageUnderstand: ['imageGen', 'videoGen', 'shot', 'continuity', 'imageDisplay'],
+  threeViewGen: ['imageDisplay', 'videoGen', 'imageGen', 'character', 'shot', 'continuity', 'imageUnderstand', 'digitalHuman', 'imageUpscale'],
+  videoGen: ['videoDisplay', 'videoEdit', 'animateMix', 'videoGen', 'videoConcat'],
+  videoEdit: ['videoDisplay', 'videoGen', 'videoConcat'],
+  animateMix: ['videoDisplay', 'videoEdit', 'videoConcat'],
+  digitalHuman: ['videoDisplay', 'videoEdit', 'videoConcat'],
+  videoUpload: ['videoEdit', 'videoDisplay', 'animateMix', 'videoGen', 'videoConcat'],
+  tts: ['digitalHuman', 'videoGen'],
+  imageUpscale: ['imageDisplay', 'videoGen', 'imageGen', 'shot', 'continuity'],
+  videoConcat: ['videoDisplay', 'videoEdit'],
+  characterLib: ['videoGen', 'imageDisplay', 'shot', 'continuity', 'digitalHuman', 'animateMix', 'imageUpscale'],
 }
 
 const HANDLE_TONE_STROKES: Record<HandleToneKind, string> = {
@@ -72,6 +117,7 @@ const HANDLE_TONE_STROKES: Record<HandleToneKind, string> = {
   context: '#52c41a',
   storyboard: '#b8872b',
   hybrid: '#14b8a6',
+  audio: '#722ed1',
 }
 
 const getShotOutputType = (node: Pick<AppNode, 'data'>): 'image' | 'video' =>
@@ -83,7 +129,7 @@ export const getConnectableTargetTypes = (sourceNode: AppNode | undefined): AppN
   }
 
   if (sourceNode.type === 'shot') {
-    return getShotOutputType(sourceNode) === 'video' ? ['videoDisplay', 'shot'] : ['imageDisplay', 'shot']
+    return getShotOutputType(sourceNode) === 'video' ? ['videoDisplay', 'shot', 'videoEdit', 'animateMix', 'digitalHuman', 'videoConcat'] : ['imageDisplay', 'shot']
   }
 
   if (sourceNode.type === 'continuity') {
@@ -145,6 +191,10 @@ export const getHandleToneKind = (
     return 'context'
   }
 
+  if (nodeType === 'imageUnderstand') {
+    return handleType === 'target' ? 'image' : 'context'
+  }
+
   if (nodeType === 'character') {
     return handleType === 'target' ? 'image' : 'context'
   }
@@ -162,7 +212,39 @@ export const getHandleToneKind = (
     return handleType === 'target' ? 'image' : 'video'
   }
 
+  if (nodeType === 'videoEdit') {
+    return handleType === 'target' ? 'video' : 'video'
+  }
+
   if (nodeType === 'videoDisplay') {
+    return 'video'
+  }
+
+  if (nodeType === 'videoUpload') {
+    return 'video'
+  }
+
+  if (nodeType === 'animateMix') {
+    return 'video'
+  }
+
+  if (nodeType === 'digitalHuman') {
+    return handleType === 'target' ? 'image' : 'video'
+  }
+
+  if (nodeType === 'tts') {
+    return 'audio'
+  }
+
+  if (nodeType === 'characterLib') {
+    return 'image'
+  }
+
+  if (nodeType === 'imageUpscale') {
+    return 'image'
+  }
+
+  if (nodeType === 'videoConcat') {
     return 'video'
   }
 

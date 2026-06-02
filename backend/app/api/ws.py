@@ -16,12 +16,15 @@ router = APIRouter()
 async def ws_progress(websocket: WebSocket, node_id: str):
     """Stream progress updates for a canvas node."""
 
-    await websocket.accept()
-    logger.info("[WebSocket] client connected node_id=%s", node_id)
-
+    # Register the queue BEFORE accepting the WebSocket so that any
+    # in-flight task can push updates immediately — eliminates the race
+    # between asyncio.create_task(run_task) and websocket.accept().
     queue = task_service.register_progress_queue(node_id)
 
     try:
+        await websocket.accept()
+        logger.info("[WebSocket] client connected node_id=%s", node_id)
+
         while True:
             update = await queue.get()
             payload = {
@@ -30,6 +33,7 @@ async def ws_progress(websocket: WebSocket, node_id: str):
                 "message": update.message,
                 "output_image": update.output_image,
                 "output_video": update.output_video,
+                "output_last_frame": update.output_last_frame,
             }
             await websocket.send_text(json.dumps(payload, ensure_ascii=False))
 

@@ -40,7 +40,12 @@ export async function executeVideoGenNode(
   }
 
   const sourceImages = store.getUpstreamImages(nodeId)
-  store.updateNodeData(nodeId, { sourceImages })
+  const nodeData = node.data as VideoGenNodeData
+  const isSeedanceV2 = (nodeData.adapter === 'volcengine' || !nodeData.adapter) && nodeData.seedanceVersion === '2.0'
+  const finalSourceImages = isSeedanceV2
+    ? store.getUpstreamImageOriginalUrls(nodeId)
+    : sourceImages
+  store.updateNodeData(nodeId, { sourceImages: finalSourceImages })
 
   const latestNode = useFlowStore.getState().nodes.find((item) => item.id === nodeId)
   if (!latestNode || latestNode.type !== 'videoGen') {
@@ -48,12 +53,22 @@ export async function executeVideoGenNode(
   }
 
   const data = latestNode.data as VideoGenNodeData
-  if ((data.sourceImages ?? []).length === 0) {
-    throw new Error('请先连接至少一个图像输入节点，再生成视频')
+  const resolvedAdapter = await resolveVideoAdapter(data.adapter)
+  const isHappyHorse = resolvedAdapter === 'happyhorse'
+  const happyhorseMode = isHappyHorse ? (data.happyhorseMode || 't2v') : null
+
+  // HappyHorse t2v mode doesn't need source images
+  if (!isHappyHorse || happyhorseMode !== 't2v') {
+    if ((data.sourceImages ?? []).length === 0) {
+      throw new Error('请先连接至少一个图像输入节点，再生成视频')
+    }
   }
 
-  const prompt = data.prompt.trim()
-  if (!prompt) {
+  const rawPrompt = data.prompt.trim()
+  const prompt = data.nonRealisticStyle === true
+    ? `3D动画风格，非真人角色，卡通渲染，CG画面，${rawPrompt}`
+    : rawPrompt
+  if (!rawPrompt) {
     const validationMessage =
       '请先填写视频提示词，或点击“AI 润色”生成一版运动描述；九宫格图只会作为起始画面，不会自动继承视频提示词。'
 
@@ -70,7 +85,6 @@ export async function executeVideoGenNode(
     throw new Error(validationMessage)
   }
 
-  const resolvedAdapter = await resolveVideoAdapter(data.adapter)
   const signature = buildVideoGenerationSignature({ ...data, adapter: resolvedAdapter })
   const cachedOutputVideo = data.resultCache?.[signature]
 
@@ -140,10 +154,13 @@ export async function executeVideoGenNode(
             [signature]: outputVideo,
           }
 
+          const outputLastFrame = progressMessage.output_last_frame ?? undefined
+
           useFlowStore.getState().updateNodeData(nodeId, {
             status: 'success' as NodeStatus,
             progress: 100,
             outputVideo,
+            outputLastFrame,
             errorMessage: undefined,
             lastRunSignature: signature,
             resultCache: nextResultCache,
@@ -191,14 +208,33 @@ export async function executeVideoGenNode(
 
     activeProgressConnections.set(nodeId, closeWs)
 
+    const videoTaskType = isHappyHorse ? (happyhorseMode ?? 't2v') : 'video'
+    const videoSourceImages = isHappyHorse && happyhorseMode === 't2v' ? [] : (data.sourceImages ?? [])
+    const videoReferenceImages = isHappyHorse && happyhorseMode === 'r2v' ? (data.sourceImages ?? []) : []
+
     void createVideoGenerateTask({
       node_id: nodeId,
       prompt,
       aspect_ratio: data.aspectRatio,
       duration_seconds: data.durationSeconds,
       motion_strength: data.motionStrength,
-      source_images: data.sourceImages ?? [],
+      source_images: videoSourceImages,
+      reference_images: videoReferenceImages,
       adapter: resolvedAdapter,
+      task_type: videoTaskType,
+      seedance_version: data.seedanceVersion,
+      generate_audio: data.generateAudio,
+      with_audio: data.happyhorseWithAudio,
+      happyhorse_mode: data.happyhorseQualityMode,
+      video_resolution: data.videoResolution,
+      negative_prompt: data.negativePrompt,
+      seed: data.seed,
+      camera_fixed: data.cameraFixed,
+      video_model_tier: data.videoModelTier,
+      return_last_frame: data.returnLastFrame,
+      reference_videos: data.referenceVideos ?? [],
+      reference_audios: data.referenceAudios ?? [],
+      multi_image_role: data.multiImageRole ?? 'transition',
     })
       .then(() => {
         useFlowStore.getState().updateNodeData(nodeId, {

@@ -213,7 +213,7 @@ const ContinuityNode = memo(({ id, data, selected = false }: NodeProps<Continuit
         minWidth={DEFAULT_NODE_SIZES.continuity.width}
       />
       <div
-        className={`storyboard-node status-${data.status ?? 'idle'}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
+        className={`storyboard-node status-${data.status ?? 'idle'}${selected ? ' selected' : ''}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
         style={{ width: nodeWidth }}
       >
         <div className="storyboard-node-header">

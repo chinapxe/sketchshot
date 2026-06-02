@@ -70,6 +70,8 @@ async def update_engine_settings(req: EngineSettingsUpdateRequest):
                 image_model=req.volcengine.image_model,
                 image_edit_model=req.volcengine.image_edit_model,
                 video_model=req.volcengine.video_model,
+                video_v2_model=req.volcengine.video_v2_model,
+                video_version=req.volcengine.video_version,
             ),
             dashscope=DashScopeConfigSnapshot(
                 base_url=req.dashscope.base_url,
@@ -80,6 +82,15 @@ async def update_engine_settings(req: EngineSettingsUpdateRequest):
                 wanx_video_model=req.dashscope.wanx_video_model,
                 wanx_video_resolution=req.dashscope.wanx_video_resolution,
                 wanx_watermark=req.dashscope.wanx_watermark,
+                happyhorse_t2v_model=req.dashscope.happyhorse_t2v_model,
+                happyhorse_i2v_model=req.dashscope.happyhorse_i2v_model,
+                happyhorse_r2v_model=req.dashscope.happyhorse_r2v_model,
+                happyhorse_vedit_model=req.dashscope.happyhorse_vedit_model,
+                happyhorse_video_resolution=req.dashscope.happyhorse_video_resolution,
+                animate_mix_model=req.dashscope.animate_mix_model,
+                s2v_model=req.dashscope.s2v_model,
+                voice_enrollment_model=req.dashscope.voice_enrollment_model,
+                tts_vc_model=req.dashscope.tts_vc_model,
                 oss_region=req.dashscope.oss_region,
                 oss_endpoint=req.dashscope.oss_endpoint,
                 oss_access_key_id=req.dashscope.oss_access_key_id,
@@ -125,6 +136,8 @@ async def update_volcengine_config(req: VolcengineConfigUpdateRequest):
             image_model=req.image_model,
             image_edit_model=req.image_edit_model,
             video_model=req.video_model,
+            video_v2_model=req.video_v2_model,
+            video_version=req.video_version,
         )
     )
     engine_config_service.refresh_volcengine_adapter()
@@ -156,6 +169,15 @@ async def update_dashscope_config(req: DashScopeConfigUpdateRequest):
             wanx_video_model=req.wanx_video_model,
             wanx_video_resolution=req.wanx_video_resolution,
             wanx_watermark=req.wanx_watermark,
+            happyhorse_t2v_model=req.happyhorse_t2v_model,
+            happyhorse_i2v_model=req.happyhorse_i2v_model,
+            happyhorse_r2v_model=req.happyhorse_r2v_model,
+            happyhorse_vedit_model=req.happyhorse_vedit_model,
+            happyhorse_video_resolution=req.happyhorse_video_resolution,
+            animate_mix_model=req.animate_mix_model,
+            s2v_model=req.s2v_model,
+            voice_enrollment_model=req.voice_enrollment_model,
+            tts_vc_model=req.tts_vc_model,
             oss_region=req.oss_region,
             oss_endpoint=req.oss_endpoint,
             oss_access_key_id=req.oss_access_key_id,
@@ -165,6 +187,7 @@ async def update_dashscope_config(req: DashScopeConfigUpdateRequest):
         )
     )
     engine_config_service.refresh_wanx_adapter()
+    engine_config_service.refresh_happyhorse_adapter()
 
     return DashScopeConfigResponse(
         **asdict(saved),

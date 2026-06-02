@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     VOLCENGINE_IMAGE_MODEL: str = "doubao-seedream-5-0-260128"
     VOLCENGINE_IMAGE_EDIT_MODEL: str = "doubao-seedream-5-0-260128"
     VOLCENGINE_VIDEO_MODEL: str = "doubao-seedance-1-5-pro-251215"
+    VOLCENGINE_VIDEO_V2_MODEL: str = "doubao-seedance-2-0-260128"
+    VOLCENGINE_VIDEO_V2_FAST_MODEL: str = "doubao-seedance-2-0-fast-260128"
+    VOLCENGINE_VIDEO_VERSION: str = "1.5"
     VOLCENGINE_IMAGE_OUTPUT_FORMAT: str = "png"
     VOLCENGINE_WATERMARK: bool = False
 
@@ -70,6 +73,33 @@ class Settings(BaseSettings):
     WANX_VIDEO_MODEL: str = "wan2.7-i2v"
     WANX_VIDEO_RESOLUTION: str = "720P"
     WANX_WATERMARK: bool = False
+
+    HAPPYHORSE_T2V_MODEL: str = "happyhorse-1.0-t2v"
+    HAPPYHORSE_I2V_MODEL: str = "happyhorse-1.0-i2v"
+    HAPPYHORSE_R2V_MODEL: str = "happyhorse-1.0-r2v"
+    HAPPYHORSE_VIDEO_EDIT_MODEL: str = "happyhorse-1.0-video-edit"
+    WAN_VEDIT_MODEL: str = "wan2.7-videoedit"
+    ANIMATE_MIX_MODEL: str = "wan2.2-animate-mix"
+    S2V_MODEL: str = "wan2.2-s2v"
+    S2V_DEFAULT_RESOLUTION: str = "480P"
+    S2V_DEFAULT_STYLE: str = "speech"
+    HAPPYHORSE_VIDEO_RESOLUTION: str = "720P"
+
+    DASHSCOPE_VOICE_ENROLLMENT_MODEL: str = "qwen-voice-enrollment"
+    DASHSCOPE_TTS_VC_MODEL: str = "qwen3-tts-vc-2026-01-22"
+    DASHSCOPE_TTS_VOICE_CLONING_ENABLED: bool = False
+
+    VOLCENGINE_TTS_ENABLED: bool = False
+    VOLCENGINE_TTS_APP_ID: str = ""
+    VOLCENGINE_TTS_ACCESS_KEY: str = ""
+    VOLCENGINE_TTS_RESOURCE_ID: str = "seed-tts-2.0"
+    VOLCENGINE_TTS_BASE_URL: str = "https://openspeech.bytedance.com/api/v3/tts"
+    VOLCENGINE_TTS_TIMEOUT: float = 600.0
+    VOLCENGINE_TTS_POLL_INTERVAL: float = 2.0
+    VOLCENGINE_TTS_DEFAULT_SPEAKER: str = "zh_female_xiaohe_uranus_bigtts"
+    VOLCENGINE_TTS_DEFAULT_FORMAT: str = "mp3"
+    VOLCENGINE_TTS_SAMPLE_RATE: int = 24000
+    VOLCENGINE_TTS_SPEECH_RATE: float = 1.0
     ALIYUN_OSS_ENDPOINT: str = ""
     ALIYUN_OSS_REGION: str = ""
     ALIYUN_OSS_ACCESS_KEY_ID: str = Field(
@@ -83,6 +113,9 @@ class Settings(BaseSettings):
     ALIYUN_OSS_BUCKET: str = ""
     ALIYUN_OSS_KEY_PREFIX: str = "sketchshot-temp"
     ALIYUN_OSS_SIGNED_URL_EXPIRE_SECONDS: int = 7200
+
+    VOLCENGINE_ACCESS_KEY_ID: str = ""
+    VOLCENGINE_SECRET_ACCESS_KEY: str = ""
 
     model_config = {
         "env_file": (
@@ -100,6 +133,8 @@ class Settings(BaseSettings):
         "VOLCENGINE_ENABLED",
         "VOLCENGINE_WATERMARK",
         "WANX_WATERMARK",
+        "VOLCENGINE_TTS_ENABLED",
+        "DASHSCOPE_TTS_VOICE_CLONING_ENABLED",
         mode="before",
     )
     @classmethod

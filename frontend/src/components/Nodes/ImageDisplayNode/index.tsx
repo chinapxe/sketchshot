@@ -54,7 +54,7 @@ const ImageDisplayNode = memo(({ id, data, selected = false }: NodeProps<ImageDi
         currentWidth={nodeWidth}
         minWidth={DEFAULT_NODE_SIZES.imageDisplay.width}
       />
-      <div className={`image-display-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+      <div className={`image-display-node${selected ? ' selected' : ''}${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
         <Handle type="target" position={Position.Left} className="node-handle handle-kind-image" />
 
         <div className="node-header">
@@ -78,7 +78,11 @@ const ImageDisplayNode = memo(({ id, data, selected = false }: NodeProps<ImageDi
                   className="display-image-button"
                   onClick={() => handleOpenPreview(imageUrl, index)}
                 >
-                  <img src={imageUrl} alt={`图片结果 ${index + 1}`} className="display-image" />
+                  {/^(https?:|\/)/.test(imageUrl) ? (
+                    <img src={imageUrl} alt={`图片结果 ${index + 1}`} className="display-image" />
+                  ) : (
+                    <div className="display-image display-image-placeholder">官方人像 (asset://)</div>
+                  )}
                   <span className="display-image-hint">点击查看预览</span>
                 </button>
               ))}

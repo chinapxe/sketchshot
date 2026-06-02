@@ -19,10 +19,12 @@ import ContextMenu from '../ContextMenu'
 import QuickConnectMenu from '../QuickConnectMenu'
 import Toolbar from '../Toolbar'
 import CharacterNode from '../Nodes/CharacterNode'
+import CharacterLibNode from '../Nodes/CharacterLibNode'
 import ContinuityNode from '../Nodes/ContinuityNode'
 import EdgeContextMenu from '../EdgeContextMenu'
 import ImageDisplayNode from '../Nodes/ImageDisplayNode'
 import ImageGenNode from '../Nodes/ImageGenNode'
+import ImageUnderstandNode from '../Nodes/ImageUnderstandNode'
 import ImageUploadNode from '../Nodes/ImageUploadNode'
 import SceneNode from '../Nodes/SceneNode'
 import ShotNode from '../Nodes/ShotNode'
@@ -30,6 +32,13 @@ import StyleNode from '../Nodes/StyleNode'
 import ThreeViewGenNode from '../Nodes/ThreeViewGenNode'
 import VideoDisplayNode from '../Nodes/VideoDisplayNode'
 import VideoGenNode from '../Nodes/VideoGenNode'
+import VideoEditNode from '../Nodes/VideoEditNode'
+import VideoUploadNode from '../Nodes/VideoUploadNode'
+import AnimateMixNode from '../Nodes/AnimateMixNode'
+import DigitalHumanNode from '../Nodes/DigitalHumanNode'
+import ImageUpscaleNode from '../Nodes/ImageUpscaleNode'
+import TTSNode from '../Nodes/TTSNode'
+import VideoConcatNode from '../Nodes/VideoConcatNode'
 import { useFlowStore } from '../../stores/useFlowStore'
 import type { AppEdge, AppNode, AppNodeType, NodeCreationPayload } from '../../types'
 import { getConnectionStroke, getValidTargetNodeTypes, isValidConnection } from '../../utils/flowConnections'
@@ -38,12 +47,21 @@ import './style.css'
 const nodeTypes = {
   imageUpload: ImageUploadNode,
   imageGen: ImageGenNode,
+  imageUnderstand: ImageUnderstandNode,
   threeViewGen: ThreeViewGenNode,
   imageDisplay: ImageDisplayNode,
   videoGen: VideoGenNode,
   videoDisplay: VideoDisplayNode,
+  videoEdit: VideoEditNode,
+  videoUpload: VideoUploadNode,
+  animateMix: AnimateMixNode,
+  digitalHuman: DigitalHumanNode,
+  tts: TTSNode,
+  imageUpscale: ImageUpscaleNode,
+  videoConcat: VideoConcatNode,
   scene: SceneNode,
   character: CharacterNode,
+  characterLib: CharacterLibNode,
   style: StyleNode,
   continuity: ContinuityNode,
   shot: ShotNode,

@@ -7,6 +7,11 @@
   overflow: hidden;
 }
 
+.image-display-node.selected {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
 .image-display-node:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }

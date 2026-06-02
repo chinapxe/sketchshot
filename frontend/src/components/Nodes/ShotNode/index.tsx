@@ -929,7 +929,7 @@ const outputSettingsContent = data.outputType === 'image' ? (
       />
       <div
         ref={nodeRef}
-        className={`storyboard-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
+        className={`storyboard-node status-${data.status}${selected ? ' selected' : ''}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
         style={{ width: nodeWidth }}
       >
         <Handle type="target" position={Position.Left} className="storyboard-handle handle-kind-hybrid" />

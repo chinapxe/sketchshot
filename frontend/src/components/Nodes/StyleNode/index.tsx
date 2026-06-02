@@ -145,7 +145,7 @@ const StyleNode = memo(({ id, data, selected = false }: NodeProps<StyleNodeType>
         currentWidth={nodeWidth}
         minWidth={DEFAULT_NODE_SIZES.style.width}
       />
-      <div className={`storyboard-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+      <div className={`storyboard-node${selected ? ' selected' : ''}${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
         <div className="storyboard-node-header">
           <span className="storyboard-node-icon">
             <BgColorsOutlined />

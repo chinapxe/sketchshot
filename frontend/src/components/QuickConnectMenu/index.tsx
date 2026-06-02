@@ -5,9 +5,13 @@ import {
   BorderOutlined,
   BranchesOutlined,
   CameraOutlined,
+  CustomerServiceOutlined,
+  EditOutlined,
   HighlightOutlined,
   PictureOutlined,
   PlaySquareOutlined,
+  ScanOutlined,
+  SwapOutlined,
   TeamOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons'
@@ -36,6 +40,15 @@ const NODE_TYPE_ICONS: Record<AppNodeType, ReactNode> = {
   imageDisplay: <AppstoreOutlined />,
   videoGen: <VideoCameraOutlined />,
   videoDisplay: <PlaySquareOutlined />,
+  imageUnderstand: <ScanOutlined />,
+  videoEdit: <EditOutlined />,
+  videoUpload: <VideoCameraOutlined />,
+  animateMix: <SwapOutlined />,
+  digitalHuman: <CustomerServiceOutlined />,
+  tts: <CustomerServiceOutlined />,
+  imageUpscale: <HighlightOutlined />,
+  videoConcat: <PlaySquareOutlined />,
+  characterLib: <TeamOutlined />,
 }
 
 const QuickConnectMenu = memo(({ x, y, targetTypes, onSelect, onClose }: QuickConnectMenuProps) => {

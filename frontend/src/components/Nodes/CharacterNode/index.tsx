@@ -250,7 +250,7 @@ const CharacterNode = memo(({ id, data, selected = false }: NodeProps<CharacterN
         currentWidth={nodeWidth}
         minWidth={DEFAULT_NODE_SIZES.character.width}
       />
-      <div className={`storyboard-node${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
+      <div className={`storyboard-node${selected ? ' selected' : ''}${isDisabled ? ' node-disabled' : ''}`} style={{ width: nodeWidth }}>
         <Handle
           type="target"
           position={Position.Left}

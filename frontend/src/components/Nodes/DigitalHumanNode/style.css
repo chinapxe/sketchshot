@@ -1,0 +1,321 @@
+.digital-human-node {
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  color: #333;
+  font-size: 13px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.digital-human-node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.digital-human-node.selected {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
+.digital-human-node.status-success {
+  border-color: #52c41a;
+}
+
+.digital-human-node.status-error {
+  border-color: #ff4d4f;
+}
+
+.digital-human-node.status-processing {
+  border-color: #1677ff;
+}
+
+.digital-human-node .node-header {
+  align-items: center;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.digital-human-node .node-header-icon {
+  color: #1677ff;
+  font-size: 14px;
+}
+
+.digital-human-node .node-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.digital-human-node .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.digital-human-node .field-label {
+  color: #888;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.digital-human-node .form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.digital-human-node .flex-1 {
+  flex: 1;
+}
+
+.digital-human-node .field-select {
+  width: 100%;
+}
+
+.digital-human-node .dh-image-preview {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.digital-human-node .dh-image-preview-img {
+  border-radius: 8px;
+  display: block;
+  max-height: 80px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.digital-human-node .dh-empty-placeholder {
+  align-items: center;
+  background: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  color: #999;
+  display: flex;
+  font-size: 12px;
+  height: 40px;
+  justify-content: center;
+}
+
+.digital-human-node .dh-textarea {
+  background: #fafafa;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  color: #333;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 8px;
+  resize: vertical;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.digital-human-node .dh-textarea:focus {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+  outline: none;
+}
+
+.digital-human-node .dh-textarea::placeholder {
+  color: #bbb;
+}
+
+.digital-human-node .dh-output-card {
+  background: #000;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  cursor: pointer;
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.digital-human-node .dh-output-card:hover {
+  border-color: #1677ff;
+}
+
+.digital-human-node .dh-output-media {
+  border-radius: 0;
+  display: block;
+  max-height: 120px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.digital-human-node .dh-output-hint {
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  bottom: 0;
+  color: #fff;
+  font-size: 11px;
+  left: 0;
+  padding: 20px 8px 6px;
+  position: absolute;
+  right: 0;
+  text-align: center;
+}
+
+.digital-human-node .dh-progress-text {
+  color: #888;
+  font-size: 11px;
+  text-align: center;
+}
+
+.digital-human-node .dh-error-message {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 6px;
+  color: #ff4d4f;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  word-break: break-all;
+}
+
+.digital-human-node .dh-pricing-note {
+  color: #999;
+  font-size: 10px;
+  text-align: center;
+}
+
+.digital-human-node .form-actions {
+  padding-top: 4px;
+}
+
+.digital-human-node .node-status-badge {
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.digital-human-node .node-status-badge.status-processing {
+  background: #e6f4ff;
+  color: #1677ff;
+}
+
+.digital-human-node .node-status-badge.status-success {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.digital-human-node .node-status-badge.status-error {
+  background: #fff2f0;
+  color: #ff4d4f;
+}
+
+/* Mode toggle */
+.digital-human-node .dh-mode-toggle {
+  width: 100%;
+}
+
+.digital-human-node .dh-mode-toggle .ant-radio-button-wrapper {
+  text-align: center;
+  width: 50%;
+}
+
+/* TTS export audio player */
+.digital-human-node .dh-tts-audio-player {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.digital-human-node .dh-audio-element {
+  width: 100%;
+  border-radius: 4px;
+  display: block;
+}
+
+.digital-human-node .dh-download-link {
+  color: #1677ff;
+  font-size: 12px;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.digital-human-node .dh-download-link:hover {
+  color: #4096ff;
+}
+
+/* Audio upload area */
+.digital-human-node .dh-upload-area {
+  cursor: pointer;
+}
+
+.digital-human-node .dh-upload-placeholder {
+  height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #999;
+  font-size: 12px;
+  border: 1.5px dashed #d9d9d9;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.digital-human-node .dh-upload-placeholder:hover {
+  border-color: #1677ff;
+  background: #f0f5ff;
+  color: #1677ff;
+}
+
+.digital-human-node .dh-upload-placeholder .upload-icon {
+  font-size: 22px;
+  color: #bbb;
+  transition: color 0.2s;
+}
+
+.digital-human-node .dh-upload-placeholder:hover .upload-icon {
+  color: #1677ff;
+}
+
+.digital-human-node .dh-audio-uploaded {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.digital-human-node .dh-audio-uploaded .dh-audio-element {
+  background: #fafafa;
+}
+
+.digital-human-node .dh-upload-hint {
+  padding: 4px 8px;
+  background: #fafafa;
+  color: #999;
+  font-size: 11px;
+  text-align: center;
+  border-top: 1px solid #f0f0f0;
+  transition: color 0.2s;
+}
+
+.digital-human-node .dh-audio-uploaded:hover .dh-upload-hint {
+  color: #1677ff;
+}

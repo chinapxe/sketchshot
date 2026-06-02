@@ -1,0 +1,43 @@
+application:
+  subdomain: sketchshot
+  routes:
+    - /=http://frontend.cloud.lazycat.app.sketchshot.lzcapp:80
+
+services:
+  backend:
+    image: registry.lazycat.cloud/u89037737/sketchshot/sketchshot-backend:c81174ea1f7d41b4
+    environment:
+      - APP_NAME=SketchShot - AI Storyboard Canvas
+      - DEBUG=False
+      - PORT=8000
+      - CORS_ORIGINS=["http://127.0.0.1","http://localhost","https://${LAZYCAT_BOX_DOMAIN}"]
+      - WORKFLOW_STORAGE_DIR=/app/data/workflows
+      - UPLOAD_DIR=/app/data/uploads
+      - OUTPUT_DIR=/app/data/outputs
+      - MOCK_DELAY=3.0
+      - DEFAULT_ADAPTER=volcengine
+      - PUBLIC_BASE_URL=https://${LAZYCAT_BOX_DOMAIN}
+      - COMFYUI_ENABLED=False
+      - COMFYUI_BASE_URL=http://127.0.0.1:8188
+      - COMFYUI_POLL_INTERVAL=1.0
+      - COMFYUI_TIMEOUT=180.0
+      - COMFYUI_NEGATIVE_PROMPT=low quality, blurry, distorted
+      - VOLCENGINE_ENABLED=False
+      - ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+      - ARK_API_KEY=
+      - VOLCENGINE_TIMEOUT=180
+      - VOLCENGINE_REQUEST_TIMEOUT=180
+      - VOLCENGINE_VIDEO_TIMEOUT=900
+      - VOLCENGINE_POLL_INTERVAL=3
+      - VOLCENGINE_PROMPT_MODEL=doubao-seed-1-6-251015
+      - VOLCENGINE_IMAGE_MODEL=doubao-seedream-5-0-260128
+      - VOLCENGINE_IMAGE_EDIT_MODEL=doubao-seedream-5-0-260128
+      - VOLCENGINE_VIDEO_MODEL=doubao-seedance-1-5-pro-251215
+      - VOLCENGINE_IMAGE_OUTPUT_FORMAT=png
+      - VOLCENGINE_WATERMARK=False
+    binds:
+      - /lzcapp/var/data:/app/data
+
+  frontend:
+    image: registry.lazycat.cloud/u89037737/sketchshot/sketchshot-frontend:6ec09729afd60683 
+

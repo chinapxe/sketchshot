@@ -16,6 +16,8 @@ from ..config import settings
 from ..models.schemas import (
     ContinuityFramesGenerateRequest,
     ContinuityFramesGenerateResponse,
+    ImageUnderstandRequest,
+    ImageUnderstandResponse,
     PromptGenerateRequest,
     PromptGenerateResponse,
 )
@@ -47,6 +49,19 @@ CONTINUITY_FRAMES_SYSTEM_PROMPT = (
     "Return valid JSON only in the shape {\"frames\":[\"...\", \"...\"]}. "
     "Each frame must be concise, visually specific, and continue naturally from the previous frame. "
     "Do not include numbering, markdown, or any extra explanation."
+)
+
+IMAGE_UNDERSTAND_SYSTEM_PROMPT = (
+    "你是一个专业的图像分析助手。请仔细观察输入图片，详细描述画面中的内容。"
+    "需要包含：主体描述、背景环境、光线色调、构图视角、风格氛围等细节。"
+    "只返回描述本身，不要解释，不要编号，不要 markdown。"
+)
+
+IMAGE_UNDERSTAND_PROMPT_SYSTEM_PROMPT = (
+    "你是一个专业的提示词工程师。根据以下场景描述，写一段详细、"
+    "富有画面感的 AI 图生图或图生视频生成提示词（prompt）。"
+    "如果是视频场景，请加入镜头运动描述。"
+    "只返回提示词本身，不要解释，不要编号，不要 markdown。"
 )
 
 logger = logging.getLogger(__name__)
@@ -159,7 +174,6 @@ class BasePromptProvider(ABC):
         encoded = base64.b64encode(local_path.read_bytes()).decode("ascii")
         return f"data:{mime_type};base64,{encoded}"
 
-
 class VolcenginePromptProvider(BasePromptProvider):
     """Prompt provider backed by Volcengine Ark chat completions."""
 
@@ -235,6 +249,47 @@ class VolcenginePromptProvider(BasePromptProvider):
             frames=self._extract_continuity_frames(self._extract_text_content(response)),
             model=self._model,
         )
+
+    async def generate_image_understand_prompt(self, image_url: str) -> ImageUnderstandResponse:
+        resolved = self._normalize_reference_images([image_url])
+        image_content = resolved[0] if resolved else image_url
+
+        response = await self._client.request_json(
+            path="/chat/completions",
+            method="POST",
+            payload={
+                "model": self._model,
+                "messages": [
+                    {"role": "system", "content": IMAGE_UNDERSTAND_SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "image_url", "image_url": {"url": image_content}},
+                            {"type": "text", "text": "请描述这张图片的内容。"},
+                        ],
+                    },
+                ],
+                "thinking": {"type": "disabled"},
+            },
+        )
+
+        description = self._extract_text_content(response)
+        return ImageUnderstandResponse(description=description, model=self._model)
+
+    async def generate_understand_prompt(self, description: str) -> str:
+        response = await self._client.request_json(
+            path="/chat/completions",
+            method="POST",
+            payload={
+                "model": self._model,
+                "messages": [
+                    {"role": "system", "content": IMAGE_UNDERSTAND_PROMPT_SYSTEM_PROMPT},
+                    {"role": "user", "content": description},
+                ],
+                "thinking": {"type": "disabled"},
+            },
+        )
+        return self._extract_text_content(response)
 
     def _extract_text_content(self, payload: dict) -> str:
         choices = payload.get("choices")
@@ -354,6 +409,55 @@ class QwenPromptProvider(BasePromptProvider):
             frames=self._extract_continuity_frames(self._extract_text_content(response)),
             model=model,
         )
+
+    async def generate_image_understand_prompt(self, image_url: str) -> ImageUnderstandResponse:
+        resolved = self._normalize_reference_images([image_url])
+        image_content = resolved[0] if resolved else image_url
+
+        response = await self._client.request_json(
+            path="/api/v1/services/aigc/multimodal-generation/generation",
+            method="POST",
+            payload={
+                "model": self._multimodal_model,
+                "input": {
+                    "messages": [
+                        {"role": "system", "content": IMAGE_UNDERSTAND_SYSTEM_PROMPT},
+                        {
+                            "role": "user",
+                            "content": [
+                                {"image": image_content},
+                                {"text": "请描述这张图片的内容。"},
+                            ],
+                        },
+                    ]
+                },
+                "parameters": {
+                    "result_format": "message",
+                },
+            },
+        )
+
+        description = self._extract_text_content(response)
+        return ImageUnderstandResponse(description=description, model=self._multimodal_model)
+
+    async def generate_understand_prompt(self, description: str) -> str:
+        response = await self._client.request_json(
+            path="/api/v1/services/aigc/multimodal-generation/generation",
+            method="POST",
+            payload={
+                "model": self._multimodal_model,
+                "input": {
+                    "messages": [
+                        {"role": "system", "content": IMAGE_UNDERSTAND_PROMPT_SYSTEM_PROMPT},
+                        {"role": "user", "content": [{"text": description}]},
+                    ]
+                },
+                "parameters": {
+                    "result_format": "message",
+                },
+            },
+        )
+        return self._extract_text_content(response)
 
     async def _request_prompt(
         self,
@@ -503,6 +607,18 @@ class PromptGenerationService:
         self, req: ContinuityFramesGenerateRequest
     ) -> ContinuityFramesGenerateResponse:
         return await self._resolve_runtime_provider().generate_continuity_frames(req)
+
+    async def generate_image_understand_prompt(self, image_url: str) -> ImageUnderstandResponse:
+        provider = self._resolve_runtime_provider()
+        if not hasattr(provider, "generate_image_understand_prompt"):
+            raise RuntimeError(f"Provider '{provider.provider_name}' does not support image understanding")
+        return await provider.generate_image_understand_prompt(image_url)
+
+    async def generate_understand_prompt(self, description: str) -> str:
+        provider = self._resolve_runtime_provider()
+        if not hasattr(provider, "generate_understand_prompt"):
+            raise RuntimeError(f"Provider '{provider.provider_name}' does not support prompt generation from description")
+        return await provider.generate_understand_prompt(description)
 
     def _resolve_runtime_provider(self) -> BasePromptProvider:
         if self._provider is not None:

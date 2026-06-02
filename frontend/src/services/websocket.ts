@@ -9,6 +9,7 @@ export interface ProgressMessage {
   message: string
   output_image: string | null
   output_video: string | null
+  output_last_frame?: string | null
 }
 
 export type ProgressCallback = (message: ProgressMessage) => void

@@ -14,6 +14,7 @@ import {
   Select,
   Segmented,
   Spin,
+  Tabs,
   Tooltip,
   message,
   type MenuProps,
@@ -134,6 +135,8 @@ type EngineSettingsDraft = {
     image_model: string
     image_edit_model: string
     video_model: string
+    video_v2_model: string
+    video_version: string
   }
   dashscope: {
     base_url: string
@@ -144,6 +147,13 @@ type EngineSettingsDraft = {
     wanx_video_model: string
     wanx_video_resolution: '720P' | '1080P'
     wanx_watermark: boolean
+    happyhorse_t2v_model: string
+    happyhorse_i2v_model: string
+    happyhorse_r2v_model: string
+    happyhorse_vedit_model: string
+    happyhorse_video_resolution: string
+    animate_mix_model: string
+    s2v_model: string
     oss_region: string
     oss_endpoint: string
     oss_access_key_id: string
@@ -163,6 +173,8 @@ const emptyEngineSettingsDraft: EngineSettingsDraft = {
     image_model: '',
     image_edit_model: '',
     video_model: '',
+    video_v2_model: '',
+    video_version: '1.5',
   },
   dashscope: {
     base_url: '',
@@ -173,6 +185,13 @@ const emptyEngineSettingsDraft: EngineSettingsDraft = {
     wanx_video_model: '',
     wanx_video_resolution: '720P',
     wanx_watermark: false,
+    happyhorse_t2v_model: '',
+    happyhorse_i2v_model: '',
+    happyhorse_r2v_model: '',
+    happyhorse_vedit_model: '',
+    happyhorse_video_resolution: '720P',
+    animate_mix_model: '',
+    s2v_model: '',
     oss_region: '',
     oss_endpoint: '',
     oss_access_key_id: '',
@@ -190,9 +209,15 @@ const promptProviderOptions = [
 const generateProviderOptions = [
   { value: 'volcengine', label: '火山生成' },
   { value: 'wanx', label: '万相（DashScope）' },
+  { value: 'happyhorse', label: 'HappyHorse（DashScope）' },
 ]
 
 const wanxVideoResolutionOptions = [
+  { value: '720P', label: '720P' },
+  { value: '1080P', label: '1080P' },
+]
+
+const happyhorseVideoResolutionOptions = [
   { value: '720P', label: '720P' },
   { value: '1080P', label: '1080P' },
 ]
@@ -211,6 +236,10 @@ function getGenerateProviderLabel(provider: GenerateProvider): string {
     return '万相（阿里 DashScope）'
   }
 
+  if (provider === 'happyhorse') {
+    return 'HappyHorse（阿里 DashScope）'
+  }
+
   return '火山 Ark'
 }
 
@@ -225,6 +254,10 @@ function getPromptProviderHelp(provider: PromptProvider): string {
 function getGenerateProviderHelp(provider: GenerateProvider): string {
   if (provider === 'wanx') {
     return '图片生成和图生视频将走万相能力，请在下方阿里服务卡中填写万相模型与 DashScope 鉴权。'
+  }
+
+  if (provider === 'happyhorse') {
+    return '图生视频和视频编辑将走 HappyHorse 能力，请在下方 HappyHorse 服务卡中填写模型与 DashScope 鉴权。'
   }
 
   return '图片生成和图生视频将走火山能力，请在下方火山服务卡中填写图片与视频模型。'
@@ -374,10 +407,11 @@ const Toolbar = memo(() => {
   const [isEngineConfigModalOpen, setIsEngineConfigModalOpen] = useState(false)
   const [isEngineConfigLoading, setIsEngineConfigLoading] = useState(false)
   const [isEngineConfigSaving, setIsEngineConfigSaving] = useState(false)
-  const [isEngineRoutingExpanded, setIsEngineRoutingExpanded] = useState(false)
   const [engineConfigDraft, setEngineConfigDraft] = useState<EngineSettingsDraft>(emptyEngineSettingsDraft)
+  const [activeEngineTab, setActiveEngineTab] = useState<string>('routing')
   const [isVolcengineConfigured, setIsVolcengineConfigured] = useState(false)
   const [isDashScopeConfigured, setIsDashScopeConfigured] = useState(false)
+  const [isHappyHorseConfigured, setIsHappyHorseConfigured] = useState(false)
   const [isDashScopeOssExpanded, setIsDashScopeOssExpanded] = useState(false)
   const [isDashScopeOssAdvancedExpanded, setIsDashScopeOssAdvancedExpanded] = useState(false)
   const [compareNodeId, setCompareNodeId] = useState<string | null>(null)
@@ -490,6 +524,8 @@ const Toolbar = memo(() => {
         image_model: config.volcengine.image_model,
         image_edit_model: config.volcengine.image_edit_model,
         video_model: config.volcengine.video_model,
+        video_v2_model: config.volcengine.video_v2_model,
+        video_version: config.volcengine.video_version,
       },
       dashscope: {
         base_url: config.dashscope.base_url,
@@ -500,6 +536,13 @@ const Toolbar = memo(() => {
         wanx_video_model: config.dashscope.wanx_video_model,
         wanx_video_resolution: config.dashscope.wanx_video_resolution,
         wanx_watermark: config.dashscope.wanx_watermark,
+        happyhorse_t2v_model: config.dashscope.happyhorse_t2v_model,
+        happyhorse_i2v_model: config.dashscope.happyhorse_i2v_model,
+        happyhorse_r2v_model: config.dashscope.happyhorse_r2v_model,
+        happyhorse_vedit_model: config.dashscope.happyhorse_vedit_model,
+        happyhorse_video_resolution: config.dashscope.happyhorse_video_resolution,
+        animate_mix_model: config.dashscope.animate_mix_model,
+        s2v_model: config.dashscope.s2v_model,
         oss_region: config.dashscope.oss_region,
         oss_endpoint: config.dashscope.oss_endpoint,
         oss_access_key_id: config.dashscope.oss_access_key_id,
@@ -510,6 +553,7 @@ const Toolbar = memo(() => {
     })
     setIsVolcengineConfigured(config.volcengine.configured)
     setIsDashScopeConfigured(config.dashscope.configured)
+    setIsHappyHorseConfigured(config.dashscope.configured)
   }, [])
 
   const handleNewWorkflow = useCallback(() => {
@@ -647,7 +691,7 @@ const Toolbar = memo(() => {
   const openEngineConfigModal = useCallback(async () => {
     setIsEngineConfigModalOpen(true)
     setIsEngineConfigLoading(true)
-    setIsEngineRoutingExpanded(false)
+    setActiveEngineTab('routing')
     setIsDashScopeOssExpanded(false)
     setIsDashScopeOssAdvancedExpanded(false)
 
@@ -1043,13 +1087,15 @@ const Toolbar = memo(() => {
   const generateProviderLabel = getGenerateProviderLabel(engineConfigDraft.generate_provider)
   const promptProviderHelp = getPromptProviderHelp(engineConfigDraft.prompt_provider)
   const generateProviderHelp = getGenerateProviderHelp(engineConfigDraft.generate_provider)
-  const visibleGenerateProvider = engineConfigDraft.generate_provider === 'wanx' ? 'wanx' : 'volcengine'
+  const visibleGenerateProvider = engineConfigDraft.generate_provider === 'wanx' ? 'wanx' : engineConfigDraft.generate_provider === 'happyhorse' ? 'happyhorse' : 'volcengine'
   const isVolcenginePromptActive = engineConfigDraft.prompt_provider === 'volcengine'
   const isVolcengineGenerateActive = engineConfigDraft.generate_provider === 'volcengine'
   const isDashScopePromptActive = engineConfigDraft.prompt_provider === 'qwen'
   const isDashScopeGenerateActive = engineConfigDraft.generate_provider === 'wanx'
+  const isHappyHorseGenerateActive = engineConfigDraft.generate_provider === 'happyhorse'
   const isVolcengineActive = isVolcenginePromptActive || isVolcengineGenerateActive
   const isDashScopeActive = isDashScopePromptActive || isDashScopeGenerateActive
+  const isHappyHorseActive = isHappyHorseGenerateActive
   const isDashScopeOssReady = Boolean(
     engineConfigDraft.dashscope.oss_bucket.trim() &&
       engineConfigDraft.dashscope.oss_access_key_id.trim() &&
@@ -1378,73 +1424,68 @@ const Toolbar = memo(() => {
         ) : (
           <div className="toolbar-modal-body toolbar-engine-form">
             <div className="toolbar-engine-overview">
-              <div className="toolbar-engine-overview-title">先决定任务走向，再分别配置两套服务</div>
-              <div className="toolbar-engine-overview-description">
-                提示词 Provider 决定谁来负责总提示词、润色和九宫格连续动作拆分；生成 Provider
-                决定图片和图生视频最终由哪家服务产出。配置仅保存在当前后端本机文件中，保存后新任务立即生效，无需手动修改
-                `.env`。
-              </div>
-              <div className="toolbar-engine-routing-summary">
-                <div className="toolbar-engine-pill-row">
-                  <span className="toolbar-engine-pill is-active">提示词：{promptProviderLabel}</span>
-                  <span className="toolbar-engine-pill is-active">生成：{generateProviderLabel}</span>
-                </div>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={isEngineRoutingExpanded ? <UpOutlined /> : <DownOutlined />}
-                  className="toolbar-engine-routing-toggle"
-                  onClick={() => setIsEngineRoutingExpanded((value) => !value)}
-                >
-                  {isEngineRoutingExpanded ? '收起高级路由设置' : '展开高级路由设置'}
-                </Button>
+              <div className="toolbar-engine-overview-title">引擎配置</div>
+              <div className="toolbar-engine-pill-row">
+                <span className="toolbar-engine-pill is-active">提示词：{promptProviderLabel}</span>
+                <span className="toolbar-engine-pill is-active">生成：{generateProviderLabel}</span>
               </div>
             </div>
 
-            {isEngineRoutingExpanded && (
-              <div className="toolbar-engine-route-grid">
-                <div className="toolbar-engine-route-card">
-                  <div className="toolbar-engine-route-title">提示词路由</div>
-                  <div className="toolbar-engine-route-description">
-                    用于总提示词生成、提示词润色、九宫格连续动作拆分。
-                  </div>
-                  <label className="toolbar-modal-label" htmlFor="engine-prompt-provider">
-                    提示词 Provider
-                  </label>
-                  <Select
-                    id="engine-prompt-provider"
-                    value={engineConfigDraft.prompt_provider}
-                    options={promptProviderOptions}
-                    onChange={(value) => updateEngineProviderField('prompt_provider', value as PromptProvider)}
-                    className="field-select nodrag nopan"
-                  />
-                  <div className="toolbar-engine-route-current">当前将使用：{promptProviderLabel}</div>
-                  <div className="toolbar-engine-route-help">{promptProviderHelp}</div>
-                </div>
+            <Tabs
+              activeKey={activeEngineTab}
+              onChange={setActiveEngineTab}
+              type="card"
+              items={[
+                {
+                  key: 'routing',
+                  label: '任务路由',
+                  children: (
+                    <div className="toolbar-engine-route-grid">
+                      <div className="toolbar-engine-route-card">
+                        <div className="toolbar-engine-route-title">提示词路由</div>
+                        <div className="toolbar-engine-route-description">
+                          用于总提示词生成、提示词润色、九宫格连续动作拆分。
+                        </div>
+                        <label className="toolbar-modal-label" htmlFor="engine-prompt-provider">
+                          提示词 Provider
+                        </label>
+                        <Select
+                          id="engine-prompt-provider"
+                          value={engineConfigDraft.prompt_provider}
+                          options={promptProviderOptions}
+                          onChange={(value) => updateEngineProviderField('prompt_provider', value as PromptProvider)}
+                          className="field-select nodrag nopan"
+                        />
+                        <div className="toolbar-engine-route-current">当前将使用：{promptProviderLabel}</div>
+                        <div className="toolbar-engine-route-help">{promptProviderHelp}</div>
+                      </div>
 
-                <div className="toolbar-engine-route-card">
-                  <div className="toolbar-engine-route-title">生成路由</div>
-                  <div className="toolbar-engine-route-description">
-                    决定图片生成、图生视频最终调用哪一套接口。
-                  </div>
-                  <label className="toolbar-modal-label" htmlFor="engine-generate-provider">
-                    生成 Provider
-                  </label>
-                  <Select
-                    id="engine-generate-provider"
-                    value={visibleGenerateProvider}
-                    options={generateProviderOptions}
-                    onChange={(value) => updateEngineProviderField('generate_provider', value as GenerateProvider)}
-                    className="field-select nodrag nopan"
-                  />
-                  <div className="toolbar-engine-route-current">当前将使用：{generateProviderLabel}</div>
-                  <div className="toolbar-engine-route-help">{generateProviderHelp}</div>
-                </div>
-              </div>
-            )}
-
-            <div className="toolbar-engine-provider-grid">
-              <section
+                      <div className="toolbar-engine-route-card">
+                        <div className="toolbar-engine-route-title">生成路由</div>
+                        <div className="toolbar-engine-route-description">
+                          决定图片生成、图生视频最终调用哪一套接口。
+                        </div>
+                        <label className="toolbar-modal-label" htmlFor="engine-generate-provider">
+                          生成 Provider
+                        </label>
+                        <Select
+                          id="engine-generate-provider"
+                          value={visibleGenerateProvider}
+                          options={generateProviderOptions}
+                          onChange={(value) => updateEngineProviderField('generate_provider', value as GenerateProvider)}
+                          className="field-select nodrag nopan"
+                        />
+                        <div className="toolbar-engine-route-current">当前将使用：{generateProviderLabel}</div>
+                        <div className="toolbar-engine-route-help">{generateProviderHelp}</div>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'volcengine',
+                  label: '火山引擎',
+                  children: (
+                    <section
                 className={`toolbar-engine-provider-card${isVolcengineConfigured ? ' is-ready' : ''}${isVolcengineActive ? ' is-active' : ''}`}
               >
                 <div className="toolbar-engine-provider-header">
@@ -1517,18 +1558,6 @@ const Toolbar = memo(() => {
                     </div>
 
                     <div className="toolbar-modal-body">
-                      <label className="toolbar-modal-label" htmlFor="engine-video-model">
-                        视频模型
-                      </label>
-                      <Input
-                        id="engine-video-model"
-                        value={engineConfigDraft.volcengine.video_model}
-                        placeholder="doubao-seedance-1-5-pro-251215"
-                        onChange={(event) => updateVolcengineConfigField('video_model', event.target.value)}
-                      />
-                    </div>
-
-                    <div className="toolbar-modal-body">
                       <label className="toolbar-modal-label" htmlFor="engine-image-model">
                         文生图模型
                       </label>
@@ -1552,10 +1581,56 @@ const Toolbar = memo(() => {
                       />
                     </div>
                   </div>
+
+                  <div className="toolbar-modal-body" style={{ marginTop: 12 }}>
+                    <label className="toolbar-modal-label">视频版本</label>
+                    <Segmented
+                      options={[
+                        { value: '1.5', label: 'Seedance 1.5' },
+                        { value: '2.0', label: 'Seedance 2.0' },
+                      ]}
+                      value={engineConfigDraft.volcengine.video_version}
+                      onChange={(value) => updateVolcengineConfigField('video_version', value as string)}
+                      block
+                    />
+                  </div>
+                  <div className="toolbar-modal-body" style={{ marginTop: 8 }}>
+                    <label className="toolbar-modal-label" htmlFor="engine-video-model">
+                      {engineConfigDraft.volcengine.video_version === '2.0'
+                        ? 'Seedance 2.0 模型'
+                        : '视频模型 (Seedance 1.5)'}
+                    </label>
+                    <Input
+                      id="engine-video-model"
+                      value={
+                        engineConfigDraft.volcengine.video_version === '2.0'
+                          ? engineConfigDraft.volcengine.video_v2_model
+                          : engineConfigDraft.volcengine.video_model
+                      }
+                      placeholder={
+                        engineConfigDraft.volcengine.video_version === '2.0'
+                          ? 'doubao-seedance-2-0-260128'
+                          : 'doubao-seedance-1-5-pro-251215'
+                      }
+                      onChange={(event) =>
+                        updateVolcengineConfigField(
+                          engineConfigDraft.volcengine.video_version === '2.0'
+                            ? 'video_v2_model'
+                            : 'video_model',
+                          event.target.value
+                        )
+                      }
+                    />
+                  </div>
                 </div>
               </section>
-
-              <section
+                  ),
+                },
+                {
+                  key: 'dashscope',
+                  label: 'DashScope / 万相',
+                  children: (
+                    <section
                 className={`toolbar-engine-provider-card${isDashScopeConfigured ? ' is-ready' : ''}${isDashScopeActive ? ' is-active' : ''}`}
               >
                 <div className="toolbar-engine-provider-header">
@@ -1824,7 +1899,116 @@ const Toolbar = memo(() => {
                   ) : null}
                 </div>
               </section>
-            </div>
+                  ),
+                },
+                {
+                  key: 'happyhorse',
+                  label: 'HappyHorse',
+                  children: (
+                    <section
+                className={`toolbar-engine-provider-card${isHappyHorseConfigured ? ' is-ready' : ''}${isHappyHorseActive ? ' is-active' : ''}`}
+              >
+                <div className="toolbar-engine-provider-header">
+                  <div className="toolbar-engine-provider-copy">
+                    <div className="toolbar-engine-provider-eyebrow">服务 C</div>
+                    <div className="toolbar-engine-provider-title">HappyHorse（DashScope）</div>
+                    <div className="toolbar-engine-provider-description">
+                      HappyHorse 是万相的升级视频模型，与万相共用 DashScope 鉴权与 OSS 配置。生成 Provider 选"HappyHorse"时，这张卡必须填写。
+                    </div>
+                  </div>
+                  <div className={`toolbar-engine-provider-status${isHappyHorseConfigured ? ' is-ready' : ''}`}>
+                    {isHappyHorseConfigured ? '已配置' : '未配置'}
+                  </div>
+                </div>
+
+                <div className="toolbar-engine-pill-row">
+                  {isHappyHorseGenerateActive ? <span className="toolbar-engine-pill is-active">当前负责生成</span> : null}
+                  <span className="toolbar-engine-pill">文生视频（T2V）</span>
+                  <span className="toolbar-engine-pill">图生视频（I2V）</span>
+                  <span className="toolbar-engine-pill">参考生视频（R2V）</span>
+                  <span className="toolbar-engine-pill">视频编辑</span>
+                </div>
+
+                <div className="toolbar-engine-provider-section">
+                  <div className="toolbar-engine-provider-section-title">模型配置</div>
+                  <div className="toolbar-engine-provider-section-description">
+                    HappyHorse 共支持四种视频生成模式，分别设置对应模型。
+                  </div>
+                  <div className="toolbar-engine-grid">
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-happyhorse-t2v-model">
+                        文生视频模型（T2V）
+                      </label>
+                      <Input
+                        id="engine-happyhorse-t2v-model"
+                        value={engineConfigDraft.dashscope.happyhorse_t2v_model}
+                        placeholder="happyhorse-1.0-t2v"
+                        onChange={(event) => updateDashScopeConfigField('happyhorse_t2v_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-happyhorse-i2v-model">
+                        图生视频模型（I2V）
+                      </label>
+                      <Input
+                        id="engine-happyhorse-i2v-model"
+                        value={engineConfigDraft.dashscope.happyhorse_i2v_model}
+                        placeholder="happyhorse-1.0-i2v"
+                        onChange={(event) => updateDashScopeConfigField('happyhorse_i2v_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-happyhorse-r2v-model">
+                        参考生视频模型（R2V）
+                      </label>
+                      <Input
+                        id="engine-happyhorse-r2v-model"
+                        value={engineConfigDraft.dashscope.happyhorse_r2v_model}
+                        placeholder="happyhorse-1.0-r2v"
+                        onChange={(event) => updateDashScopeConfigField('happyhorse_r2v_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-happyhorse-vedit-model">
+                        视频编辑模型（Video Edit）
+                      </label>
+                      <Input
+                        id="engine-happyhorse-vedit-model"
+                        value={engineConfigDraft.dashscope.happyhorse_vedit_model}
+                        placeholder="happyhorse-1.0-video-edit"
+                        onChange={(event) => updateDashScopeConfigField('happyhorse_vedit_model', event.target.value)}
+                      />
+                    </div>
+
+                    <div className="toolbar-modal-body">
+                      <label className="toolbar-modal-label" htmlFor="engine-happyhorse-video-resolution">
+                        HappyHorse 视频分辨率
+                      </label>
+                      <Select
+                        id="engine-happyhorse-video-resolution"
+                        value={engineConfigDraft.dashscope.happyhorse_video_resolution}
+                        options={happyhorseVideoResolutionOptions}
+                        onChange={(value) => updateDashScopeConfigField('happyhorse_video_resolution', value)}
+                        className="field-select nodrag nopan"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="toolbar-engine-provider-section">
+                  <div className="toolbar-engine-provider-section-title">注意</div>
+                  <div className="toolbar-engine-provider-section-description">
+                    HappyHorse 共用上方"服务 B"中 DashScope 的连接信息（Base URL / API Key）以及 OSS 临时托管配置。如需使用视频编辑（Video Edit），请确保已在引擎配置中上传 OSS 相关凭证。
+                  </div>
+                </div>
+              </section>
+                  ),
+                },
+              ]}
+            />
           </div>
         )}
       </Modal>

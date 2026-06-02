@@ -139,7 +139,7 @@ const ThreeViewGenNode = memo(({ id, data, selected = false }: NodeProps<ThreeVi
         minWidth={DEFAULT_NODE_SIZES.threeViewGen.width}
       />
       <div
-        className={`storyboard-node status-${data.status}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
+        className={`storyboard-node status-${data.status}${selected ? ' selected' : ''}${needsRefresh ? ' needs-refresh' : ''}${isDisabled ? ' node-disabled' : ''}`}
         style={{ width: nodeWidth }}
       >
         <Handle type="target" position={Position.Left} className="storyboard-handle handle-kind-image" />
