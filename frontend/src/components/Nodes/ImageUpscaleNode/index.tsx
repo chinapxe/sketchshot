@@ -6,7 +6,7 @@ import { Button, Progress, Select, message } from 'antd'
 import { executeImageUpscaleNode } from '../../../services/nodeGeneration'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
-import type { ImageUpscaleNode as ImageUpscaleNodeType, ImageUpscaleNodeData } from '../../../types'
+import type { ImageUpscaleNode as ImageUpscaleNodeType } from '../../../types'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
 import NodeTitleEditor from '../shared/NodeTitleEditor'
@@ -63,8 +63,6 @@ const ImageUpscaleNode = memo(({ id, data, selected = false }: NodeProps<ImageUp
   const isDisabled = (data as Record<string, unknown>).disabled === true
   const needsRefresh = data.needsRefresh === true
   const isBlockedByWorkflowExecution = isWorkflowExecuting && activeExecutionNodeId !== id
-
-  const is4KUnavailable = data.targetResolution !== '1080p' // no restriction for upscale
 
   return (
     <>

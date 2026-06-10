@@ -25,6 +25,7 @@ export const DEFAULT_NODE_SIZES: Record<AppNodeType, NodeSize> = {
   digitalHuman: { width: 320, height: 540 },
   tts: { width: 280, height: 340 },
   imageUpscale: { width: 300, height: 420 },
+  videoEdit: { width: 300, height: 520 },
   videoConcat: { width: 300, height: 340 },
   characterLib: { width: 320, height: 480 },
 }

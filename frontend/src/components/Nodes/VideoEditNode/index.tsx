@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import {
   PlayCircleOutlined,
@@ -40,7 +40,7 @@ const VideoEditNode = memo(({ id, data, selected = false }: NodeProps<VideoEditN
   const isWorkflowExecuting = useFlowStore((state) => state.isWorkflowExecuting)
   const activeExecutionNodeId = useFlowStore((state) => state.activeExecutionNodeId)
   const openPreview = useAssetPreviewStore((state) => state.openPreview)
-  const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.videoGen.width)
+  const nodeWidth = resolveNodeWidth(data as Record<string, unknown>, DEFAULT_NODE_SIZES.videoEdit.width)
 
   useEffect(() => {
     const upstreamVideos = getUpstreamVideos(id)
@@ -205,7 +205,7 @@ const VideoEditNode = memo(({ id, data, selected = false }: NodeProps<VideoEditN
         nodeId={id}
         selected={selected}
         currentWidth={nodeWidth}
-        minWidth={DEFAULT_NODE_SIZES.videoGen.width}
+        minWidth={DEFAULT_NODE_SIZES.videoEdit.width}
       />
       <div
         ref={nodeRef}

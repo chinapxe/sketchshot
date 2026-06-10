@@ -120,7 +120,7 @@ export async function executeImageGenNode(
             status: 'success' as NodeStatus,
             progress: 100,
             outputImage: progressMessage.output_image,
-            outputImageOriginalUrl: (progressMessage as Record<string, unknown>).output_image_original_url as string | undefined,
+            outputImageOriginalUrl: (progressMessage as unknown as Record<string, unknown>).output_image_original_url as string | undefined,
             errorMessage: undefined,
             lastRunSignature: signature,
             resultCache: nextResultCache,
@@ -131,9 +131,11 @@ export async function executeImageGenNode(
           }, 100)
 
           disconnectNodeGeneration(nodeId)
+
           if (showSuccessMessage) {
             message.success('图片生成完成')
           }
+
           resolve()
           return
         }
@@ -291,7 +293,7 @@ export async function executeImageUpscaleNode(nodeId: string): Promise<void> {
             status: 'success' as NodeStatus,
             progress: 100,
             outputImage: progressMessage.output_image,
-            outputImageOriginalUrl: (progressMessage as Record<string, unknown>).output_image_original_url as string | undefined,
+            outputImageOriginalUrl: (progressMessage as unknown as Record<string, unknown>).output_image_original_url as string | undefined,
             errorMessage: undefined,
             lastRunSignature: signature,
             resultCache: nextResultCache,
@@ -336,7 +338,7 @@ export async function executeImageUpscaleNode(nodeId: string): Promise<void> {
       prompt: data.prompt,
       aspect_ratio: '1:1',
       resolution: data.targetResolution,
-      reference_images: [data.sourceImage],
+      reference_images: data.sourceImage ? [data.sourceImage] : [],
       adapter: 'volcengine',
       identity_lock: false,
       identity_strength: 0,

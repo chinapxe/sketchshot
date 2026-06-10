@@ -154,6 +154,8 @@ type EngineSettingsDraft = {
     happyhorse_video_resolution: string
     animate_mix_model: string
     s2v_model: string
+    voice_enrollment_model: string
+    tts_vc_model: string
     oss_region: string
     oss_endpoint: string
     oss_access_key_id: string
@@ -192,6 +194,8 @@ const emptyEngineSettingsDraft: EngineSettingsDraft = {
     happyhorse_video_resolution: '720P',
     animate_mix_model: '',
     s2v_model: '',
+    voice_enrollment_model: '',
+    tts_vc_model: '',
     oss_region: '',
     oss_endpoint: '',
     oss_access_key_id: '',
@@ -543,6 +547,8 @@ const Toolbar = memo(() => {
         happyhorse_video_resolution: config.dashscope.happyhorse_video_resolution,
         animate_mix_model: config.dashscope.animate_mix_model,
         s2v_model: config.dashscope.s2v_model,
+        voice_enrollment_model: config.dashscope.voice_enrollment_model,
+        tts_vc_model: config.dashscope.tts_vc_model,
         oss_region: config.dashscope.oss_region,
         oss_endpoint: config.dashscope.oss_endpoint,
         oss_access_key_id: config.dashscope.oss_access_key_id,

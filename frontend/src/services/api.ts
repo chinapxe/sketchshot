@@ -3,7 +3,6 @@
  */
 import { config } from '../config'
 import type {
-  ClonedVoiceItem,
   ClonedVoiceListResponse,
   VoiceCloneRequest,
   VoiceCloneResponse,

@@ -4,3 +4,30 @@ git commit -m "first commit"
 git branch -M main
 git remote add origin https://github.com/chinapxe/sketchshot.git
 git push -u origin main
+
+==================================
+
+
+数字人模型：
+@https://help.aliyun.com/zh/model-studio/wan-s2v-overview/?spm=a2c4g.11186623.help-menu-2400256.d_2_3_11.325f6a2fdUzmvk&scm=20140722.H_2978213._.OR_help-T_cn~zh-V_1
+
+文本转语音 TTS: 
+@API接口文档\AI-MEDIA-TTS-API-REFERENCE.md
+出自于项目：@G:\chongai-studio\
+
+
+可以专门做一个生成音频的节点，调用TTS 直接文本输出音频或者直接下载音频，更方便也更通用，目前的设计为了TTS导出音频要借助生成数字人，太浪费了
+
+
+目前左侧边的节点太多了，能不能实现相关类型的节点可折叠或者可收展
+
+<div class="error-message">Volcengine request failed: HTTP 404 {"error":{"code":"InvalidEndpointOrModel.NotFound","message":"The model or endpoint doubao-seedance-2-0-fast does not exist or you do not have access to it. Request id: 021777954487941af559081728f7c409f9049e42e5d0da84a4ef3","param":"","type":"Not Found"}}</div>
+
+
+
+
+优先级	项目	理由
+P0	图片高清放大节点	生成图分辨率不够时刚需，API 现成，半天可做
+P1	视频拼接节点	多段视频串联讲故事的基础能力
+
+目前是否具备了 多图生图，多图生视频的功能

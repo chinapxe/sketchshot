@@ -107,7 +107,7 @@ const TTSNode = memo(({ id, data, selected = false }: NodeProps<TTSNodeType>) =>
         <CustomerServiceOutlined className="node-header-icon" />
         <NodeTitleEditor
           value={data.label}
-          onCommit={(value) => updateNodeData(id, { label: value })}
+          onChange={(value) => updateNodeData(id, { label: value })}
         />
         {hasAudio && <span className="node-status-badge status-success">完成</span>}
         {data.status === 'error' && <span className="node-status-badge status-error">失败</span>}
@@ -204,7 +204,7 @@ const TTSNode = memo(({ id, data, selected = false }: NodeProps<TTSNodeType>) =>
         )}
       </div>
 
-      <NodeWidthResizer nodeId={id} nodeWidth={nodeWidth} />
+      <NodeWidthResizer nodeId={id} selected={selected} currentWidth={nodeWidth} minWidth={DEFAULT_NODE_SIZES.tts.width} />
     </div>
   )
 })

@@ -421,6 +421,7 @@ export interface ImageUpscaleNodeData {
   progress: number
   creditCost: number
   outputImage?: string
+  outputImageOriginalUrl?: string
   lastRunSignature?: string
   resultCache?: Record<string, string>
   needsRefresh?: boolean

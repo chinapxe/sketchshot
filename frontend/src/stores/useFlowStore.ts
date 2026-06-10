@@ -196,6 +196,7 @@ const createDefaultNodeData = (type: AppNodeType): Record<string, unknown> => {
         voice: DEFAULT_TTS_VOICE,
         style: 'speech',
         resolution: '480P',
+        inputMode: 'text' as const,
         status: 'idle' as NodeStatus,
         progress: 0,
         outputVideo: undefined,
@@ -874,8 +875,6 @@ const normalizeVideoEditData = (data: Partial<VideoEditNodeData>): VideoEditNode
     label: '视频编辑',
     prompt: '',
     sourceVideo: undefined,
-    upstreamReferenceImages: [],
-    referenceImages: [],
     veditModel: 'happyhorse-1.0-video-edit',
     adapter: 'happyhorse',
     seedanceVersion: '1.5',
@@ -1089,6 +1088,7 @@ interface FlowState {
   getUpstreamImages: (nodeId: string) => string[]
   getUpstreamImageOriginalUrls: (nodeId: string) => string[]
   getUpstreamVideos: (nodeId: string) => string[]
+  getUpstreamAudioUrls: (nodeId: string) => string[]
   syncDownstream: (sourceNodeId: string) => void
   updateNodeWidth: (nodeId: string, width: number) => void
   selectNode: (nodeId: string | null) => void

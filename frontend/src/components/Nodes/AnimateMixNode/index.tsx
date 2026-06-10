@@ -7,7 +7,7 @@ import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import { createAnimateMixTask } from '../../../services/api'
 import type { AnimateMixNode as AnimateMixNodeType } from '../../../types'
-import type { AnimateMixNodeData, NodeStatus } from '../../../types'
+import type { NodeStatus } from '../../../types'
 import { getPreviewAssetType } from '../../../utils/media'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
@@ -134,7 +134,11 @@ const AnimateMixNode = memo(({ id, data, selected = false }: NodeProps<AnimateMi
 
   const handlePreviewOutput = useCallback(() => {
     if (data.outputVideo) {
-      openPreview(data.outputVideo)
+      openPreview({
+        type: getPreviewAssetType(data.outputVideo),
+        src: data.outputVideo,
+        title: `${data.label} - 换人结果`,
+      })
     }
   }, [data.outputVideo, openPreview])
 
@@ -152,7 +156,7 @@ const AnimateMixNode = memo(({ id, data, selected = false }: NodeProps<AnimateMi
         <SwapOutlined className="node-header-icon" />
         <NodeTitleEditor
           value={data.label}
-          onCommit={(value) => updateNodeData(id, { label: value })}
+          onChange={(value) => updateNodeData(id, { label: value })}
         />
         {getStatusBadge()}
       </div>
@@ -261,7 +265,7 @@ const AnimateMixNode = memo(({ id, data, selected = false }: NodeProps<AnimateMi
         </div>
       </div>
 
-      <NodeWidthResizer nodeId={id} nodeWidth={nodeWidth} />
+      <NodeWidthResizer nodeId={id} selected={selected} currentWidth={nodeWidth} minWidth={DEFAULT_NODE_SIZES.animateMix.width} />
     </div>
   )
 })

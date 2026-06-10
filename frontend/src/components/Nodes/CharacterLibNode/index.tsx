@@ -7,7 +7,7 @@ import { createGenerateTask, listCharacters, saveCharacter, deleteCharacter, lis
 import { connectProgress } from '../../../services/websocket'
 import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
-import type { CharacterLibNode as CharacterLibNodeType, CharacterLibNodeData } from '../../../types'
+import type { CharacterLibNode as CharacterLibNodeType } from '../../../types'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
 import NodeTextareaEditor from '../shared/NodeTextareaEditor'
@@ -165,7 +165,7 @@ const CharacterLibNode = memo(({ id, data, selected = false }: NodeProps<Charact
           closeWs()
 
           const outputImage = progressMessage.output_image
-          const cdnUrl = (progressMessage as Record<string, unknown>).output_image_original_url as string | undefined
+          const cdnUrl = (progressMessage as unknown as Record<string, unknown>).output_image_original_url as string | undefined
 
           updateNodeData(id, {
             isGenerating: false,
@@ -229,7 +229,7 @@ const CharacterLibNode = memo(({ id, data, selected = false }: NodeProps<Charact
       identity_lock: false,
       identity_strength: 0.7,
       negative_prompt: '过度磨皮，塑料皮肤质感，AI感，卡通感，模糊，低分辨率，变形，畸形手指，多余肢体，文字，水印，logo，过度锐化，HDR效果，过度饱和',
-    }).catch((error) => {
+    }).catch(() => {
       if (settled) return
       settled = true
       closeWs()
@@ -261,11 +261,6 @@ const CharacterLibNode = memo(({ id, data, selected = false }: NodeProps<Charact
     if (!url) return false
     return /^(https?:|\/)/.test(url)
   }
-
-  const filterByMeta = useCallback((chars: OfficialCharacterItem[], key: string, value: string) => {
-    if (!value) return chars
-    return chars.filter((c) => String(c.metadata[key] || '') === value)
-  }, [])
 
   return (
     <>
@@ -493,9 +488,9 @@ const CharacterLibNode = memo(({ id, data, selected = false }: NodeProps<Charact
                       )}
                       <div className="gallery-item-name" title={char.title}>{char.title}</div>
                       <div className="gallery-item-meta">
-                        {char.metadata.Country && `${char.metadata.Country} · `}
-                        {char.metadata.Age && `${char.metadata.Age}岁`}
-                        {char.metadata.Gender && ` · ${char.metadata.Gender}`}
+                        {char.metadata.Country ? `${String(char.metadata.Country)} · ` : null}
+                        {char.metadata.Age ? `${String(char.metadata.Age)}岁` : null}
+                        {char.metadata.Gender ? ` · ${String(char.metadata.Gender)}` : null}
                       </div>
                     </div>
                   ))}

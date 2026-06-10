@@ -7,7 +7,8 @@ import { useAssetPreviewStore } from '../../../stores/useAssetPreviewStore'
 import { useFlowStore } from '../../../stores/useFlowStore'
 import { createDigitalHumanTask, createTTSAudioTask, uploadImageAsset } from '../../../services/api'
 import type { DigitalHumanNode as DigitalHumanNodeType } from '../../../types'
-import type { DigitalHumanNodeData, NodeStatus } from '../../../types'
+import type { NodeStatus } from '../../../types'
+import { getPreviewAssetType } from '../../../utils/media'
 import { DEFAULT_NODE_SIZES, resolveNodeWidth } from '../../../utils/nodeSizing'
 import NodeWidthResizer from '../NodeWidthResizer'
 import NodeTitleEditor from '../shared/NodeTitleEditor'
@@ -220,7 +221,11 @@ const DigitalHumanNode = memo(({ id, data, selected = false }: NodeProps<Digital
 
   const handlePreviewOutput = useCallback(() => {
     if (data.outputVideo) {
-      openPreview(data.outputVideo)
+      openPreview({
+        type: getPreviewAssetType(data.outputVideo),
+        src: data.outputVideo,
+        title: `${data.label} - 数字人结果`,
+      })
     }
   }, [data.outputVideo, openPreview])
 
@@ -243,7 +248,7 @@ const DigitalHumanNode = memo(({ id, data, selected = false }: NodeProps<Digital
         <CustomerServiceOutlined className="node-header-icon" />
         <NodeTitleEditor
           value={data.label}
-          onCommit={(value) => updateNodeData(id, { label: value })}
+          onChange={(value) => updateNodeData(id, { label: value })}
         />
         {getStatusBadge()}
       </div>
@@ -490,7 +495,7 @@ const DigitalHumanNode = memo(({ id, data, selected = false }: NodeProps<Digital
         </div>
       </div>
 
-      <NodeWidthResizer nodeId={id} nodeWidth={nodeWidth} />
+      <NodeWidthResizer nodeId={id} selected={selected} currentWidth={nodeWidth} minWidth={DEFAULT_NODE_SIZES.digitalHuman.width} />
     </div>
   )
 })
